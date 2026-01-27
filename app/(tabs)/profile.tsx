@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
-import { View, Text, ScrollView, Image, StyleSheet } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { View, Text, ScrollView, Image, StyleSheet, Pressable } from 'react-native';
+import { useFocusEffect, router } from 'expo-router';
 import { storage } from '@/lib/storage';
 import { calculateLevel, xpProgress } from '@/lib/xp';
 import { Book, UserProgress, LootItem, Companion } from '@/lib/types';
@@ -30,6 +30,10 @@ export default function ProfileScreen() {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>profile_</Text>
+
+      <Pressable style={styles.configLink} onPress={() => router.push('/config')}>
+        <Text style={styles.configLinkText}>[config]</Text>
+      </Pressable>
 
       {/* Stats section */}
       <View style={styles.section}>
@@ -217,5 +221,15 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.mono,
     fontSize: fontSize('small'),
     letterSpacing: letterSpacing('tight'),
+  },
+  configLink: {
+    position: 'absolute',
+    top: spacing(16),
+    right: spacing(6),
+  },
+  configLinkText: {
+    color: COLORS.textSecondary,
+    fontFamily: FONTS.mono,
+    fontSize: fontSize('small'),
   },
 });
