@@ -53,6 +53,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="collection"
+        options={{
+          title: 'col',
+          tabBarIcon: ({ focused }) => <TabIcon symbol="*" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'me',
