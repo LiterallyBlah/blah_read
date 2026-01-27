@@ -10,6 +10,23 @@ export interface ImageGenConfig {
   aspectRatio?: '1:1' | '16:9' | '4:3' | '3:4' | '9:16';
 }
 
+/**
+ * Determine the correct modalities for a model
+ * Pure image generation models only support image output
+ * Multimodal models (gemini) support both image and text
+ */
+function getModalitiesForModel(model: string): string[] {
+  const isPureImageModel = model.includes('seedream') ||
+                           model.includes('flux') ||
+                           model.includes('stable-diffusion') ||
+                           model.includes('dall-e') ||
+                           model.includes('ideogram') ||
+                           model.includes('recraft') ||
+                           model.includes('midjourney');
+
+  return isPureImageModel ? ['image'] : ['image', 'text'];
+}
+
 export function buildImagePrompt(creature: string, keywords: string[]): string {
   return `32x32 pixel art sprite, ${creature}, ${keywords.join(', ')}, white background, limited color palette, retro game style, centered, simple, cute`;
 }
@@ -44,11 +61,12 @@ export async function generateCompanionImage(
 ): Promise<string> {
   const model = config.model || DEFAULT_MODEL;
   const prompt = buildImagePrompt(creature, keywords);
+  const modalities = getModalitiesForModel(model);
 
   const body: Record<string, unknown> = {
     model,
     messages: [{ role: 'user', content: prompt }],
-    modalities: ['image', 'text'],
+    modalities,
   };
 
   // Add Gemini-specific image config if using a Gemini model
@@ -96,8 +114,11 @@ export async function generateImageForCompanion(
   const model = config.model || DEFAULT_MODEL;
   const prompt = buildCompanionImagePrompt(companion);
 
+  const modalities = getModalitiesForModel(model);
+
   debug.log('imageGen', `Starting image generation for "${companion.name}"`, {
     model,
+    modalities,
     type: companion.type,
     rarity: companion.rarity,
   });
@@ -106,7 +127,7 @@ export async function generateImageForCompanion(
   const body: Record<string, unknown> = {
     model,
     messages: [{ role: 'user', content: prompt }],
-    modalities: ['image', 'text'],
+    modalities,
   };
 
   // Add Gemini-specific image config if using a Gemini model
@@ -116,7 +137,7 @@ export async function generateImageForCompanion(
     };
   }
 
-  debug.log('imageGen', 'Sending request to OpenRouter...', { url: OPENROUTER_API_URL });
+  debug.log('imageGen', 'Sending request to OpenRouter...', { url: OPENROUTER_API_URL, modalities });
   debug.time('imageGen', `image-${companion.id}`);
 
   const response = await fetch(OPENROUTER_API_URL, {
