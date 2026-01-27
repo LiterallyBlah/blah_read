@@ -4,7 +4,8 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { storage } from '@/lib/storage';
 import { canUnlockCompanion, generateCompanion } from '@/lib/companionGenerator';
 import { Book, BookStatus } from '@/lib/types';
-import { COLORS, FONTS, spacing, fontSize, letterSpacing } from '@/lib/theme';
+import { FONTS } from '@/lib/theme';
+import { useTheme } from '@/lib/ThemeContext';
 
 const STATUS_OPTIONS: { label: string; value: BookStatus }[] = [
   { label: 'to read', value: 'to_read' },
@@ -13,9 +14,12 @@ const STATUS_OPTIONS: { label: string; value: BookStatus }[] = [
 ];
 
 export default function BookDetailScreen() {
+  const { colors, spacing, fontSize, letterSpacing } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [book, setBook] = useState<Book | null>(null);
   const [generating, setGenerating] = useState(false);
+
+  const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
   useEffect(() => {
     loadBook();
@@ -156,168 +160,170 @@ export default function BookDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    padding: spacing(6),
-    paddingTop: spacing(16),
-  },
-  loading: {
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('body'),
-  },
-  backButton: {
-    marginBottom: spacing(6),
-  },
-  backText: {
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('body'),
-    letterSpacing: letterSpacing('tight'),
-  },
-  coverSection: {
-    alignItems: 'center',
-    marginBottom: spacing(6),
-  },
-  cover: {
-    width: 150,
-    height: 225,
-    backgroundColor: COLORS.surface,
-  },
-  placeholder: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  placeholderText: {
-    color: COLORS.textMuted,
-    fontFamily: FONTS.mono,
-    fontSize: 48,
-  },
-  title: {
-    color: COLORS.text,
-    fontFamily: FONTS.mono,
-    fontWeight: FONTS.monoBold,
-    fontSize: fontSize('title'),
-    letterSpacing: letterSpacing('tight'),
-    marginBottom: spacing(2),
-  },
-  time: {
-    color: COLORS.textMuted,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('small'),
-    letterSpacing: letterSpacing('tight'),
-    marginBottom: spacing(4),
-  },
-  synopsis: {
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('body'),
-    lineHeight: 22,
-    marginBottom: spacing(6),
-  },
-  section: {
-    marginBottom: spacing(6),
-  },
-  sectionLabel: {
-    color: COLORS.textMuted,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('small'),
-    letterSpacing: letterSpacing('tight'),
-    marginBottom: spacing(2),
-  },
-  statusRow: {
-    flexDirection: 'row',
-    gap: spacing(2),
-  },
-  statusButton: {
-    paddingVertical: spacing(2),
-    paddingHorizontal: spacing(3),
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  statusButtonActive: {
-    borderColor: COLORS.text,
-    backgroundColor: COLORS.backgroundCard,
-  },
-  statusText: {
-    color: COLORS.textMuted,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('small'),
-    letterSpacing: letterSpacing('tight'),
-  },
-  statusTextActive: {
-    color: COLORS.text,
-  },
-  companionCard: {
-    alignItems: 'center',
-    padding: spacing(4),
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.backgroundCard,
-  },
-  companionImage: {
-    width: 96,
-    height: 96,
-    marginBottom: spacing(2),
-  },
-  companionName: {
-    color: COLORS.text,
-    fontFamily: FONTS.mono,
-    fontWeight: FONTS.monoBold,
-    fontSize: fontSize('large'),
-    letterSpacing: letterSpacing('tight'),
-  },
-  companionType: {
-    color: COLORS.textMuted,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('small'),
-    letterSpacing: letterSpacing('tight'),
-  },
-  unlockButton: {
-    padding: spacing(4),
-    borderWidth: 1,
-    borderColor: COLORS.success,
-    alignItems: 'center',
-  },
-  unlockText: {
-    color: COLORS.success,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('body'),
-    letterSpacing: letterSpacing('tight'),
-  },
-  lockedText: {
-    color: COLORS.textMuted,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('small'),
-    letterSpacing: letterSpacing('tight'),
-  },
-  primaryButton: {
-    borderWidth: 1,
-    borderColor: COLORS.text,
-    paddingVertical: spacing(5),
-    alignItems: 'center',
-    marginBottom: spacing(4),
-  },
-  primaryButtonText: {
-    color: COLORS.text,
-    fontFamily: FONTS.mono,
-    fontWeight: FONTS.monoBold,
-    fontSize: fontSize('large'),
-    letterSpacing: letterSpacing('hero'),
-  },
-  deleteButton: {
-    alignItems: 'center',
-    paddingVertical: spacing(3),
-    marginBottom: spacing(8),
-  },
-  deleteText: {
-    color: COLORS.error,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('small'),
-    letterSpacing: letterSpacing('tight'),
-  },
-});
+function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: any) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      padding: spacing(6),
+      paddingTop: spacing(16),
+    },
+    loading: {
+      color: colors.textSecondary,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('body'),
+    },
+    backButton: {
+      marginBottom: spacing(6),
+    },
+    backText: {
+      color: colors.textSecondary,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('body'),
+      letterSpacing: letterSpacing('tight'),
+    },
+    coverSection: {
+      alignItems: 'center',
+      marginBottom: spacing(6),
+    },
+    cover: {
+      width: 150,
+      height: 225,
+      backgroundColor: colors.surface,
+    },
+    placeholder: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    placeholderText: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: 48,
+    },
+    title: {
+      color: colors.text,
+      fontFamily: FONTS.mono,
+      fontWeight: FONTS.monoBold,
+      fontSize: fontSize('title'),
+      letterSpacing: letterSpacing('tight'),
+      marginBottom: spacing(2),
+    },
+    time: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+      marginBottom: spacing(4),
+    },
+    synopsis: {
+      color: colors.textSecondary,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('body'),
+      lineHeight: 22,
+      marginBottom: spacing(6),
+    },
+    section: {
+      marginBottom: spacing(6),
+    },
+    sectionLabel: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+      marginBottom: spacing(2),
+    },
+    statusRow: {
+      flexDirection: 'row',
+      gap: spacing(2),
+    },
+    statusButton: {
+      paddingVertical: spacing(2),
+      paddingHorizontal: spacing(3),
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    statusButtonActive: {
+      borderColor: colors.text,
+      backgroundColor: colors.backgroundCard,
+    },
+    statusText: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+    },
+    statusTextActive: {
+      color: colors.text,
+    },
+    companionCard: {
+      alignItems: 'center',
+      padding: spacing(4),
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.backgroundCard,
+    },
+    companionImage: {
+      width: 96,
+      height: 96,
+      marginBottom: spacing(2),
+    },
+    companionName: {
+      color: colors.text,
+      fontFamily: FONTS.mono,
+      fontWeight: FONTS.monoBold,
+      fontSize: fontSize('large'),
+      letterSpacing: letterSpacing('tight'),
+    },
+    companionType: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+    },
+    unlockButton: {
+      padding: spacing(4),
+      borderWidth: 1,
+      borderColor: colors.success,
+      alignItems: 'center',
+    },
+    unlockText: {
+      color: colors.success,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('body'),
+      letterSpacing: letterSpacing('tight'),
+    },
+    lockedText: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+    },
+    primaryButton: {
+      borderWidth: 1,
+      borderColor: colors.text,
+      paddingVertical: spacing(5),
+      alignItems: 'center',
+      marginBottom: spacing(4),
+    },
+    primaryButtonText: {
+      color: colors.text,
+      fontFamily: FONTS.mono,
+      fontWeight: FONTS.monoBold,
+      fontSize: fontSize('large'),
+      letterSpacing: letterSpacing('hero'),
+    },
+    deleteButton: {
+      alignItems: 'center',
+      paddingVertical: spacing(3),
+      marginBottom: spacing(8),
+    },
+    deleteText: {
+      color: colors.error,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+    },
+  });
+}
