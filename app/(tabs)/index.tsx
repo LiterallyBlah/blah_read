@@ -5,9 +5,11 @@ import { router, useFocusEffect } from 'expo-router';
 import { storage } from '@/lib/storage';
 import { calculateLevel, xpProgress } from '@/lib/xp';
 import { Book, UserProgress } from '@/lib/types';
-import { COLORS, FONTS, spacing, fontSize, letterSpacing } from '@/lib/theme';
+import { FONTS } from '@/lib/theme';
+import { useTheme } from '@/lib/ThemeContext';
 
 export default function HomeScreen() {
+  const { colors, spacing, fontSize, letterSpacing } = useTheme();
   const [currentBook, setCurrentBook] = useState<Book | null>(null);
   const [progress, setProgress] = useState<UserProgress | null>(null);
   const cursorAnim = useRef(new Animated.Value(1)).current;
@@ -39,6 +41,8 @@ export default function HomeScreen() {
 
   const level = progress ? calculateLevel(progress.totalXp) : 1;
   const xp = progress ? xpProgress(progress.totalXp) : { current: 0, needed: 1000 };
+
+  const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
   return (
     <View style={styles.container}>
@@ -80,89 +84,91 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    padding: spacing(6), // 24px - contentPadding from design system
-    paddingTop: spacing(16), // Extra top padding for status bar
-  },
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing(12), // 48px - logo to content spacing
-  },
-  logo: {
-    color: COLORS.text,
-    fontFamily: FONTS.mono,
-    fontWeight: FONTS.monoBold,
-    fontSize: fontSize('hero'), // 48px
-    letterSpacing: letterSpacing('normal'),
-  },
-  cursor: {
-    color: COLORS.text,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('hero'),
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing(4),
-  },
-  stat: {
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('body'), // 14px
-    letterSpacing: letterSpacing('tight'),
-  },
-  xpBar: {
-    height: 4, // Progress track height from design system
-    backgroundColor: COLORS.backgroundCard,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: spacing(2),
-  },
-  xpFill: {
-    height: '100%',
-    backgroundColor: COLORS.success,
-  },
-  xpText: {
-    color: COLORS.success,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('small'), // 12px
-    letterSpacing: letterSpacing('tight'),
-    marginBottom: spacing(10), // 40px - section separation
-  },
-  currentBook: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.backgroundCard,
-    padding: spacing(6),
-  },
-  bookLabel: {
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('small'),
-    letterSpacing: letterSpacing('tight'),
-    marginBottom: spacing(2),
-  },
-  bookTitle: {
-    color: COLORS.text,
-    fontFamily: FONTS.mono,
-    fontWeight: FONTS.monoBold,
-    fontSize: fontSize('large'), // 18px
-    letterSpacing: letterSpacing('tight'),
-    marginBottom: spacing(6),
-    textAlign: 'center',
-  },
-  startButton: {
-    color: COLORS.text,
-    fontFamily: FONTS.mono,
-    fontWeight: FONTS.monoBold,
-    fontSize: fontSize('large'),
-    letterSpacing: letterSpacing('hero'), // 4 for CTAs
-  },
-});
+function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: any) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      padding: spacing(6), // 24px - contentPadding from design system
+      paddingTop: spacing(16), // Extra top padding for status bar
+    },
+    logoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing(12), // 48px - logo to content spacing
+    },
+    logo: {
+      color: colors.text,
+      fontFamily: FONTS.mono,
+      fontWeight: FONTS.monoBold,
+      fontSize: fontSize('hero'), // 48px
+      letterSpacing: letterSpacing('normal'),
+    },
+    cursor: {
+      color: colors.text,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('hero'),
+    },
+    statsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: spacing(4),
+    },
+    stat: {
+      color: colors.textSecondary,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('body'), // 14px
+      letterSpacing: letterSpacing('tight'),
+    },
+    xpBar: {
+      height: 4, // Progress track height from design system
+      backgroundColor: colors.backgroundCard,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginBottom: spacing(2),
+    },
+    xpFill: {
+      height: '100%',
+      backgroundColor: colors.success,
+    },
+    xpText: {
+      color: colors.success,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'), // 12px
+      letterSpacing: letterSpacing('tight'),
+      marginBottom: spacing(10), // 40px - section separation
+    },
+    currentBook: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.backgroundCard,
+      padding: spacing(6),
+    },
+    bookLabel: {
+      color: colors.textSecondary,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+      marginBottom: spacing(2),
+    },
+    bookTitle: {
+      color: colors.text,
+      fontFamily: FONTS.mono,
+      fontWeight: FONTS.monoBold,
+      fontSize: fontSize('large'), // 18px
+      letterSpacing: letterSpacing('tight'),
+      marginBottom: spacing(6),
+      textAlign: 'center',
+    },
+    startButton: {
+      color: colors.text,
+      fontFamily: FONTS.mono,
+      fontWeight: FONTS.monoBold,
+      fontSize: fontSize('large'),
+      letterSpacing: letterSpacing('hero'), // 4 for CTAs
+    },
+  });
+}
