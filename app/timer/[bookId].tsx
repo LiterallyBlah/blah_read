@@ -8,7 +8,10 @@ import { storage } from '@/lib/storage';
 import { calculateXp } from '@/lib/xp';
 import { shouldTriggerLoot, rollLoot } from '@/lib/loot';
 import { updateStreak, getDateString } from '@/lib/streak';
-import { Book, ReadingSession } from '@/lib/types';
+import { Book, ReadingSession, Companion } from '@/lib/types';
+import { processReadingSession } from '@/lib/companionUnlock';
+import { checkLootBoxRewards } from '@/lib/lootBox';
+import { maybeGenerateImages } from '@/lib/companionImageQueue';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 
@@ -79,11 +82,44 @@ export default function TimerScreen() {
     // Update book
     book.totalReadingTime = newTime;
     book.status = 'reading';
+
+    // Process companion unlocks
+    let unlockedCompanions: Companion[] = [];
+    if (book.companions) {
+      const result = processReadingSession(book, elapsed);
+      book.companions = result.updatedCompanions;
+      unlockedCompanions = result.unlockedCompanions;
+
+      // Add any loot boxes earned from reading time
+      if (result.earnedLootBoxes.length > 0) {
+        progress.lootBoxes.availableBoxes.push(...result.earnedLootBoxes);
+      }
+    }
+
     await storage.saveBook(book);
 
     // Update progress
+    const previousProgress = { ...progress };
     progress.totalXp += xp;
+    progress.totalHoursRead = Math.floor(
+      (await storage.getBooks()).reduce((sum, b) => sum + b.totalReadingTime, 0) / 3600
+    );
+
+    // Check for achievement-based loot boxes
+    const newLootBoxes = checkLootBoxRewards(previousProgress, progress);
+    if (newLootBoxes.length > 0) {
+      progress.lootBoxes.availableBoxes.push(...newLootBoxes);
+    }
+
     await storage.saveProgress(progress);
+
+    // Trigger background image generation for next unlocks
+    if (book.companions) {
+      const generateImage = async () => null; // Placeholder
+      maybeGenerateImages(book, generateImage).then(async updatedBook => {
+        await storage.saveBook(updatedBook);
+      });
+    }
 
     router.back();
   }
