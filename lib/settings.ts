@@ -1,0 +1,40 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const SETTINGS_KEY = 'blahread:settings';
+
+export interface Settings {
+  // API
+  apiKey: string | null;
+  llmModel: string;
+  imageModel: string;
+  // Goals
+  dailyTarget: number;
+  reminderEnabled: boolean;
+  reminderTime: string;
+  // Display
+  theme: 'auto' | 'dark' | 'light';
+  fontScale: 0.85 | 1 | 1.2;
+}
+
+export const defaultSettings: Settings = {
+  apiKey: null,
+  llmModel: 'google/gemini-2.5-flash-preview-05-20',
+  imageModel: 'bytedance-seed/seedream-4.5',
+  dailyTarget: 30,
+  reminderEnabled: false,
+  reminderTime: '20:00',
+  theme: 'auto',
+  fontScale: 1,
+};
+
+export const settings = {
+  async get(): Promise<Settings> {
+    const data = await AsyncStorage.getItem(SETTINGS_KEY);
+    return data ? { ...defaultSettings, ...JSON.parse(data) } : defaultSettings;
+  },
+
+  async set(partial: Partial<Settings>): Promise<void> {
+    const current = await this.get();
+    await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...current, ...partial }));
+  },
+};
