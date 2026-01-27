@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { View, ScrollView, StyleSheet, Text, Pressable, Image, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
@@ -17,6 +18,7 @@ interface DisplayCompanion extends Companion {
 
 export default function CollectionScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();
+  const insets = useSafeAreaInsets();
   const [books, setBooks] = useState<Book[]>([]);
   const [lootBoxes, setLootBoxes] = useState<LootBoxState | null>(null);
   const [typeFilter, setTypeFilter] = useState<FilterType>('all');
@@ -230,7 +232,7 @@ export default function CollectionScreen() {
       </View>
 
       {/* Companion grid */}
-      <View style={styles.grid}>
+      <View style={[styles.grid, { paddingBottom: spacing(6) + insets.bottom }]}>
         {filtered.map(companion => (
           <CompanionCard
             key={companion.id}
@@ -436,7 +438,6 @@ function createStyles(
       flexDirection: 'row',
       flexWrap: 'wrap',
       padding: spacing(6),
-      paddingBottom: spacing(20),
       justifyContent: 'space-between',
     },
     emptyText: {

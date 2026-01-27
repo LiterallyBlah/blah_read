@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -21,6 +22,7 @@ const defaultDeleteOptions: DeleteOptions = {
 
 export default function ConfigScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();
+  const insets = useSafeAreaInsets();
   const [config, setConfig] = useState<Settings | null>(null);
   const [apiStatus, setApiStatus] = useState<ApiStatus>('not set');
   const [imageModelValid, setImageModelValid] = useState<boolean | null>(null);
@@ -129,7 +131,7 @@ export default function ConfigScreen() {
   if (!config) return <View style={styles.container}><Text style={styles.text}>loading..._</Text></View>;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView style={styles.container} contentContainerStyle={[styles.contentContainer, { paddingBottom: spacing(6) + insets.bottom }]}>
       <Pressable style={styles.backButton} onPress={() => router.back()}>
         <Text style={styles.backText}>{'<'} back</Text>
       </Pressable>
@@ -444,7 +446,7 @@ export default function ConfigScreen() {
 function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: any) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
-    contentContainer: { padding: spacing(6), paddingTop: spacing(16), paddingBottom: spacing(20) },
+    contentContainer: { padding: spacing(6), paddingTop: spacing(16) },
     backButton: { marginBottom: spacing(6) },
     backText: { color: colors.textSecondary, fontFamily: FONTS.mono, fontSize: fontSize('body') },
     title: { color: colors.text, fontFamily: FONTS.mono, fontWeight: '700', fontSize: fontSize('title'), marginBottom: spacing(6) },

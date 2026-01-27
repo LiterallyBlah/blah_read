@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { View, Text, Image, Pressable, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { storage } from '@/lib/storage';
 import { enrichBookData } from '@/lib/bookEnrichment';
@@ -85,6 +86,7 @@ function CompanionTile({
 
 export default function BookDetailScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [book, setBook] = useState<Book | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -375,7 +377,7 @@ export default function BookDetailScreen() {
   const minutes = Math.floor((book.totalReadingTime % 3600) / 60);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView style={styles.container} contentContainerStyle={[styles.contentContainer, { paddingBottom: spacing(6) + insets.bottom }]}>
       {/* Back button */}
       <Pressable style={styles.backButton} onPress={() => router.back()}>
         <Text style={styles.backText}>{'<'} back</Text>
@@ -595,7 +597,6 @@ function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: a
     contentContainer: {
       padding: spacing(6),
       paddingTop: spacing(16),
-      paddingBottom: spacing(20),
     },
     loading: {
       color: colors.textSecondary,

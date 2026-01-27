@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { View, Text, ScrollView, Image, StyleSheet, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, router } from 'expo-router';
 import { storage } from '@/lib/storage';
 import { calculateLevel, xpProgress } from '@/lib/xp';
@@ -9,6 +10,7 @@ import { useTheme } from '@/lib/ThemeContext';
 
 export default function ProfileScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();
+  const insets = useSafeAreaInsets();
   const [progress, setProgress] = useState<UserProgress | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
 
@@ -32,7 +34,7 @@ export default function ProfileScreen() {
   const hours = Math.floor(totalTime / 3600);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView style={styles.container} contentContainerStyle={[styles.contentContainer, { paddingBottom: spacing(6) + insets.bottom }]}>
       <Text style={styles.title}>profile_</Text>
 
       <Pressable style={styles.configLink} onPress={() => router.push('/config')}>
@@ -116,7 +118,6 @@ function createStyles(colors: any, spacing: (n: number) => number, fontSize: (si
     contentContainer: {
       padding: spacing(6),
       paddingTop: spacing(16),
-      paddingBottom: spacing(20),
     },
     title: {
       color: colors.text,

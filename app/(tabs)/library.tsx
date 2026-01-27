@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { View, Text, FlatList, Pressable, StyleSheet, TextInput, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { storage } from '@/lib/storage';
@@ -18,6 +19,7 @@ const FILTERS: { label: string; value: BookStatus | 'all' }[] = [
 
 export default function LibraryScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();
+  const insets = useSafeAreaInsets();
   const [books, setBooks] = useState<Book[]>([]);
   const [filter, setFilter] = useState<BookStatus | 'all'>('all');
   const [search, setSearch] = useState('');
@@ -118,7 +120,7 @@ export default function LibraryScreen() {
           renderItem={({ item }) => (
             <BookCard book={item} onPress={() => router.push(`/book/${item.id}`)} />
           )}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: spacing(6) + insets.bottom }]}
         />
       )}
     </View>
@@ -179,9 +181,7 @@ const createStyles = (
     filterTextActive: {
       color: colors.text,
     },
-    list: {
-      paddingBottom: spacing(20),
-    },
+    list: {},
     row: {
       marginBottom: spacing(4),
     },
