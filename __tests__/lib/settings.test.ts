@@ -36,6 +36,18 @@ describe('settings', () => {
     expect(savedData.dailyTarget).toBe(45); // existing value preserved
     expect(savedData.llmModel).toBe(defaultSettings.llmModel); // default preserved
   });
+
+  it('returns default imageSize of 1K', async () => {
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+    const result = await settings.get();
+    expect(result.imageSize).toBe('1K');
+  });
+
+  it('persists imageSize setting', async () => {
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify({ imageSize: '2K' }));
+    const result = await settings.get();
+    expect(result.imageSize).toBe('2K');
+  });
 });
 
 describe('data management', () => {

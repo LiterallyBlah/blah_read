@@ -9,6 +9,7 @@ export interface Settings {
   apiKey: string | null;
   llmModel: string;
   imageModel: string;
+  imageSize: '1K' | '2K' | '4K';
   // API - Book Enrichment
   googleBooksApiKey: string | null;
   // Goals
@@ -26,6 +27,7 @@ export const defaultSettings: Settings = {
   apiKey: null,
   llmModel: 'google/gemini-2.5-flash-preview-05-20',
   imageModel: 'bytedance-seed/seedream-4.5',
+  imageSize: '1K',
   googleBooksApiKey: null,
   dailyTarget: 30,
   reminderEnabled: false,
