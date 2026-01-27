@@ -4,7 +4,8 @@ import { router, useFocusEffect } from 'expo-router';
 import { storage } from '@/lib/storage';
 import { BookCard } from '@/components/BookCard';
 import { Book, BookStatus } from '@/lib/types';
-import { COLORS, FONTS, spacing, fontSize, letterSpacing } from '@/lib/theme';
+import { FONTS } from '@/lib/theme';
+import { useTheme } from '@/lib/ThemeContext';
 
 const FILTERS: { label: string; value: BookStatus | 'all' }[] = [
   { label: 'all', value: 'all' },
@@ -14,9 +15,11 @@ const FILTERS: { label: string; value: BookStatus | 'all' }[] = [
 ];
 
 export default function LibraryScreen() {
+  const { colors, spacing, fontSize, letterSpacing } = useTheme();
   const [books, setBooks] = useState<Book[]>([]);
   const [filter, setFilter] = useState<BookStatus | 'all'>('all');
   const [search, setSearch] = useState('');
+  const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
   useFocusEffect(
     useCallback(() => {
@@ -40,7 +43,7 @@ export default function LibraryScreen() {
       <TextInput
         style={styles.search}
         placeholder="search..."
-        placeholderTextColor={COLORS.textMuted}
+        placeholderTextColor={colors.textMuted}
         value={search}
         onChangeText={setSearch}
       />
@@ -82,76 +85,82 @@ export default function LibraryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    padding: spacing(6),
-    paddingTop: spacing(16),
-  },
-  title: {
-    color: COLORS.text,
-    fontFamily: FONTS.mono,
-    fontWeight: FONTS.monoBold,
-    fontSize: fontSize('title'), // 28px
-    letterSpacing: letterSpacing('normal'),
-    marginBottom: spacing(6),
-  },
-  search: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.backgroundCard,
-    color: COLORS.text,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('body'),
-    padding: spacing(3),
-    marginBottom: spacing(4),
-  },
-  filters: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing(2),
-    marginBottom: spacing(6),
-  },
-  filterTab: {
-    paddingVertical: spacing(1),
-    paddingHorizontal: spacing(2),
-  },
-  filterTabActive: {
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.text,
-  },
-  filterText: {
-    color: COLORS.textMuted,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('small'),
-    letterSpacing: letterSpacing('tight'),
-  },
-  filterTextActive: {
-    color: COLORS.text,
-  },
-  list: {
-    paddingBottom: spacing(8),
-  },
-  row: {
-    marginBottom: spacing(4),
-  },
-  empty: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('large'),
-    letterSpacing: letterSpacing('tight'),
-    marginBottom: spacing(2),
-  },
-  emptyHint: {
-    color: COLORS.textMuted,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('small'),
-    letterSpacing: letterSpacing('tight'),
-  },
-});
+const createStyles = (
+  colors: ReturnType<typeof useTheme>['colors'],
+  spacing: ReturnType<typeof useTheme>['spacing'],
+  fontSize: ReturnType<typeof useTheme>['fontSize'],
+  letterSpacing: ReturnType<typeof useTheme>['letterSpacing']
+) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      padding: spacing(6),
+      paddingTop: spacing(16),
+    },
+    title: {
+      color: colors.text,
+      fontFamily: FONTS.mono,
+      fontWeight: FONTS.monoBold,
+      fontSize: fontSize('title'), // 28px
+      letterSpacing: letterSpacing('normal'),
+      marginBottom: spacing(6),
+    },
+    search: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.backgroundCard,
+      color: colors.text,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('body'),
+      padding: spacing(3),
+      marginBottom: spacing(4),
+    },
+    filters: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing(2),
+      marginBottom: spacing(6),
+    },
+    filterTab: {
+      paddingVertical: spacing(1),
+      paddingHorizontal: spacing(2),
+    },
+    filterTabActive: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.text,
+    },
+    filterText: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+    },
+    filterTextActive: {
+      color: colors.text,
+    },
+    list: {
+      paddingBottom: spacing(8),
+    },
+    row: {
+      marginBottom: spacing(4),
+    },
+    empty: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    emptyText: {
+      color: colors.textSecondary,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('large'),
+      letterSpacing: letterSpacing('tight'),
+      marginBottom: spacing(2),
+    },
+    emptyHint: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+    },
+  });
