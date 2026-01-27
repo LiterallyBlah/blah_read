@@ -21,6 +21,14 @@ describe('companionResearch', () => {
       expect(prompt).toContain('Unknown Book');
       expect(prompt).not.toContain('undefined');
     });
+
+    it('asks for physicalDescription not visualDescription', () => {
+      const prompt = buildResearchPrompt('Test Book', 'Author');
+      expect(prompt).toContain('physicalDescription');
+      expect(prompt).not.toContain('visualDescription');
+      expect(prompt).toContain('Do NOT include');
+      expect(prompt).toContain('borders');
+    });
   });
 
   describe('parseResearchResponse', () => {
@@ -34,7 +42,7 @@ describe('companionResearch', () => {
             description: 'A hobbit who goes on an adventure',
             role: 'Protagonist',
             traits: 'Brave, curious, resourceful',
-            visualDescription: 'Small hobbit with curly hair and bare feet',
+            physicalDescription: 'Small hobbit with curly hair and bare feet',
           },
           {
             name: 'Smaug',
@@ -43,7 +51,7 @@ describe('companionResearch', () => {
             description: 'A fearsome dragon',
             role: 'Antagonist',
             traits: 'Greedy, cunning, powerful',
-            visualDescription: 'Large red dragon with golden eyes',
+            physicalDescription: 'Large red dragon with golden eyes',
           },
         ],
         researchConfidence: 'high' as const,
@@ -61,6 +69,24 @@ describe('companionResearch', () => {
       const result = parseResearchResponse({ companions: [], researchConfidence: 'low' }, 'book-123');
       expect(result.companions).toHaveLength(0);
       expect(result.confidence).toBe('low');
+    });
+
+    it('maps physicalDescription to companion', () => {
+      const response = {
+        companions: [{
+          name: 'Hero',
+          type: 'character' as const,
+          rarity: 'legendary' as const,
+          description: 'The protagonist',
+          role: 'Main character',
+          traits: 'Brave',
+          physicalDescription: 'Tall warrior with silver armor',
+        }],
+        researchConfidence: 'high' as const,
+      };
+
+      const result = parseResearchResponse(response, 'book-123');
+      expect(result.companions[0].physicalDescription).toBe('Tall warrior with silver armor');
     });
   });
 

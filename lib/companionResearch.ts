@@ -22,9 +22,9 @@ export const RESEARCH_SCHEMA = {
           description: { type: 'string' },
           role: { type: 'string' },
           traits: { type: 'string' },
-          visualDescription: { type: 'string' },
+          physicalDescription: { type: 'string' },
         },
-        required: ['name', 'type', 'rarity', 'description', 'role', 'traits', 'visualDescription'],
+        required: ['name', 'type', 'rarity', 'description', 'role', 'traits', 'physicalDescription'],
       },
     },
     researchConfidence: { type: 'string', enum: ['high', 'medium', 'low'] },
@@ -40,7 +40,7 @@ export interface ResearchResponse {
     description: string;
     role: string;
     traits: string;
-    visualDescription: string;
+    physicalDescription: string;
   }>;
   researchConfidence: 'high' | 'medium' | 'low';
 }
@@ -68,7 +68,7 @@ For each entity, provide:
 - description: 1-2 sentences about who/what they are
 - role: Their role in the story
 - traits: Notable personality traits or abilities
-- visualDescription: Physical appearance details for creating pixel art (colors, features, size, distinctive elements)
+- physicalDescription: Physical appearance ONLY - body type, coloring, clothing, features, expressions, size. Do NOT include art style, framing, backgrounds, or borders.
 
 Focus on:
 1. Main characters (protagonist, antagonist, key supporting cast)
@@ -98,7 +98,8 @@ export function parseResearchResponse(
     rarity: item.rarity,
     description: item.description,
     traits: item.traits,
-    visualDescription: item.visualDescription,
+    visualDescription: '', // Keep for backwards compatibility
+    physicalDescription: item.physicalDescription,
     imageUrl: null,
     source: 'discovered' as const,
     unlockMethod: null,
