@@ -1,8 +1,14 @@
 import * as FileSystem from 'expo-file-system';
-import { debug } from './debug';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const FS = FileSystem as any;
+
+// Simple console logging to avoid circular dependency with debug.ts -> settings.ts
+const log = (msg: string, data?: unknown) => {
+  if (__DEV__) {
+    console.log(`[imageStorage] ${msg}`, data ?? '');
+  }
+};
 
 /**
  * Directory for storing companion images
@@ -15,7 +21,7 @@ const IMAGE_DIR = `${FS.documentDirectory}companion-images/`;
 async function ensureImageDir(): Promise<void> {
   const dirInfo = await FS.getInfoAsync(IMAGE_DIR);
   if (!dirInfo.exists) {
-    debug.log('imageStorage', 'Creating image directory');
+    log( 'Creating image directory');
     await FS.makeDirectoryAsync(IMAGE_DIR, { intermediates: true });
   }
 }
@@ -35,7 +41,7 @@ export async function saveCompanionImage(
   // Extract the base64 data and mime type
   const matches = base64DataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
   if (!matches) {
-    debug.error('imageStorage', 'Invalid base64 data URL format');
+    log( 'Invalid base64 data URL format');
     throw new Error('Invalid base64 data URL format');
   }
 
@@ -43,7 +49,7 @@ export async function saveCompanionImage(
   const filename = `${companionId}.${extension}`;
   const fileUri = `${IMAGE_DIR}${filename}`;
 
-  debug.log('imageStorage', `Saving image for ${companionId}`, {
+  log( `Saving image for ${companionId}`, {
     extension,
     dataLength: base64Data.length,
     fileUri,
@@ -53,7 +59,7 @@ export async function saveCompanionImage(
     encoding: FS.EncodingType.Base64,
   });
 
-  debug.log('imageStorage', `Image saved: ${filename}`);
+  log( `Image saved: ${filename}`);
   return fileUri;
 }
 
@@ -70,10 +76,10 @@ export async function deleteCompanionImage(imageUri: string): Promise<void> {
     const fileInfo = await FS.getInfoAsync(imageUri);
     if (fileInfo.exists) {
       await FS.deleteAsync(imageUri);
-      debug.log('imageStorage', `Deleted image: ${imageUri}`);
+      log( `Deleted image: ${imageUri}`);
     }
   } catch (error) {
-    debug.warn('imageStorage', `Failed to delete image: ${imageUri}`, error);
+    log( `Failed to delete image: ${imageUri}`, error);
   }
 }
 
@@ -93,9 +99,9 @@ export async function deleteBookImages(bookId: string): Promise<void> {
       await FS.deleteAsync(`${IMAGE_DIR}${file}`);
     }
 
-    debug.log('imageStorage', `Deleted ${bookFiles.length} images for book ${bookId}`);
+    log( `Deleted ${bookFiles.length} images for book ${bookId}`);
   } catch (error) {
-    debug.warn('imageStorage', `Failed to delete book images: ${bookId}`, error);
+    log( `Failed to delete book images: ${bookId}`, error);
   }
 }
 
@@ -131,9 +137,9 @@ export async function clearAllImages(): Promise<void> {
     const dirInfo = await FS.getInfoAsync(IMAGE_DIR);
     if (dirInfo.exists) {
       await FS.deleteAsync(IMAGE_DIR, { idempotent: true });
-      debug.log('imageStorage', 'Cleared all companion images');
+      log( 'Cleared all companion images');
     }
   } catch (error) {
-    debug.warn('imageStorage', 'Failed to clear images', error);
+    log( 'Failed to clear images', error);
   }
 }

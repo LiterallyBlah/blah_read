@@ -33,9 +33,28 @@ const defaultProgress: UserProgress = {
 // Track if migration has run this session
 let migrationComplete = false;
 
+// Check if error is a "Row too big" error from AsyncStorage
+function isRowTooBigError(error: unknown): boolean {
+  if (error instanceof Error) {
+    return error.message.includes('Row too big') ||
+           error.message.includes('CursorWindow');
+  }
+  return false;
+}
+
 export const storage = {
   async getBooks(): Promise<Book[]> {
-    const data = await AsyncStorage.getItem(KEYS.BOOKS);
+    let data: string | null;
+    try {
+      data = await AsyncStorage.getItem(KEYS.BOOKS);
+    } catch (error) {
+      if (isRowTooBigError(error)) {
+        console.error('[storage] Books data corrupted (too large). Clearing...');
+        await AsyncStorage.removeItem(KEYS.BOOKS);
+        return [];
+      }
+      throw error;
+    }
     const books = data ? JSON.parse(data) : [];
 
     if (!migrationComplete) {
