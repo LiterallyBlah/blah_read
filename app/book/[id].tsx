@@ -3,6 +3,7 @@ import { View, Text, Image, Pressable, ScrollView, StyleSheet, Alert } from 'rea
 import { useLocalSearchParams, router } from 'expo-router';
 import { storage } from '@/lib/storage';
 import { canUnlockCompanion, generateCompanion } from '@/lib/companionGenerator';
+import { enrichBookData } from '@/lib/bookEnrichment';
 import { Book, BookStatus } from '@/lib/types';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
@@ -22,6 +23,7 @@ export default function BookDetailScreen() {
   const [generating, setGenerating] = useState(false);
   const [companionStep, setCompanionStep] = useState<CompanionStep | null>(null);
   const [companionError, setCompanionError] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
@@ -116,6 +118,37 @@ export default function BookDetailScreen() {
     ]);
   }
 
+  async function handleSyncMetadata() {
+    if (!book) return;
+
+    setIsSyncing(true);
+    try {
+      const enrichment = await enrichBookData(book.title, book.authors?.[0]);
+
+      const updatedBook: Book = {
+        ...book,
+        coverUrl: enrichment.coverUrl || book.coverUrl,
+        synopsis: enrichment.synopsis || book.synopsis,
+        pageCount: enrichment.pageCount || book.pageCount,
+        genres: enrichment.genres.length ? enrichment.genres : book.genres,
+        publisher: enrichment.publisher || book.publisher,
+        publishedDate: enrichment.publishedDate || book.publishedDate,
+        metadataSynced: enrichment.source !== 'none',
+      };
+
+      await storage.saveBook(updatedBook);
+      setBook(updatedBook);
+
+      if (enrichment.source === 'none') {
+        Alert.alert('No Data Found', 'Could not find additional metadata for this book.');
+      }
+    } catch (error) {
+      Alert.alert('Sync Failed', 'Could not fetch book metadata.');
+    } finally {
+      setIsSyncing(false);
+    }
+  }
+
   if (!book) {
     return (
       <View style={styles.container}>
@@ -153,6 +186,19 @@ export default function BookDetailScreen() {
       {/* Synopsis */}
       {book.synopsis && (
         <Text style={styles.synopsis}>{book.synopsis}</Text>
+      )}
+
+      {/* Sync metadata button - show when metadata not synced */}
+      {book.metadataSynced === false && (
+        <Pressable
+          style={[styles.syncButton, { borderColor: colors.textMuted }]}
+          onPress={handleSyncMetadata}
+          disabled={isSyncing}
+        >
+          <Text style={[styles.syncText, { color: colors.textMuted }]}>
+            {isSyncing ? 'syncing...' : '[sync metadata]'}
+          </Text>
+        </Pressable>
       )}
 
       {/* Status selector */}
@@ -286,6 +332,19 @@ function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: a
       fontSize: fontSize('body'),
       lineHeight: 22,
       marginBottom: spacing(6),
+    },
+    syncButton: {
+      borderWidth: 1,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      alignItems: 'center',
+      marginTop: 12,
+      marginBottom: spacing(6),
+    },
+    syncText: {
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
     },
     section: {
       marginBottom: spacing(6),
