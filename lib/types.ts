@@ -1,5 +1,10 @@
 export type BookStatus = 'to_read' | 'reading' | 'finished';
 
+export type CompanionRarity = 'common' | 'rare' | 'legendary';
+export type CompanionType = 'character' | 'creature' | 'object';
+export type CompanionSource = 'discovered' | 'inspired';
+export type CompanionUnlockMethod = 'reading_time' | 'loot_box' | 'book_completion';
+
 export interface Book {
   id: string;
   title: string;
@@ -10,6 +15,8 @@ export interface Book {
   totalReadingTime: number; // in seconds
   createdAt: number;
   finishedAt?: number;
+  companions?: BookCompanions;
+  // Legacy field for migration
   companion?: Companion;
   // Kindle share & metadata enrichment fields
   authors?: string[];
@@ -34,11 +41,49 @@ export interface ReadingSession {
 export interface Companion {
   id: string;
   bookId: string;
-  imageUrl: string;
-  archetype: string;
-  creature: string;
-  keywords: string[];
-  generatedAt: number;
+  name: string;
+  type: CompanionType;
+  rarity: CompanionRarity;
+  description: string;
+  traits: string;
+  visualDescription: string;
+  imageUrl: string | null;
+  source: CompanionSource;
+  unlockMethod: CompanionUnlockMethod | null;
+  unlockedAt: number | null;
+  // Legacy fields for migration
+  archetype?: string;
+  creature?: string;
+  keywords?: string[];
+  generatedAt?: number;
+}
+
+export interface CompanionQueue {
+  companions: Companion[];
+  nextGenerateIndex: number;
+}
+
+export interface BookCompanions {
+  researchComplete: boolean;
+  researchConfidence: 'high' | 'medium' | 'low';
+  readingTimeQueue: CompanionQueue;
+  poolQueue: CompanionQueue;
+  unlockedCompanions: Companion[];
+}
+
+export interface LootBox {
+  id: string;
+  earnedAt: number;
+  source: string; // e.g., "streak_7", "xp_250", "book_finished"
+}
+
+export interface LootBoxState {
+  availableBoxes: LootBox[];
+  openHistory: Array<{
+    boxId: string;
+    openedAt: number;
+    companionId: string;
+  }>;
 }
 
 export interface UserProgress {
@@ -48,6 +93,11 @@ export interface UserProgress {
   longestStreak: number;
   lastReadDate: string | null; // YYYY-MM-DD
   lootItems: LootItem[];
+  lootBoxes: LootBoxState;
+  // Achievement tracking for loot box rewards
+  booksFinished: number;
+  booksAdded: number;
+  totalHoursRead: number;
 }
 
 export interface LootItem {
