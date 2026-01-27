@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { View, Text, Image, Pressable, ScrollView, StyleSheet, Alert } from 'react-native';
+import { useEffect, useState, useRef } from 'react';
+import { View, Text, Image, Pressable, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { storage } from '@/lib/storage';
 import { enrichBookData } from '@/lib/bookEnrichment';
@@ -12,6 +12,7 @@ import type { Companion } from '@/lib/types';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 import { settings } from '@/lib/settings';
+import { generateCompanionsInBackground } from '@/lib/companionBackgroundGenerator';
 
 const STATUS_OPTIONS: { label: string; value: BookStatus }[] = [
   { label: 'to read', value: 'to_read' },
@@ -91,6 +92,8 @@ export default function BookDetailScreen() {
   const [debugMode, setDebugMode] = useState(false);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const [imageGenProgress, setImageGenProgress] = useState('');
+  const [isGeneratingCompanions, setIsGeneratingCompanions] = useState(false);
+  const generationStartedRef = useRef(false);
 
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
@@ -103,6 +106,20 @@ export default function BookDetailScreen() {
     const config = await settings.get();
     setDebugMode(config.debugMode);
   }
+
+  useEffect(() => {
+    if (book?.companionsPending && !isGeneratingCompanions && !generationStartedRef.current) {
+      generationStartedRef.current = true;
+      setIsGeneratingCompanions(true);
+
+      generateCompanionsInBackground(book, async (updatedBook) => {
+        await storage.saveBook(updatedBook);
+        setBook(updatedBook);
+        setIsGeneratingCompanions(false);
+        generationStartedRef.current = false;
+      });
+    }
+  }, [book?.companionsPending, book?.id]);
 
   async function loadBook() {
     const books = await storage.getBooks();
@@ -408,12 +425,19 @@ export default function BookDetailScreen() {
             <Text style={styles.companionType}>{book.companion.archetype?.toLowerCase() || book.companion.type.toLowerCase()}</Text>
           </View>
         ) : (
-          // No companion data yet
+          // No companion data yet - show spinner if generating
           <>
             <Text style={styles.sectionLabel}>companions_</Text>
-            <Text style={styles.lockedText}>
-              companions will be researched when adding books_
-            </Text>
+            {isGeneratingCompanions ? (
+              <View style={styles.generatingContainer}>
+                <ActivityIndicator size="small" color={colors.textMuted} />
+                <Text style={styles.generatingText}>generating companions...</Text>
+              </View>
+            ) : (
+              <Text style={styles.lockedText}>
+                companions will be researched when adding books_
+              </Text>
+            )}
           </>
         )}
       </View>
@@ -729,6 +753,17 @@ function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: a
       fontFamily: FONTS.mono,
       fontSize: fontSize('small'),
       color: '#f59e0b',
+    },
+    generatingContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing(2),
+    },
+    generatingText: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
     },
   });
 }
