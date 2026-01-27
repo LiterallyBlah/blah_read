@@ -1,4 +1,5 @@
 import { storage } from './storage';
+import { settings } from './settings';
 import { generateCompanionData } from './llm';
 import { generateCompanionImage } from './imageGen';
 import { Book, Companion } from './types';
@@ -13,15 +14,14 @@ export function canUnlockCompanion(book: Book): boolean {
   );
 }
 
-export async function generateCompanion(book: Book, apiKey: string): Promise<Companion> {
+export async function generateCompanion(book: Book): Promise<Companion> {
   if (!book.synopsis) throw new Error('Book has no synopsis');
 
-  const companionData = await generateCompanionData(book.synopsis, apiKey);
-  const imageUrl = await generateCompanionImage(
-    companionData.creature,
-    companionData.keywords,
-    apiKey
-  );
+  const config = await settings.get();
+  if (!config.apiKey) throw new Error('API key not configured');
+
+  const companionData = await generateCompanionData(book.synopsis, config.apiKey, { model: config.llmModel });
+  const imageUrl = await generateCompanionImage(companionData.creature, companionData.keywords, config.apiKey, { model: config.imageModel });
 
   const companion: Companion = {
     id: Date.now().toString(),
@@ -35,6 +35,5 @@ export async function generateCompanion(book: Book, apiKey: string): Promise<Com
 
   book.companion = companion;
   await storage.saveBook(book);
-
   return companion;
 }

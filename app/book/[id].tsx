@@ -38,20 +38,12 @@ export default function BookDetailScreen() {
 
   async function handleUnlockCompanion() {
     if (!book) return;
-
-    // TODO: Get API key from settings/env
-    const apiKey = ''; // User needs to configure this
-    if (!apiKey) {
-      Alert.alert('API Key Required', 'Please configure your OpenRouter API key in settings.');
-      return;
-    }
-
     setGenerating(true);
     try {
-      await generateCompanion(book, apiKey);
+      await generateCompanion(book);
       await loadBook();
-    } catch (error) {
-      Alert.alert('Generation Failed', 'Could not generate companion. Please try again.');
+    } catch (error: any) {
+      Alert.alert('Generation Failed', error.message || 'Could not generate companion.');
     } finally {
       setGenerating(false);
     }
