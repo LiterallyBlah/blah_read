@@ -1,4 +1,5 @@
-import { buildCompanionPrompt, parseCompanionResponse } from '@/lib/llm';
+import { buildCompanionPrompt, parseCompanionResponse, buildResearchRequest } from '@/lib/llm';
+import { RESEARCH_SCHEMA } from '@/lib/companionResearch';
 
 describe('llm', () => {
   it('builds prompt with synopsis', () => {
@@ -37,5 +38,51 @@ Keywords: mystical, scaled, ancient`;
     expect(result.archetype).toBe('Adventurer');
     expect(result.creature).toBe('Spirit');
     expect(result.keywords).toEqual(['mystical', 'glowing', 'small']);
+  });
+
+  describe('buildResearchRequest', () => {
+    it('builds request with online model suffix', () => {
+      const request = buildResearchRequest(
+        'test-api-key',
+        'Research this book',
+        'google/gemini-2.5-flash-preview-05-20'
+      );
+
+      expect(request.headers['Authorization']).toBe('Bearer test-api-key');
+      expect(request.body.model).toContain(':online');
+    });
+
+    it('includes structured output schema', () => {
+      const request = buildResearchRequest(
+        'test-api-key',
+        'Research this book',
+        'google/gemini-2.5-flash-preview-05-20'
+      );
+
+      expect(request.body.response_format).toBeDefined();
+      expect(request.body.response_format.type).toBe('json_schema');
+      expect(request.body.response_format.json_schema.schema).toEqual(RESEARCH_SCHEMA);
+    });
+
+    it('sets appropriate max_tokens for research', () => {
+      const request = buildResearchRequest(
+        'test-api-key',
+        'Research this book',
+        'google/gemini-2.5-flash-preview-05-20'
+      );
+
+      expect(request.body.max_tokens).toBeGreaterThanOrEqual(2000);
+    });
+
+    it('does not double-add :online suffix if already present', () => {
+      const request = buildResearchRequest(
+        'test-api-key',
+        'Research this book',
+        'google/gemini-2.5-flash-preview-05-20:online'
+      );
+
+      expect(request.body.model).toBe('google/gemini-2.5-flash-preview-05-20:online');
+      expect(request.body.model).not.toContain(':online:online');
+    });
   });
 });

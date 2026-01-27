@@ -1,3 +1,5 @@
+import { RESEARCH_SCHEMA, type ResearchResponse } from './companionResearch';
+
 // OpenRouter API configuration
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const DEFAULT_MODEL = 'google/gemini-2.5-flash-preview-05-20';
@@ -67,4 +69,75 @@ export async function generateCompanionData(
 
   const data = await response.json();
   return parseCompanionResponse(data.choices[0].message.content);
+}
+
+/**
+ * Build the request object for companion research with online model
+ */
+export function buildResearchRequest(
+  apiKey: string,
+  prompt: string,
+  baseModel: string
+) {
+  // Append :online suffix for web-access models
+  const onlineModel = baseModel.includes(':online') ? baseModel : `${baseModel}:online`;
+
+  return {
+    url: OPENROUTER_API_URL,
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://blahread.app',
+      'X-Title': 'Blah Read',
+    },
+    body: {
+      model: onlineModel,
+      max_tokens: 4000,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'companion_research',
+          strict: true,
+          schema: RESEARCH_SCHEMA,
+        },
+      },
+    },
+  };
+}
+
+/**
+ * Execute companion research via OpenRouter online model
+ */
+export async function executeCompanionResearch(
+  apiKey: string,
+  prompt: string,
+  model: string
+): Promise<ResearchResponse> {
+  const request = buildResearchRequest(apiKey, prompt, model);
+
+  const response = await fetch(request.url, {
+    method: 'POST',
+    headers: request.headers,
+    body: JSON.stringify(request.body),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Research API failed: ${response.status} - ${error}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+
+  if (!content) {
+    throw new Error('No content in research response');
+  }
+
+  return JSON.parse(content) as ResearchResponse;
 }
