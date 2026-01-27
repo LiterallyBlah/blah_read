@@ -1,4 +1,5 @@
-import { getBorderInstruction } from '@/lib/imagePromptBuilder';
+import { getBorderInstruction, buildPromptTemplate } from '@/lib/imagePromptBuilder';
+import type { Companion } from '@/lib/types';
 
 describe('imagePromptBuilder', () => {
   describe('getBorderInstruction', () => {
@@ -20,6 +21,59 @@ describe('imagePromptBuilder', () => {
       expect(instruction).toContain('#F1C40F');
       expect(instruction).toContain('2-3 pixels');
       expect(instruction).toContain('prestigious');
+    });
+  });
+
+  describe('buildPromptTemplate', () => {
+    const mockCompanion: Companion = {
+      id: 'test-1',
+      bookId: 'book-1',
+      name: 'Fire Dragon',
+      type: 'creature',
+      rarity: 'legendary',
+      description: 'A mighty dragon',
+      traits: 'fierce, ancient',
+      visualDescription: '',
+      physicalDescription: 'Large red dragon with golden scales, fiery eyes, massive wings',
+      imageUrl: null,
+      source: 'discovered',
+      unlockMethod: null,
+      unlockedAt: null,
+    };
+
+    it('builds prompt with companion details', () => {
+      const prompt = buildPromptTemplate(mockCompanion);
+      expect(prompt).toContain('Fire Dragon');
+      expect(prompt).toContain('creature');
+      expect(prompt).toContain('Large red dragon with golden scales');
+    });
+
+    it('includes style requirements', () => {
+      const prompt = buildPromptTemplate(mockCompanion);
+      expect(prompt).toContain('32x32 pixel art');
+      expect(prompt).toContain('White background');
+      expect(prompt).toContain('retro color palette');
+    });
+
+    it('includes correct border instruction for rarity', () => {
+      const prompt = buildPromptTemplate(mockCompanion);
+      expect(prompt).toContain('#F1C40F'); // legendary gold
+      expect(prompt).not.toContain('#4A90D9'); // should not include rare blue
+    });
+
+    it('instructs LLM to output only the prompt', () => {
+      const prompt = buildPromptTemplate(mockCompanion);
+      expect(prompt).toContain('Output ONLY the image prompt');
+    });
+
+    it('falls back to visualDescription if physicalDescription missing', () => {
+      const oldCompanion: Companion = {
+        ...mockCompanion,
+        physicalDescription: undefined,
+        visualDescription: 'Old visual description here',
+      };
+      const prompt = buildPromptTemplate(oldCompanion);
+      expect(prompt).toContain('Old visual description here');
     });
   });
 });

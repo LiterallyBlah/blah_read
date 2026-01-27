@@ -1,4 +1,4 @@
-import type { CompanionRarity } from './types';
+import type { Companion, CompanionRarity } from './types';
 
 /**
  * Get the border instruction for a given rarity level.
@@ -13,4 +13,30 @@ export function getBorderInstruction(rarity: CompanionRarity): string {
     case 'legendary':
       return 'Add an ornate border in gold (#F1C40F), 2-3 pixels wide. Make it feel prestigious - you have creative freedom over the pattern. Could be elegant filigree, royal motifs, shimmering edges, or other special designs.';
   }
+}
+
+/**
+ * Build the prompt template for the LLM to generate an image prompt.
+ * Uses physicalDescription if available, falls back to visualDescription for legacy companions.
+ */
+export function buildPromptTemplate(companion: Companion): string {
+  const description = companion.physicalDescription || companion.visualDescription;
+  const borderInstruction = getBorderInstruction(companion.rarity);
+
+  return `You are a pixel art prompt engineer. Create an image generation prompt for this character:
+
+Name: ${companion.name}
+Type: ${companion.type}
+Description: ${description}
+
+Requirements:
+- 32x32 pixel art sprite
+- White background
+- Limited retro color palette
+- Centered composition
+- Simple, cute aesthetic
+
+${borderInstruction}
+
+Output ONLY the image prompt, no explanation or markdown.`;
 }
