@@ -11,6 +11,15 @@ export interface Book {
   createdAt: number;
   finishedAt?: number;
   companion?: Companion;
+  // Kindle share & metadata enrichment fields
+  authors?: string[];
+  asin?: string;
+  pageCount?: number | null;
+  genres?: string[];
+  publisher?: string | null;
+  publishedDate?: string | null;
+  source?: 'kindle-share' | 'manual' | 'url';
+  metadataSynced?: boolean;
 }
 
 export interface ReadingSession {
