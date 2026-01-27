@@ -1,11 +1,13 @@
 import { useCallback, useState } from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet, TextInput } from 'react-native';
+import { View, Text, FlatList, Pressable, StyleSheet, TextInput, Alert } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import { storage } from '@/lib/storage';
 import { BookCard } from '@/components/BookCard';
 import { Book, BookStatus } from '@/lib/types';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
+import { isKindleShareText } from '@/lib/kindleParser';
 
 const FILTERS: { label: string; value: BookStatus | 'all' }[] = [
   { label: 'all', value: 'all' },
@@ -19,6 +21,7 @@ export default function LibraryScreen() {
   const [books, setBooks] = useState<Book[]>([]);
   const [filter, setFilter] = useState<BookStatus | 'all'>('all');
   const [search, setSearch] = useState('');
+  const [isPasting, setIsPasting] = useState(false);
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
   useFocusEffect(
@@ -29,6 +32,32 @@ export default function LibraryScreen() {
 
   async function loadBooks() {
     setBooks(await storage.getBooks());
+  }
+
+  async function handlePasteKindleLink() {
+    setIsPasting(true);
+    try {
+      const clipboardText = await Clipboard.getStringAsync();
+
+      if (!clipboardText) {
+        Alert.alert('Empty Clipboard', 'No text found in clipboard.');
+        return;
+      }
+
+      if (!isKindleShareText(clipboardText)) {
+        Alert.alert('Invalid Link', 'No Kindle share link found in clipboard.');
+        return;
+      }
+
+      router.push({
+        pathname: '/kindle-share',
+        params: { text: clipboardText },
+      });
+    } catch (error) {
+      Alert.alert('Error', 'Could not read clipboard.');
+    } finally {
+      setIsPasting(false);
+    }
   }
 
   const filteredBooks = books
@@ -62,6 +91,17 @@ export default function LibraryScreen() {
           </Pressable>
         ))}
       </View>
+
+      {/* Paste Kindle link button */}
+      <Pressable
+        style={[styles.pasteButton, { borderColor: colors.textMuted }]}
+        onPress={handlePasteKindleLink}
+        disabled={isPasting}
+      >
+        <Text style={[styles.pasteButtonText, { color: colors.text }]}>
+          {isPasting ? 'checking...' : '[paste kindle link]'}
+        </Text>
+      </Pressable>
 
       {/* Book grid */}
       {filteredBooks.length === 0 ? (
@@ -162,5 +202,16 @@ const createStyles = (
       fontFamily: FONTS.mono,
       fontSize: fontSize('small'),
       letterSpacing: letterSpacing('tight'),
+    },
+    pasteButton: {
+      borderWidth: 1,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    pasteButtonText: {
+      fontFamily: FONTS.mono,
+      fontSize: 14,
     },
   });
