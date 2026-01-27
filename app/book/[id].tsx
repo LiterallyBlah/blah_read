@@ -5,6 +5,8 @@ import { storage } from '@/lib/storage';
 import { enrichBookData } from '@/lib/bookEnrichment';
 import { getNextMilestone } from '@/lib/companionUnlock';
 import { checkLootBoxRewards } from '@/lib/lootBox';
+import { generateBufferedImages } from '@/lib/companionImageQueue';
+import { generateImageForCompanion } from '@/lib/imageGen';
 import { Book, BookStatus } from '@/lib/types';
 import type { Companion } from '@/lib/types';
 import { FONTS } from '@/lib/theme';
@@ -86,12 +88,21 @@ export default function BookDetailScreen() {
   const [book, setBook] = useState<Book | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [completionLegendary, setCompletionLegendary] = useState<Companion | null>(null);
+  const [debugMode, setDebugMode] = useState(false);
+  const [isGeneratingImages, setIsGeneratingImages] = useState(false);
+  const [imageGenProgress, setImageGenProgress] = useState('');
 
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
   useEffect(() => {
     loadBook();
+    loadDebugMode();
   }, [id]);
+
+  async function loadDebugMode() {
+    const config = await settings.get();
+    setDebugMode(config.debugMode);
+  }
 
   async function loadBook() {
     const books = await storage.getBooks();
@@ -201,6 +212,57 @@ export default function BookDetailScreen() {
       Alert.alert('Sync Failed', 'Could not fetch book metadata.');
     } finally {
       setIsSyncing(false);
+    }
+  }
+
+  async function handleDebugGenerateImages() {
+    if (!book?.companions) return;
+
+    const config = await settings.get();
+    if (!config.apiKey) {
+      Alert.alert('No API Key', 'Please configure your OpenRouter API key in settings.');
+      return;
+    }
+
+    setIsGeneratingImages(true);
+    setImageGenProgress('Starting image generation...');
+
+    try {
+      const generateImage = async (companion: Companion) => {
+        setImageGenProgress(`Generating: ${companion.name}...`);
+        console.log(`[Debug] Generating image for ${companion.name} using model ${config.imageModel}`);
+        try {
+          const url = await generateImageForCompanion(companion, config.apiKey!, {
+            model: config.imageModel,
+          });
+          console.log(`[Debug] Image generated for ${companion.name}:`, url?.substring(0, 50));
+          return url;
+        } catch (error) {
+          console.error(`[Debug] Failed to generate image for ${companion.name}:`, error);
+          setImageGenProgress(`Failed: ${companion.name}`);
+          return null;
+        }
+      };
+
+      const updatedCompanions = await generateBufferedImages(
+        book.companions,
+        generateImage,
+        (completed, total) => {
+          setImageGenProgress(`Generated ${completed}/${total} images`);
+        }
+      );
+
+      const updatedBook = { ...book, companions: updatedCompanions };
+      await storage.saveBook(updatedBook);
+      setBook(updatedBook);
+      setImageGenProgress('Done!');
+
+      Alert.alert('Images Generated', 'Companion images have been generated.');
+    } catch (error) {
+      console.error('[Debug] Image generation failed:', error);
+      Alert.alert('Generation Failed', String(error));
+    } finally {
+      setIsGeneratingImages(false);
     }
   }
 
@@ -318,6 +380,21 @@ export default function BookDetailScreen() {
               <Text style={styles.lockedText}>
                 keep reading to unlock companions_
               </Text>
+            )}
+
+            {/* Debug: Generate Images Button */}
+            {debugMode && (
+              <View style={styles.debugSection}>
+                <Pressable
+                  style={[styles.debugButton, isGeneratingImages && { opacity: 0.5 }]}
+                  onPress={handleDebugGenerateImages}
+                  disabled={isGeneratingImages}
+                >
+                  <Text style={styles.debugButtonText}>
+                    {isGeneratingImages ? imageGenProgress : '[generate images]'}
+                  </Text>
+                </Pressable>
+              </View>
             )}
           </>
         ) : book.companion ? (
@@ -633,6 +710,25 @@ function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: a
       fontWeight: FONTS.monoBold,
       fontSize: fontSize('body'),
       color: colors.text,
+    },
+    debugSection: {
+      marginTop: spacing(4),
+      paddingTop: spacing(4),
+      borderTopWidth: 1,
+      borderTopColor: '#f59e0b',
+      borderStyle: 'dashed',
+    },
+    debugButton: {
+      borderWidth: 1,
+      borderColor: '#f59e0b',
+      borderStyle: 'dashed',
+      padding: spacing(3),
+      alignItems: 'center',
+    },
+    debugButtonText: {
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      color: '#f59e0b',
     },
   });
 }
