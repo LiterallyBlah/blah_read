@@ -17,6 +17,8 @@ export interface Settings {
   // Display
   theme: 'auto' | 'dark' | 'light';
   fontScale: 0.85 | 1 | 1.2;
+  // Debug
+  debugMode: boolean;
 }
 
 export const defaultSettings: Settings = {
@@ -29,6 +31,7 @@ export const defaultSettings: Settings = {
   reminderTime: '20:00',
   theme: 'auto',
   fontScale: 1,
+  debugMode: false,
 };
 
 export const settings = {

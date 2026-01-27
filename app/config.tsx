@@ -147,6 +147,19 @@ export default function ConfigScreen() {
           />
           {imageModelValid === true && <Text style={[styles.hint, { color: colors.success }]}>✓ supports image output</Text>}
           {imageModelValid === false && <Text style={[styles.hint, { color: colors.error }]}>⚠ model does not support image generation</Text>}
+
+          <View style={styles.divider} />
+
+          <Text style={styles.label}>google books api key_</Text>
+          <TextInput
+            style={styles.input}
+            value={config.googleBooksApiKey || ''}
+            onChangeText={v => updateConfig({ googleBooksApiKey: v || null })}
+            placeholder="optional - increases rate limits"
+            placeholderTextColor={colors.textMuted}
+            secureTextEntry
+          />
+          <Text style={styles.hint}>works without key, but has lower rate limits</Text>
         </View>
       )}
 
@@ -257,6 +270,27 @@ export default function ConfigScreen() {
           </Pressable>
         </View>
       )}
+
+      {/* Debug Section */}
+      <Pressable style={styles.sectionHeader} onPress={() => setExpandedSection(expandedSection === 'debug' ? null : 'debug')}>
+        <Text style={[styles.sectionTitle, { color: colors.warning || '#f59e0b' }]}>[debug] {expandedSection === 'debug' ? '▼' : '▶'}</Text>
+      </Pressable>
+
+      {expandedSection === 'debug' && (
+        <View style={styles.sectionContent}>
+          <Text style={styles.label}>debug mode_</Text>
+          <Pressable
+            style={[styles.toggleButton, config.debugMode && styles.toggleActive]}
+            onPress={() => updateConfig({ debugMode: !config.debugMode })}
+          >
+            <Text style={[styles.toggleText, config.debugMode && styles.toggleTextActive]}>
+              [{config.debugMode ? 'on' : 'off'}]
+            </Text>
+          </Pressable>
+          <Text style={styles.hint}>shows all companions (locked + unlocked) in collection</Text>
+          <Text style={styles.hint}>allows manual unlock by tapping locked companions</Text>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -285,5 +319,6 @@ function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: a
     actionButton: { borderWidth: 1, borderColor: colors.border, padding: spacing(3), marginTop: spacing(2) },
     actionButtonText: { color: colors.textSecondary, fontFamily: FONTS.mono, fontSize: fontSize('small'), textAlign: 'center' },
     dangerButton: { borderColor: colors.error },
+    divider: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: spacing(6), marginBottom: spacing(2) },
   });
 }

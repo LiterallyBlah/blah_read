@@ -1,13 +1,19 @@
 import React, { useCallback, useState } from 'react';
-import { View, ScrollView, StyleSheet, Text, Pressable, Image } from 'react-native';
+import { View, ScrollView, StyleSheet, Text, Pressable, Image, Alert } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
 import { storage } from '@/lib/storage';
+import { settings } from '@/lib/settings';
 import type { Book, Companion, LootBoxState } from '@/lib/types';
 
 type FilterType = 'all' | 'character' | 'creature' | 'object';
 type RarityFilter = 'all' | 'common' | 'rare' | 'legendary';
+
+interface DisplayCompanion extends Companion {
+  isLocked: boolean;
+  bookTitle: string;
+}
 
 export default function CollectionScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();
@@ -15,6 +21,7 @@ export default function CollectionScreen() {
   const [lootBoxes, setLootBoxes] = useState<LootBoxState | null>(null);
   const [typeFilter, setTypeFilter] = useState<FilterType>('all');
   const [rarityFilter, setRarityFilter] = useState<RarityFilter>('all');
+  const [debugMode, setDebugMode] = useState(false);
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
   useFocusEffect(
@@ -24,18 +31,49 @@ export default function CollectionScreen() {
   );
 
   async function loadData() {
-    const [loadedBooks, progress] = await Promise.all([
+    const [loadedBooks, progress, config] = await Promise.all([
       storage.getBooks(),
       storage.getProgress(),
+      settings.get(),
     ]);
     setBooks(loadedBooks);
     setLootBoxes(progress.lootBoxes);
+    setDebugMode(config.debugMode);
   }
 
-  // Collect all unlocked companions
-  const allCompanions = books.flatMap(book =>
-    book.companions?.unlockedCompanions || []
-  );
+  // Collect companions based on debug mode
+  const allCompanions: DisplayCompanion[] = books.flatMap(book => {
+    if (!book.companions) return [];
+
+    const unlocked: DisplayCompanion[] = book.companions.unlockedCompanions.map(c => ({
+      ...c,
+      isLocked: false,
+      bookTitle: book.title,
+    }));
+
+    if (debugMode) {
+      // In debug mode, also include locked companions from queues
+      const lockedFromReadingQueue: DisplayCompanion[] = book.companions.readingTimeQueue.companions
+        .filter(c => !c.unlockedAt)
+        .map(c => ({
+          ...c,
+          isLocked: true,
+          bookTitle: book.title,
+        }));
+
+      const lockedFromPoolQueue: DisplayCompanion[] = book.companions.poolQueue.companions
+        .filter(c => !c.unlockedAt)
+        .map(c => ({
+          ...c,
+          isLocked: true,
+          bookTitle: book.title,
+        }));
+
+      return [...unlocked, ...lockedFromReadingQueue, ...lockedFromPoolQueue];
+    }
+
+    return unlocked;
+  });
 
   // Apply filters
   const filtered = allCompanions.filter(c => {
@@ -43,6 +81,65 @@ export default function CollectionScreen() {
     if (rarityFilter !== 'all' && c.rarity !== rarityFilter) return false;
     return true;
   });
+
+  // Debug: unlock a companion manually
+  async function handleDebugUnlock(companion: DisplayCompanion) {
+    const book = books.find(b => b.id === companion.bookId);
+    if (!book?.companions) return;
+
+    Alert.alert(
+      'Debug Unlock',
+      `Unlock "${companion.name}" from "${book.title}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Unlock',
+          onPress: async () => {
+            const unlockedCompanion: Companion = {
+              ...companion,
+              unlockMethod: 'reading_time',
+              unlockedAt: Date.now(),
+            };
+
+            // Remove from queue and add to unlocked
+            const updatedBook = { ...book };
+            updatedBook.companions = { ...book.companions! };
+
+            // Check reading time queue
+            const rtIndex = updatedBook.companions.readingTimeQueue.companions.findIndex(c => c.id === companion.id);
+            if (rtIndex !== -1) {
+              updatedBook.companions.readingTimeQueue = {
+                ...updatedBook.companions.readingTimeQueue,
+                companions: updatedBook.companions.readingTimeQueue.companions.map((c, i) =>
+                  i === rtIndex ? unlockedCompanion : c
+                ),
+              };
+            }
+
+            // Check pool queue
+            const poolIndex = updatedBook.companions.poolQueue.companions.findIndex(c => c.id === companion.id);
+            if (poolIndex !== -1) {
+              updatedBook.companions.poolQueue = {
+                ...updatedBook.companions.poolQueue,
+                companions: updatedBook.companions.poolQueue.companions.map((c, i) =>
+                  i === poolIndex ? unlockedCompanion : c
+                ),
+              };
+            }
+
+            // Add to unlocked companions
+            updatedBook.companions.unlockedCompanions = [
+              ...updatedBook.companions.unlockedCompanions,
+              unlockedCompanion,
+            ];
+
+            await storage.saveBook(updatedBook);
+            await loadData();
+          },
+        },
+      ]
+    );
+  }
 
   // Stats - total possible companions across all books
   const totalPossible = books.reduce((sum, book) => {
@@ -53,6 +150,9 @@ export default function CollectionScreen() {
       book.companions.unlockedCompanions.length;
   }, 0);
 
+  const unlockedCount = allCompanions.filter(c => !c.isLocked).length;
+  const lockedCount = allCompanions.filter(c => c.isLocked).length;
+
   const boxCount = lootBoxes?.availableBoxes.length || 0;
 
   return (
@@ -61,9 +161,19 @@ export default function CollectionScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>collection_</Text>
         <Text style={styles.stats}>
-          {allCompanions.length}/{totalPossible} collected
+          {unlockedCount}/{totalPossible} collected
         </Text>
       </View>
+
+      {/* Debug mode banner */}
+      {debugMode && (
+        <View style={styles.debugBanner}>
+          <Text style={styles.debugBannerText}>
+            debug mode: showing all {allCompanions.length} companions ({lockedCount} locked)
+          </Text>
+          <Text style={styles.debugHint}>tap locked companions to unlock</Text>
+        </View>
+      )}
 
       {/* Loot box prompt */}
       {boxCount > 0 && (
@@ -127,6 +237,7 @@ export default function CollectionScreen() {
             companion={companion}
             colors={colors}
             spacing={spacing}
+            onPress={companion.isLocked && debugMode ? () => handleDebugUnlock(companion) : undefined}
           />
         ))}
         {filtered.length === 0 && (
@@ -143,10 +254,12 @@ function CompanionCard({
   companion,
   colors,
   spacing,
+  onPress,
 }: {
-  companion: Companion;
+  companion: DisplayCompanion;
   colors: ReturnType<typeof useTheme>['colors'];
   spacing: ReturnType<typeof useTheme>['spacing'];
+  onPress?: () => void;
 }) {
   const rarityColors: Record<string, string> = {
     common: colors.rarityCommon,
@@ -154,17 +267,38 @@ function CompanionCard({
     legendary: colors.rarityLegendary,
   };
 
-  const borderColor = rarityColors[companion.rarity] || colors.border;
+  const borderColor = companion.isLocked
+    ? colors.border
+    : (rarityColors[companion.rarity] || colors.border);
+
+  const CardWrapper = onPress ? Pressable : View;
 
   return (
-    <View style={{
-      width: '48%',
-      marginBottom: spacing(4),
-      padding: spacing(3),
-      borderWidth: 1,
-      borderColor: borderColor,
-    }}>
-      {companion.imageUrl ? (
+    <CardWrapper
+      onPress={onPress}
+      style={{
+        width: '48%',
+        marginBottom: spacing(4),
+        padding: spacing(3),
+        borderWidth: 1,
+        borderColor: borderColor,
+        borderStyle: companion.isLocked ? 'dashed' : 'solid',
+        opacity: companion.isLocked ? 0.6 : 1,
+      }}
+    >
+      {companion.isLocked ? (
+        // Locked companion - show silhouette
+        <View style={{
+          width: '100%',
+          aspectRatio: 1,
+          marginBottom: spacing(2),
+          backgroundColor: colors.surface,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <Text style={{ color: colors.textMuted, fontFamily: FONTS.mono, fontSize: 24 }}>🔒</Text>
+        </View>
+      ) : companion.imageUrl ? (
         <Image
           source={{ uri: companion.imageUrl }}
           style={{
@@ -188,15 +322,15 @@ function CompanionCard({
         </View>
       )}
       <Text style={{
-        color: colors.text,
+        color: companion.isLocked ? colors.textMuted : colors.text,
         fontFamily: FONTS.mono,
         fontSize: 12,
         marginBottom: spacing(1),
       }}>
-        {companion.name.toLowerCase()}
+        {companion.isLocked ? '???' : companion.name.toLowerCase()}
       </Text>
       <Text style={{
-        color: borderColor,
+        color: companion.isLocked ? colors.textMuted : borderColor,
         fontFamily: FONTS.mono,
         fontSize: 10,
       }}>
@@ -208,9 +342,9 @@ function CompanionCard({
         fontSize: 10,
         marginTop: spacing(1),
       }}>
-        {companion.source === 'discovered' ? 'discovered' : 'inspired'}
+        {companion.bookTitle.toLowerCase().substring(0, 20)}{companion.bookTitle.length > 20 ? '...' : ''}
       </Text>
-    </View>
+    </CardWrapper>
   );
 }
 
@@ -296,6 +430,29 @@ function createStyles(
       width: '100%',
       textAlign: 'center',
       paddingVertical: spacing(8),
+    },
+    debugBanner: {
+      marginHorizontal: spacing(6),
+      marginBottom: spacing(4),
+      padding: spacing(3),
+      borderWidth: 1,
+      borderColor: '#f59e0b',
+      borderStyle: 'dashed',
+      backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    },
+    debugBannerText: {
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      color: '#f59e0b',
+      textAlign: 'center',
+    },
+    debugHint: {
+      fontFamily: FONTS.mono,
+      fontSize: 10,
+      color: '#f59e0b',
+      textAlign: 'center',
+      marginTop: spacing(1),
+      opacity: 0.8,
     },
   });
 }
