@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Alert } from 'react-native';
 import { router } from 'expo-router';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { useTheme } from '@/lib/ThemeContext';
 import { settings, Settings, exportAllData, resetApp, selectiveDelete, DeleteOptions } from '@/lib/settings';
@@ -181,6 +181,22 @@ export default function ConfigScreen() {
           />
           {imageModelValid === true && <Text style={[styles.hint, { color: colors.success }]}>✓ supports image output</Text>}
           {imageModelValid === false && <Text style={[styles.hint, { color: colors.error }]}>⚠ model does not support image generation</Text>}
+
+          <Text style={styles.label}>image size_</Text>
+          <View style={styles.row}>
+            {(['1K', '2K', '4K'] as const).map(size => (
+              <Pressable
+                key={size}
+                style={[styles.toggleButton, config.imageSize === size && styles.toggleActive]}
+                onPress={() => updateConfig({ imageSize: size })}
+              >
+                <Text style={[styles.toggleText, config.imageSize === size && styles.toggleTextActive]}>
+                  [{size}]
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={styles.hint}>resolution for generated images (1K recommended)</Text>
 
           <View style={styles.divider} />
 
