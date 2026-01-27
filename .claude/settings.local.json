@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-expo-app@latest . --template blank-typescript)",
+      "Bash(ls:*)",
+      "Bash(npx expo install:*)",
+      "Bash(npm install:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: scaffold expo project with tab navigation\n\n- Initialize Expo project with TypeScript template\n- Install expo-router, AsyncStorage, expo-keep-awake and other dependencies\n- Configure app.json with scheme, typed routes, and Android share intent\n- Create app directory with root and tab layouts\n- Add placeholder tab screens \\(home, library, profile\\)\n- Set up Jest with ts-jest for testing\n- Configure path aliases \\(@/\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git config:*)",
+      "Bash(npm test:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: add theme with design tokens\n\n- Add COLORS with all design system colors including surface alias\n- Add FONTS with Courier mono configuration\n- Add spacing function \\(4px base unit\\)\n- Add fontSize and letterSpacing helpers\n- Include rarity and prestige color tokens\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: add core data types\n\n- Add Book type with status, reading time, companion\n- Add ReadingSession type for timer tracking\n- Add Companion type for generated pixel companions\n- Add UserProgress type for XP, streaks, loot\n- Add LootItem type with rarity tiers\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: add AsyncStorage layer for books, sessions, progress\n\n- Add storage module with getBooks, saveBook, deleteBook\n- Add getSessions, saveSession for reading tracking\n- Add getProgress, saveProgress for XP and streaks\n- Include default progress initialization\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit:*)",
+      "WebFetch(domain:openrouter.ai)",
+      "WebSearch",
+      "Bash(git push:*)"
+    ]
+  }
+}
