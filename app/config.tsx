@@ -260,5 +260,8 @@ function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: a
     toggleActive: { backgroundColor: colors.text, borderColor: colors.text },
     toggleText: { color: colors.textSecondary, fontFamily: FONTS.mono, fontSize: fontSize('small') },
     toggleTextActive: { color: colors.background },
+    actionButton: { borderWidth: 1, borderColor: colors.border, padding: spacing(3), marginTop: spacing(2) },
+    actionButtonText: { color: colors.textSecondary, fontFamily: FONTS.mono, fontSize: fontSize('small'), textAlign: 'center' },
+    dangerButton: { borderColor: colors.error },
   });
 }
