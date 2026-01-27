@@ -2,13 +2,10 @@ import { parseKindleShareText } from './kindleParser';
 import { enrichBookData } from './bookEnrichment';
 import { storage } from './storage';
 import { settings } from './settings';
-import { Book, Companion } from './types';
-import { orchestrateCompanionResearch, shouldRunCompanionResearch } from './companionOrchestrator';
-import { generateBufferedImages } from './companionImageQueue';
-import { generateImageForCompanion } from './imageGen';
+import { Book } from './types';
 import { debug, setDebugEnabled } from './debug';
 
-export type ProcessingStep = 'parsing' | 'checking-duplicate' | 'enriching' | 'researching' | 'generating-images' | 'saving';
+export type ProcessingStep = 'parsing' | 'checking-duplicate' | 'enriching' | 'saving';
 
 export interface ProcessOptions {
   onProgress?: (step: ProcessingStep) => void;
@@ -105,58 +102,11 @@ export async function processKindleShare(
     totalReadingTime: 0,
     createdAt: Date.now(),
     metadataSynced: enrichment.source !== 'none',
+    companionsPending: !!config.apiKey,
   };
   debug.log('kindle', 'Book object created', { id: book.id });
 
-  // Step 5: Research companions (if API key available)
-  if (shouldRunCompanionResearch(book)) {
-    onProgress?.('researching');
-    debug.log('kindle', 'Starting companion research...');
-    debug.time('kindle', 'companion-research');
-    const companions = await orchestrateCompanionResearch({
-      bookId: book.id,
-      title: book.title,
-      author: book.authors?.[0],
-      synopsis: book.synopsis,
-    });
-    debug.timeEnd('kindle', 'companion-research');
-    book.companions = companions;
-    debug.log('kindle', 'Companion research complete', {
-      confidence: companions.researchConfidence,
-      readingTimeQueue: companions.readingTimeQueue.companions.length,
-      poolQueue: companions.poolQueue.companions.length,
-    });
-
-    // Step 6: Generate initial image buffer
-    onProgress?.('generating-images');
-    if (config.apiKey) {
-      debug.log('kindle', 'Generating companion images...', { model: config.imageModel });
-      debug.time('kindle', 'image-generation');
-      const generateImage = async (companion: Companion) => {
-        debug.log('image', `Generating image for "${companion.name}"...`);
-        try {
-          const url = await generateImageForCompanion(companion, config.apiKey!, {
-            model: config.imageModel,
-            imageSize: config.imageSize,
-            llmModel: config.llmModel,
-          });
-          debug.log('image', `Image generated for "${companion.name}"`, { urlLength: url?.length });
-          return url;
-        } catch (error) {
-          debug.error('image', `Failed to generate image for "${companion.name}"`, error);
-          return null;
-        }
-      };
-      book.companions = await generateBufferedImages(book.companions, generateImage);
-      debug.timeEnd('kindle', 'image-generation');
-    } else {
-      debug.warn('kindle', 'Skipping image generation - no API key configured');
-    }
-  } else {
-    debug.log('kindle', 'Skipping companion research', { hasTitle: !!book.title });
-  }
-
-  // Step 7: Save book
+  // Step 5: Save book
   onProgress?.('saving');
   debug.log('kindle', 'Saving book to storage...');
   try {

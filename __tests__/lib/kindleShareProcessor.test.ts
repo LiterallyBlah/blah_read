@@ -3,6 +3,11 @@ import { processKindleShare, ProcessingStep } from '@/lib/kindleShareProcessor';
 jest.mock('@/lib/kindleParser');
 jest.mock('@/lib/bookEnrichment');
 jest.mock('@/lib/storage');
+jest.mock('@/lib/settings', () => ({
+  settings: {
+    get: jest.fn().mockResolvedValue({ googleBooksApiKey: null }),
+  },
+}));
 
 import { parseKindleShareText } from '@/lib/kindleParser';
 import { enrichBookData } from '@/lib/bookEnrichment';
@@ -215,5 +220,96 @@ describe('kindleShareProcessor', () => {
     expect(result.success).toBe(true);
     expect(result.metadataSynced).toBe(false);
     expect(result.book?.metadataSynced).toBe(false);
+  });
+
+  it('sets companionsPending to true when API key is configured', async () => {
+    const { settings } = require('@/lib/settings');
+    (settings.get as jest.Mock).mockResolvedValue({
+      apiKey: 'test-api-key',
+      googleBooksApiKey: null
+    });
+
+    (parseKindleShareText as jest.Mock).mockReturnValue({
+      title: 'Test Book',
+      authors: ['Test Author'],
+      asin: 'B123456789',
+      sourceUrl: 'https://read.amazon.com/...',
+    });
+    (storage.findDuplicateBook as jest.Mock).mockResolvedValue(null);
+    (enrichBookData as jest.Mock).mockResolvedValue({
+      coverUrl: 'https://example.com/cover.jpg',
+      synopsis: 'A great book',
+      pageCount: 300,
+      genres: ['Fiction'],
+      source: 'google',
+    });
+    (storage.saveBook as jest.Mock).mockResolvedValue(undefined);
+
+    const result = await processKindleShare('valid share text', {});
+
+    expect(result.success).toBe(true);
+    expect(result.book?.companionsPending).toBe(true);
+    expect(result.book?.companions).toBeUndefined();
+  });
+
+  it('sets companionsPending to false when no API key configured', async () => {
+    const { settings } = require('@/lib/settings');
+    (settings.get as jest.Mock).mockResolvedValue({
+      apiKey: null,
+      googleBooksApiKey: null
+    });
+
+    (parseKindleShareText as jest.Mock).mockReturnValue({
+      title: 'Test Book',
+      authors: ['Test Author'],
+      asin: 'B123456789',
+      sourceUrl: 'https://read.amazon.com/...',
+    });
+    (storage.findDuplicateBook as jest.Mock).mockResolvedValue(null);
+    (enrichBookData as jest.Mock).mockResolvedValue({
+      coverUrl: 'https://example.com/cover.jpg',
+      synopsis: 'A great book',
+      pageCount: 300,
+      genres: ['Fiction'],
+      source: 'google',
+    });
+    (storage.saveBook as jest.Mock).mockResolvedValue(undefined);
+
+    const result = await processKindleShare('valid share text', {});
+
+    expect(result.success).toBe(true);
+    expect(result.book?.companionsPending).toBe(false);
+  });
+
+  it('does not call companion research or image generation', async () => {
+    const { settings } = require('@/lib/settings');
+    (settings.get as jest.Mock).mockResolvedValue({
+      apiKey: 'test-api-key',
+      googleBooksApiKey: null
+    });
+
+    (parseKindleShareText as jest.Mock).mockReturnValue({
+      title: 'Test Book',
+      authors: ['Test Author'],
+      asin: 'B123456789',
+      sourceUrl: 'https://read.amazon.com/...',
+    });
+    (storage.findDuplicateBook as jest.Mock).mockResolvedValue(null);
+    (enrichBookData as jest.Mock).mockResolvedValue({
+      coverUrl: 'https://example.com/cover.jpg',
+      synopsis: 'A great book',
+      pageCount: 300,
+      genres: ['Fiction'],
+      source: 'google',
+    });
+    (storage.saveBook as jest.Mock).mockResolvedValue(undefined);
+
+    const steps: string[] = [];
+    await processKindleShare('valid share text', {
+      onProgress: (step) => steps.push(step),
+    });
+
+    expect(steps).not.toContain('researching');
+    expect(steps).not.toContain('generating-images');
   });
 });
