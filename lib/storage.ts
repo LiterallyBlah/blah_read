@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Book, ReadingSession, UserProgress } from './types';
+import { migrateData, CURRENT_VERSION } from './migrations';
 
 export interface DuplicateQuery {
   asin?: string;
@@ -29,10 +30,30 @@ const defaultProgress: UserProgress = {
   totalHoursRead: 0,
 };
 
+// Track if migration has run this session
+let migrationComplete = false;
+
 export const storage = {
   async getBooks(): Promise<Book[]> {
     const data = await AsyncStorage.getItem(KEYS.BOOKS);
-    return data ? JSON.parse(data) : [];
+    const books = data ? JSON.parse(data) : [];
+
+    if (!migrationComplete) {
+      const progressData = await AsyncStorage.getItem(KEYS.PROGRESS);
+      const parsedProgress = progressData ? JSON.parse(progressData) : defaultProgress;
+
+      if (!parsedProgress.version || parsedProgress.version < CURRENT_VERSION) {
+        const migrated = await migrateData(books, parsedProgress);
+        await AsyncStorage.setItem(KEYS.BOOKS, JSON.stringify(migrated.books));
+        await AsyncStorage.setItem(KEYS.PROGRESS, JSON.stringify(migrated.progress));
+        migrationComplete = true;
+        return migrated.books;
+      }
+
+      migrationComplete = true;
+    }
+
+    return books;
   },
 
   async saveBook(book: Book): Promise<void> {
@@ -64,7 +85,13 @@ export const storage = {
 
   async getProgress(): Promise<UserProgress> {
     const data = await AsyncStorage.getItem(KEYS.PROGRESS);
-    return data ? JSON.parse(data) : defaultProgress;
+    const progress = data ? JSON.parse(data) : defaultProgress;
+
+    // Ensure all required fields exist (defensive)
+    return {
+      ...defaultProgress,
+      ...progress,
+    };
   },
 
   async saveProgress(progress: UserProgress): Promise<void> {

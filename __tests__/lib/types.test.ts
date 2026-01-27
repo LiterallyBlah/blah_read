@@ -35,6 +35,10 @@ describe('types', () => {
       longestStreak: 10,
       lastReadDate: '2026-01-27',
       lootItems: [],
+      lootBoxes: { availableBoxes: [], openHistory: [] },
+      booksFinished: 0,
+      booksAdded: 0,
+      totalHoursRead: 0,
     };
     expect(progress.level).toBe(2);
   });

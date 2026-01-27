@@ -4,10 +4,12 @@ import { storage } from './storage';
 const SETTINGS_KEY = 'blahread:settings';
 
 export interface Settings {
-  // API
+  // API - OpenRouter
   apiKey: string | null;
   llmModel: string;
   imageModel: string;
+  // API - Book Enrichment
+  googleBooksApiKey: string | null;
   // Goals
   dailyTarget: number;
   reminderEnabled: boolean;
@@ -21,6 +23,7 @@ export const defaultSettings: Settings = {
   apiKey: null,
   llmModel: 'google/gemini-2.5-flash-preview-05-20',
   imageModel: 'bytedance-seed/seedream-4.5',
+  googleBooksApiKey: null,
   dailyTarget: 30,
   reminderEnabled: false,
   reminderTime: '20:00',
@@ -58,6 +61,10 @@ export async function clearProgress(): Promise<void> {
     longestStreak: 0,
     lastReadDate: null,
     lootItems: [],
+    lootBoxes: { availableBoxes: [], openHistory: [] },
+    booksFinished: 0,
+    booksAdded: 0,
+    totalHoursRead: 0,
   });
 }
 
