@@ -2,15 +2,15 @@ import { Tabs } from 'expo-router';
 import { Text } from 'react-native';
 import { COLORS, FONTS, fontSize } from '@/lib/theme';
 
-// Text-based icons following typewriter aesthetic
-function TabIcon({ label, focused }: { label: string; focused: boolean }) {
+// Text-based icons following typewriter aesthetic - using single chars to prevent wrapping
+function TabIcon({ symbol, focused }: { symbol: string; focused: boolean }) {
   return (
     <Text style={{
       fontFamily: FONTS.mono,
-      fontSize: fontSize('small'),
+      fontSize: fontSize('body'),
       color: focused ? COLORS.text : COLORS.textMuted,
     }}>
-      {label}
+      {symbol}
     </Text>
   );
 }
@@ -26,24 +26,34 @@ export default function TabLayout() {
         height: 60,
         paddingTop: 8,
       },
-      tabBarShowLabel: false,
+      tabBarShowLabel: true,
+      tabBarLabelStyle: {
+        fontFamily: FONTS.mono,
+        fontSize: 10,
+        letterSpacing: 1,
+      },
+      tabBarActiveTintColor: COLORS.text,
+      tabBarInactiveTintColor: COLORS.textMuted,
     }}>
       <Tabs.Screen
         name="index"
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="[home]" focused={focused} />,
+          title: 'home',
+          tabBarIcon: ({ focused }) => <TabIcon symbol="~" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="library"
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="[lib]" focused={focused} />,
+          title: 'lib',
+          tabBarIcon: ({ focused }) => <TabIcon symbol="#" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="[me]" focused={focused} />,
+          title: 'me',
+          tabBarIcon: ({ focused }) => <TabIcon symbol="@" focused={focused} />,
         }}
       />
     </Tabs>
