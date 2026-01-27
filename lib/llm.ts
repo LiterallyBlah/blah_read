@@ -1,7 +1,15 @@
+// OpenRouter API configuration
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const DEFAULT_MODEL = 'google/gemini-2.5-flash-preview-05-20';
+
 export interface CompanionData {
   archetype: string;
   creature: string;
   keywords: string[];
+}
+
+export interface LLMConfig {
+  model?: string;
 }
 
 export function buildCompanionPrompt(synopsis: string): string {
@@ -30,19 +38,32 @@ export function parseCompanionResponse(response: string): CompanionData {
   };
 }
 
-export async function generateCompanionData(synopsis: string, apiKey: string): Promise<CompanionData> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+export async function generateCompanionData(
+  synopsis: string,
+  apiKey: string,
+  config: LLMConfig = {}
+): Promise<CompanionData> {
+  const model = config.model || DEFAULT_MODEL;
+
+  const response = await fetch(OPENROUTER_API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
+      'HTTP-Referer': 'https://blahread.app',
+      'X-Title': 'Blah Read',
     },
     body: JSON.stringify({
-      model: 'gpt-3.5-turbo',
+      model,
       messages: [{ role: 'user', content: buildCompanionPrompt(synopsis) }],
       max_tokens: 150,
     }),
   });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`LLM request failed: ${error}`);
+  }
 
   const data = await response.json();
   return parseCompanionResponse(data.choices[0].message.content);
