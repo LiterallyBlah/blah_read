@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import { View, Text, Image, Pressable, ScrollView, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { storage } from '@/lib/storage';
-import { canUnlockCompanion, generateCompanion } from '@/lib/companionGenerator';
 import { enrichBookData } from '@/lib/bookEnrichment';
+import { getNextMilestone } from '@/lib/companionUnlock';
 import { Book, BookStatus } from '@/lib/types';
+import type { Companion } from '@/lib/types';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
-import { CompanionProgress, CompanionStep } from '@/components/CompanionProgress';
 import { settings } from '@/lib/settings';
 
 const STATUS_OPTIONS: { label: string; value: BookStatus }[] = [
@@ -16,13 +16,73 @@ const STATUS_OPTIONS: { label: string; value: BookStatus }[] = [
   { label: 'finished', value: 'finished' },
 ];
 
+function formatTimeRemaining(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+function CompanionTile({
+  companion,
+  locked,
+  colors,
+  spacing,
+}: {
+  companion: Companion;
+  locked: boolean;
+  colors: any;
+  spacing: any;
+}) {
+  const rarityColors: Record<string, string> = {
+    common: colors.textMuted,
+    rare: '#4A90D9',
+    legendary: '#FFD700',
+  };
+
+  return (
+    <View style={{
+      width: 64,
+      height: 80,
+      marginRight: spacing(2),
+      marginBottom: spacing(2),
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: locked ? colors.border : (rarityColors[companion.rarity] || colors.border),
+      padding: spacing(1),
+    }}>
+      {locked ? (
+        <View style={{
+          width: 48,
+          height: 48,
+          backgroundColor: colors.surface,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <Text style={{ color: colors.textMuted, fontFamily: FONTS.mono }}>?</Text>
+        </View>
+      ) : companion.imageUrl ? (
+        <Image source={{ uri: companion.imageUrl }} style={{ width: 48, height: 48 }} resizeMode="contain" />
+      ) : (
+        <View style={{ width: 48, height: 48, backgroundColor: colors.surface }} />
+      )}
+      <Text style={{
+        color: locked ? colors.textMuted : colors.text,
+        fontFamily: FONTS.mono,
+        fontSize: 8,
+        marginTop: spacing(1),
+        textAlign: 'center',
+      }} numberOfLines={1}>
+        {locked ? '???' : companion.name.toLowerCase()}
+      </Text>
+    </View>
+  );
+}
+
 export default function BookDetailScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [book, setBook] = useState<Book | null>(null);
-  const [generating, setGenerating] = useState(false);
-  const [companionStep, setCompanionStep] = useState<CompanionStep | null>(null);
-  const [companionError, setCompanionError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
 
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
@@ -36,50 +96,6 @@ export default function BookDetailScreen() {
     setBook(books.find(b => b.id === id) || null);
   }
 
-  useEffect(() => {
-    if (!book) return;
-
-    // Auto-generate companion for newly added kindle-share books without companions
-    const shouldAutoGenerate =
-      book.source === 'kindle-share' &&
-      !book.companion &&
-      book.synopsis &&
-      // Only if book was created in last 30 seconds (freshly added)
-      Date.now() - book.createdAt < 30000;
-
-    if (shouldAutoGenerate) {
-      autoGenerateCompanion();
-    }
-  }, [book?.id]);
-
-  async function autoGenerateCompanion() {
-    if (!book) return;
-
-    const config = await settings.get();
-    if (!config.apiKey) {
-      // No API key, skip auto-generation
-      return;
-    }
-
-    setCompanionStep('analyzing');
-    setCompanionError(null);
-
-    try {
-      setCompanionStep('personality');
-      // Small delay for UX
-      await new Promise(r => setTimeout(r, 500));
-
-      setCompanionStep('avatar');
-      await generateCompanion(book);
-
-      setCompanionStep('done');
-      await loadBook();
-    } catch (error: any) {
-      setCompanionStep('error');
-      setCompanionError(error.message || 'Failed to generate companion');
-    }
-  }
-
   async function updateStatus(status: BookStatus) {
     if (!book) return;
     book.status = status;
@@ -88,19 +104,6 @@ export default function BookDetailScreen() {
     }
     await storage.saveBook(book);
     setBook({ ...book });
-  }
-
-  async function handleUnlockCompanion() {
-    if (!book) return;
-    setGenerating(true);
-    try {
-      await generateCompanion(book);
-      await loadBook();
-    } catch (error: any) {
-      Alert.alert('Generation Failed', error.message || 'Could not generate companion.');
-    } finally {
-      setGenerating(false);
-    }
   }
 
   async function handleDelete() {
@@ -123,7 +126,11 @@ export default function BookDetailScreen() {
 
     setIsSyncing(true);
     try {
-      const enrichment = await enrichBookData(book.title, book.authors?.[0]);
+      const config = await settings.get();
+      const enrichment = await enrichBookData(book.title, book.authors?.[0], {
+        googleBooksApiKey: config.googleBooksApiKey,
+        asin: book.asin,
+      });
 
       const updatedBook: Book = {
         ...book,
@@ -159,7 +166,6 @@ export default function BookDetailScreen() {
 
   const hours = Math.floor(book.totalReadingTime / 3600);
   const minutes = Math.floor((book.totalReadingTime % 3600) / 60);
-  const canUnlock = canUnlockCompanion(book);
 
   return (
     <ScrollView style={styles.container}>
@@ -221,39 +227,70 @@ export default function BookDetailScreen() {
 
       {/* Companion section */}
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>companion_</Text>
-        {companionStep && companionStep !== 'done' && (
-          <CompanionProgress
-            currentStep={companionStep}
-            error={companionError || undefined}
-          />
-        )}
-
-        {companionStep === 'error' && (
-          <Pressable onPress={autoGenerateCompanion} style={styles.retryButton}>
-            <Text style={[styles.retryText, { color: colors.text }]}>
-              [try again]
+        {book.companions ? (
+          // New companion collection system
+          <>
+            <Text style={styles.sectionLabel}>
+              companions_ ({book.companions.unlockedCompanions.length}/
+              {book.companions.unlockedCompanions.length +
+               book.companions.readingTimeQueue.companions.length +
+               book.companions.poolQueue.companions.length})
             </Text>
-          </Pressable>
-        )}
 
-        {!companionStep && book.companion ? (
+            {/* Progress to next unlock */}
+            {(() => {
+              const nextMilestone = getNextMilestone(book.totalReadingTime);
+              if (nextMilestone && book.companions.readingTimeQueue.companions.some(c => !c.unlockedAt)) {
+                return (
+                  <Text style={styles.progressText}>
+                    next unlock in {formatTimeRemaining(nextMilestone.timeRemaining)}
+                  </Text>
+                );
+              }
+              return null;
+            })()}
+
+            {/* Companion grid */}
+            <View style={styles.companionGrid}>
+              {/* Unlocked companions */}
+              {book.companions.unlockedCompanions.map(c => (
+                <CompanionTile key={c.id} companion={c} locked={false} colors={colors} spacing={spacing} />
+              ))}
+
+              {/* Locked companions (from queues) */}
+              {[...book.companions.readingTimeQueue.companions,
+                ...book.companions.poolQueue.companions]
+                .filter(c => !c.unlockedAt)
+                .map(c => (
+                  <CompanionTile key={c.id} companion={c} locked={true} colors={colors} spacing={spacing} />
+                ))}
+            </View>
+
+            {book.companions.unlockedCompanions.length === 0 && (
+              <Text style={styles.lockedText}>
+                keep reading to unlock companions_
+              </Text>
+            )}
+          </>
+        ) : book.companion ? (
+          // Legacy single companion display
           <View style={styles.companionCard}>
-            <Image source={{ uri: book.companion.imageUrl }} style={styles.companionImage} />
-            <Text style={styles.companionName}>{book.companion.creature.toLowerCase()}</Text>
-            <Text style={styles.companionType}>{book.companion.archetype.toLowerCase()}</Text>
+            <Text style={styles.sectionLabel}>companion_</Text>
+            {book.companion.imageUrl && (
+              <Image source={{ uri: book.companion.imageUrl }} style={styles.companionImage} />
+            )}
+            <Text style={styles.companionName}>{book.companion.creature?.toLowerCase() || book.companion.name.toLowerCase()}</Text>
+            <Text style={styles.companionType}>{book.companion.archetype?.toLowerCase() || book.companion.type.toLowerCase()}</Text>
           </View>
-        ) : !companionStep && canUnlock ? (
-          <Pressable style={styles.unlockButton} onPress={handleUnlockCompanion} disabled={generating}>
-            <Text style={styles.unlockText}>
-              {generating ? 'generating..._' : '[ unlock companion ]'}
+        ) : (
+          // No companion data yet
+          <>
+            <Text style={styles.sectionLabel}>companions_</Text>
+            <Text style={styles.lockedText}>
+              companions will be researched when adding books_
             </Text>
-          </Pressable>
-        ) : !companionStep && !book.companion ? (
-          <Text style={styles.lockedText}>
-            finish book or read 5 hours to unlock_
-          </Text>
-        ) : null}
+          </>
+        )}
       </View>
 
       {/* Start reading button */}
@@ -404,23 +441,22 @@ function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: a
       fontSize: fontSize('small'),
       letterSpacing: letterSpacing('tight'),
     },
-    unlockButton: {
-      padding: spacing(4),
-      borderWidth: 1,
-      borderColor: colors.success,
-      alignItems: 'center',
-    },
-    unlockText: {
-      color: colors.success,
-      fontFamily: FONTS.mono,
-      fontSize: fontSize('body'),
-      letterSpacing: letterSpacing('tight'),
-    },
     lockedText: {
       color: colors.textMuted,
       fontFamily: FONTS.mono,
       fontSize: fontSize('small'),
       letterSpacing: letterSpacing('tight'),
+    },
+    companionGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: spacing(3),
+    },
+    progressText: {
+      color: colors.textSecondary,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      marginTop: spacing(2),
     },
     primaryButton: {
       borderWidth: 1,
@@ -446,15 +482,6 @@ function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: a
       fontFamily: FONTS.mono,
       fontSize: fontSize('small'),
       letterSpacing: letterSpacing('tight'),
-    },
-    retryButton: {
-      marginTop: 12,
-      paddingVertical: 8,
-    },
-    retryText: {
-      fontFamily: FONTS.mono,
-      fontSize: 14,
-      textAlign: 'center',
     },
   });
 }
