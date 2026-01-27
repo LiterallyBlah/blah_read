@@ -137,6 +137,8 @@ export async function processKindleShare(
         try {
           const url = await generateImageForCompanion(companion, config.apiKey!, {
             model: config.imageModel,
+            imageSize: config.imageSize,
+            llmModel: config.llmModel,
           });
           debug.log('image', `Image generated for "${companion.name}"`, { urlLength: url?.length });
           return url;
