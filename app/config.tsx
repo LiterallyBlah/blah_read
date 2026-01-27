@@ -45,6 +45,29 @@ export default function ConfigScreen() {
     setImageModelValid(valid);
   }
 
+  async function handleExport() {
+    const data = await exportAllData();
+    const path = `${FileSystem.documentDirectory}blahread-export-${new Date().toISOString().split('T')[0]}.json`;
+    await FileSystem.writeAsStringAsync(path, data);
+    await Sharing.shareAsync(path);
+  }
+
+  async function handleClearProgress() {
+    Alert.alert('Clear Progress', 'Reset all XP, streaks, and loot? Books will be kept.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Clear', style: 'destructive', onPress: async () => { await clearProgress(); Alert.alert('Done', 'Progress cleared.'); } },
+    ]);
+  }
+
+  async function handleReset() {
+    Alert.prompt('Reset App', 'Type "reset" to confirm deletion of all data.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async (text) => {
+        if (text === 'reset') { await resetApp(); router.replace('/'); }
+      }},
+    ]);
+  }
+
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
   if (!config) return <View style={styles.container}><Text style={styles.text}>loading..._</Text></View>;
@@ -140,6 +163,76 @@ export default function ConfigScreen() {
               </Pressable>
             ))}
           </View>
+        </View>
+      )}
+
+      {/* Goals Section */}
+      <Pressable style={styles.sectionHeader} onPress={() => setExpandedSection(expandedSection === 'goals' ? null : 'goals')}>
+        <Text style={styles.sectionTitle}>[goals] {expandedSection === 'goals' ? '▼' : '▶'}</Text>
+      </Pressable>
+
+      {expandedSection === 'goals' && (
+        <View style={styles.sectionContent}>
+          <Text style={styles.label}>daily target_</Text>
+          <View style={styles.row}>
+            <TextInput
+              style={[styles.input, { width: 80, textAlign: 'center' }]}
+              value={String(config.dailyTarget)}
+              onChangeText={v => updateConfig({ dailyTarget: parseInt(v, 10) || 30 })}
+              keyboardType="number-pad"
+            />
+            <Text style={styles.hint}>minutes</Text>
+          </View>
+
+          <Text style={styles.label}>reminder_</Text>
+          <View style={styles.row}>
+            <Pressable
+              style={[styles.toggleButton, config.reminderEnabled && styles.toggleActive]}
+              onPress={() => updateConfig({ reminderEnabled: !config.reminderEnabled })}
+            >
+              <Text style={[styles.toggleText, config.reminderEnabled && styles.toggleTextActive]}>
+                [{config.reminderEnabled ? 'on' : 'off'}]
+              </Text>
+            </Pressable>
+            {config.reminderEnabled && (
+              <>
+                <Text style={styles.hint}>at</Text>
+                <TextInput
+                  style={[styles.input, { width: 80, textAlign: 'center' }]}
+                  value={config.reminderTime}
+                  onChangeText={v => updateConfig({ reminderTime: v })}
+                  placeholder="20:00"
+                  placeholderTextColor={colors.textMuted}
+                />
+              </>
+            )}
+          </View>
+          <Text style={styles.hint}>only notifies if you haven't hit your goal yet</Text>
+        </View>
+      )}
+
+      {/* Data Section */}
+      <Pressable style={styles.sectionHeader} onPress={() => setExpandedSection(expandedSection === 'data' ? null : 'data')}>
+        <Text style={styles.sectionTitle}>[data] {expandedSection === 'data' ? '▼' : '▶'}</Text>
+      </Pressable>
+
+      {expandedSection === 'data' && (
+        <View style={styles.sectionContent}>
+          <Text style={styles.label}>export_</Text>
+          <Pressable style={styles.actionButton} onPress={handleExport}>
+            <Text style={styles.actionButtonText}>[download json]</Text>
+          </Pressable>
+
+          <Text style={styles.label}>clear progress_</Text>
+          <Pressable style={styles.actionButton} onPress={handleClearProgress}>
+            <Text style={styles.actionButtonText}>[reset stats]</Text>
+          </Pressable>
+          <Text style={styles.hint}>keeps your books, clears xp, streaks, and loot</Text>
+
+          <Text style={[styles.label, { color: colors.error }]}>reset app_</Text>
+          <Pressable style={[styles.actionButton, styles.dangerButton]} onPress={handleReset}>
+            <Text style={[styles.actionButtonText, { color: colors.error }]}>[delete everything]</Text>
+          </Pressable>
         </View>
       )}
     </ScrollView>
