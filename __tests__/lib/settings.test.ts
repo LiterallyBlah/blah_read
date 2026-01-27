@@ -15,11 +15,25 @@ describe('settings', () => {
     expect(result.theme).toBe('auto');
   });
 
-  it('saves and retrieves settings', async () => {
+  it('merges partial stored settings with defaults', async () => {
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify({ theme: 'dark' }));
+    const result = await settings.get();
+    expect(result.theme).toBe('dark');
+    expect(result.apiKey).toBeNull(); // default preserved
+    expect(result.dailyTarget).toBe(30); // default preserved
+  });
+
+  it('set() saves merged settings and preserves existing values', async () => {
+    // First get returns existing settings
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify({ theme: 'dark', dailyTarget: 45 }));
     (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify({ apiKey: 'test-key' }));
 
     await settings.set({ apiKey: 'test-key' });
-    expect(AsyncStorage.setItem).toHaveBeenCalled();
+
+    const savedData = JSON.parse((AsyncStorage.setItem as jest.Mock).mock.calls[0][1]);
+    expect(savedData.apiKey).toBe('test-key'); // new value saved
+    expect(savedData.theme).toBe('dark'); // existing value preserved
+    expect(savedData.dailyTarget).toBe(45); // existing value preserved
+    expect(savedData.llmModel).toBe(defaultSettings.llmModel); // default preserved
   });
 });
