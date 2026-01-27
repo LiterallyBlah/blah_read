@@ -4,9 +4,11 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { fetchOgTags } from '@/lib/ogScraper';
 import { storage } from '@/lib/storage';
 import { Book } from '@/lib/types';
-import { COLORS, FONTS, spacing, fontSize, letterSpacing } from '@/lib/theme';
+import { FONTS } from '@/lib/theme';
+import { useTheme } from '@/lib/ThemeContext';
 
 export default function ShareScreen() {
+  const { colors, spacing, fontSize, letterSpacing } = useTheme();
   const { url } = useLocalSearchParams<{ url: string }>();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
 
@@ -39,11 +41,13 @@ export default function ShareScreen() {
     }
   }
 
+  const styles = createStyles(colors, spacing, fontSize, letterSpacing);
+
   return (
     <View style={styles.container}>
       {status === 'loading' && (
         <>
-          <ActivityIndicator color={COLORS.text} size="large" />
+          <ActivityIndicator color={colors.text} size="large" />
           <Text style={styles.text}>adding book...</Text>
         </>
       )}
@@ -53,18 +57,24 @@ export default function ShareScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: spacing(4),
-  },
-  text: {
-    color: COLORS.text,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('large'),
-    letterSpacing: letterSpacing('tight'),
-  },
-});
+const createStyles = (
+  colors: ReturnType<typeof useTheme>['colors'],
+  spacing: ReturnType<typeof useTheme>['spacing'],
+  fontSize: ReturnType<typeof useTheme>['fontSize'],
+  letterSpacing: ReturnType<typeof useTheme>['letterSpacing']
+) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: spacing(4),
+    },
+    text: {
+      color: colors.text,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('large'),
+      letterSpacing: letterSpacing('tight'),
+    },
+  });
