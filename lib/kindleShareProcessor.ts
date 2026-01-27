@@ -2,9 +2,10 @@ import { parseKindleShareText } from './kindleParser';
 import { enrichBookData } from './bookEnrichment';
 import { storage } from './storage';
 import { settings } from './settings';
-import { Book } from './types';
+import { Book, Companion } from './types';
 import { orchestrateCompanionResearch, shouldRunCompanionResearch } from './companionOrchestrator';
 import { generateBufferedImages } from './companionImageQueue';
+import { generateImageForCompanion } from './imageGen';
 
 export type ProcessingStep = 'parsing' | 'checking-duplicate' | 'enriching' | 'researching' | 'generating-images' | 'saving';
 
@@ -98,8 +99,19 @@ export async function processKindleShare(
 
     // Step 6: Generate initial image buffer
     onProgress?.('generating-images');
-    const generateImage = async () => null; // Placeholder - will be wired to imageGen
-    book.companions = await generateBufferedImages(book.companions, generateImage);
+    if (config.apiKey) {
+      const generateImage = async (companion: Companion) => {
+        try {
+          return await generateImageForCompanion(companion, config.apiKey!, {
+            model: config.imageModel,
+          });
+        } catch (error) {
+          console.error(`Failed to generate image for ${companion.name}:`, error);
+          return null;
+        }
+      };
+      book.companions = await generateBufferedImages(book.companions, generateImage);
+    }
   }
 
   // Step 7: Save book

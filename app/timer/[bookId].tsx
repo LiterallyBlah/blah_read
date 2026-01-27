@@ -12,6 +12,8 @@ import { Book, ReadingSession, Companion } from '@/lib/types';
 import { processReadingSession } from '@/lib/companionUnlock';
 import { checkLootBoxRewards } from '@/lib/lootBox';
 import { maybeGenerateImages } from '@/lib/companionImageQueue';
+import { generateImageForCompanion } from '@/lib/imageGen';
+import { settings } from '@/lib/settings';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 
@@ -115,10 +117,22 @@ export default function TimerScreen() {
 
     // Trigger background image generation for next unlocks
     if (book.companions) {
-      const generateImage = async () => null; // Placeholder
-      maybeGenerateImages(book, generateImage).then(async updatedBook => {
-        await storage.saveBook(updatedBook);
-      });
+      const config = await settings.get();
+      if (config.apiKey) {
+        const generateImage = async (companion: Companion) => {
+          try {
+            return await generateImageForCompanion(companion, config.apiKey!, {
+              model: config.imageModel,
+            });
+          } catch (error) {
+            console.error(`Failed to generate image for ${companion.name}:`, error);
+            return null;
+          }
+        };
+        maybeGenerateImages(book, generateImage).then(async updatedBook => {
+          await storage.saveBook(updatedBook);
+        });
+      }
     }
 
     router.back();
