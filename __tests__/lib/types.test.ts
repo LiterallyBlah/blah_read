@@ -1,4 +1,4 @@
-import { Book, ReadingSession, UserProgress, BookStatus } from '@/lib/types';
+import { Book, ReadingSession, UserProgress, BookStatus, Companion } from '@/lib/types';
 
 describe('types', () => {
   it('Book type has required fields', () => {
@@ -46,5 +46,27 @@ describe('types', () => {
   it('BookStatus is a valid union type', () => {
     const statuses: BookStatus[] = ['to_read', 'reading', 'finished'];
     expect(statuses).toHaveLength(3);
+  });
+});
+
+describe('Companion type', () => {
+  it('supports both visualDescription and physicalDescription', () => {
+    const companion: Companion = {
+      id: 'test-1',
+      bookId: 'book-1',
+      name: 'Test',
+      type: 'character',
+      rarity: 'common',
+      description: 'A test companion',
+      traits: 'brave',
+      visualDescription: 'old field',
+      physicalDescription: 'new field',
+      imageUrl: null,
+      source: 'discovered',
+      unlockMethod: null,
+      unlockedAt: null,
+    };
+    expect(companion.physicalDescription).toBe('new field');
+    expect(companion.visualDescription).toBe('old field');
   });
 });

@@ -47,6 +47,7 @@ export interface Companion {
   description: string;
   traits: string;
   visualDescription: string;
+  physicalDescription?: string; // New field - used by new companions
   imageUrl: string | null;
   source: CompanionSource;
   unlockMethod: CompanionUnlockMethod | null;
