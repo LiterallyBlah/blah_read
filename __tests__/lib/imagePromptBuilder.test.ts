@@ -1,5 +1,8 @@
-import { getBorderInstruction, buildPromptTemplate } from '@/lib/imagePromptBuilder';
+import { getBorderInstruction, buildPromptTemplate, generateImagePrompt } from '@/lib/imagePromptBuilder';
 import type { Companion } from '@/lib/types';
+
+// Mock fetch globally at the top of the file
+global.fetch = jest.fn();
 
 describe('imagePromptBuilder', () => {
   describe('getBorderInstruction', () => {
@@ -74,6 +77,86 @@ describe('imagePromptBuilder', () => {
       };
       const prompt = buildPromptTemplate(oldCompanion);
       expect(prompt).toContain('Old visual description here');
+    });
+  });
+
+  describe('generateImagePrompt', () => {
+    const mockCompanion: Companion = {
+      id: 'test-1',
+      bookId: 'book-1',
+      name: 'Fire Dragon',
+      type: 'creature',
+      rarity: 'legendary',
+      description: 'A mighty dragon',
+      traits: 'fierce, ancient',
+      visualDescription: '',
+      physicalDescription: 'Large red dragon with golden scales',
+      imageUrl: null,
+      source: 'discovered',
+      unlockMethod: null,
+      unlockedAt: null,
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('calls OpenRouter API with correct parameters', async () => {
+      (fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          choices: [{ message: { content: '32x32 pixel art dragon with gold border' } }],
+        }),
+      });
+
+      await generateImagePrompt(mockCompanion, 'test-api-key', { model: 'test-model' });
+
+      expect(fetch).toHaveBeenCalledWith(
+        'https://openrouter.ai/api/v1/chat/completions',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            'Authorization': 'Bearer test-api-key',
+          }),
+        })
+      );
+
+      const body = JSON.parse((fetch as jest.Mock).mock.calls[0][1].body);
+      expect(body.model).toBe('test-model');
+      expect(body.messages[0].content).toContain('Fire Dragon');
+    });
+
+    it('returns the generated prompt from LLM response', async () => {
+      const expectedPrompt = '32x32 pixel art dragon with gold ornate border';
+      (fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          choices: [{ message: { content: expectedPrompt } }],
+        }),
+      });
+
+      const result = await generateImagePrompt(mockCompanion, 'test-api-key', {});
+      expect(result).toBe(expectedPrompt);
+    });
+
+    it('throws error on API failure', async () => {
+      (fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        text: () => Promise.resolve('API error'),
+      });
+
+      await expect(generateImagePrompt(mockCompanion, 'test-api-key', {}))
+        .rejects.toThrow('Image prompt generation failed');
+    });
+
+    it('throws error when no content in response', async () => {
+      (fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ choices: [] }),
+      });
+
+      await expect(generateImagePrompt(mockCompanion, 'test-api-key', {}))
+        .rejects.toThrow('No content in image prompt response');
     });
   });
 });

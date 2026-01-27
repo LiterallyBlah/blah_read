@@ -1,4 +1,12 @@
 import type { Companion, CompanionRarity } from './types';
+import { debug } from './debug';
+
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const DEFAULT_MODEL = 'google/gemini-2.5-flash-preview-05-20';
+
+export interface ImagePromptConfig {
+  model?: string;
+}
 
 /**
  * Get the border instruction for a given rarity level.
@@ -39,4 +47,59 @@ Requirements:
 ${borderInstruction}
 
 Output ONLY the image prompt, no explanation or markdown.`;
+}
+
+/**
+ * Generate an image prompt for a companion using the LLM.
+ * This is Phase 2 of the two-phase image generation system.
+ *
+ * @throws Error if LLM call fails - no fallback, fail cleanly
+ */
+export async function generateImagePrompt(
+  companion: Companion,
+  apiKey: string,
+  config: ImagePromptConfig = {}
+): Promise<string> {
+  const model = config.model || DEFAULT_MODEL;
+  const promptTemplate = buildPromptTemplate(companion);
+
+  debug.log('imagePrompt', `Generating image prompt for "${companion.name}"`, {
+    model,
+    rarity: companion.rarity,
+  });
+
+  const response = await fetch(OPENROUTER_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+      'HTTP-Referer': 'https://blahread.app',
+      'X-Title': 'Blah Read',
+    },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: 'user', content: promptTemplate }],
+      max_tokens: 500,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    debug.error('imagePrompt', `API failed for "${companion.name}"`, error);
+    throw new Error(`Image prompt generation failed: ${error}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+
+  if (!content) {
+    debug.error('imagePrompt', `No content in response for "${companion.name}"`, data);
+    throw new Error('No content in image prompt response');
+  }
+
+  debug.log('imagePrompt', `Generated prompt for "${companion.name}"`, {
+    promptLength: content.length,
+  });
+
+  return content.trim();
 }
