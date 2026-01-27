@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { storage } from './storage';
 
 const SETTINGS_KEY = 'blahread:settings';
 
@@ -38,3 +39,33 @@ export const settings = {
     await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...current, ...partial }));
   },
 };
+
+export async function exportAllData(): Promise<string> {
+  const [books, sessions, progress, settingsData] = await Promise.all([
+    storage.getBooks(),
+    storage.getSessions(),
+    storage.getProgress(),
+    settings.get(),
+  ]);
+  return JSON.stringify({ books, sessions, progress, settings: settingsData }, null, 2);
+}
+
+export async function clearProgress(): Promise<void> {
+  await storage.saveProgress({
+    totalXp: 0,
+    level: 1,
+    currentStreak: 0,
+    longestStreak: 0,
+    lastReadDate: null,
+    lootItems: [],
+  });
+}
+
+export async function resetApp(): Promise<void> {
+  await AsyncStorage.multiRemove([
+    'blahread:books',
+    'blahread:sessions',
+    'blahread:progress',
+    'blahread:settings',
+  ]);
+}
