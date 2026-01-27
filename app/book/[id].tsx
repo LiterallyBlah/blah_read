@@ -6,6 +6,8 @@ import { canUnlockCompanion, generateCompanion } from '@/lib/companionGenerator'
 import { Book, BookStatus } from '@/lib/types';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
+import { CompanionProgress, CompanionStep } from '@/components/CompanionProgress';
+import { settings } from '@/lib/settings';
 
 const STATUS_OPTIONS: { label: string; value: BookStatus }[] = [
   { label: 'to read', value: 'to_read' },
@@ -18,6 +20,8 @@ export default function BookDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [book, setBook] = useState<Book | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [companionStep, setCompanionStep] = useState<CompanionStep | null>(null);
+  const [companionError, setCompanionError] = useState<string | null>(null);
 
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
@@ -28,6 +32,50 @@ export default function BookDetailScreen() {
   async function loadBook() {
     const books = await storage.getBooks();
     setBook(books.find(b => b.id === id) || null);
+  }
+
+  useEffect(() => {
+    if (!book) return;
+
+    // Auto-generate companion for newly added kindle-share books without companions
+    const shouldAutoGenerate =
+      book.source === 'kindle-share' &&
+      !book.companion &&
+      book.synopsis &&
+      // Only if book was created in last 30 seconds (freshly added)
+      Date.now() - book.createdAt < 30000;
+
+    if (shouldAutoGenerate) {
+      autoGenerateCompanion();
+    }
+  }, [book?.id]);
+
+  async function autoGenerateCompanion() {
+    if (!book) return;
+
+    const config = await settings.get();
+    if (!config.apiKey) {
+      // No API key, skip auto-generation
+      return;
+    }
+
+    setCompanionStep('analyzing');
+    setCompanionError(null);
+
+    try {
+      setCompanionStep('personality');
+      // Small delay for UX
+      await new Promise(r => setTimeout(r, 500));
+
+      setCompanionStep('avatar');
+      await generateCompanion(book);
+
+      setCompanionStep('done');
+      await loadBook();
+    } catch (error: any) {
+      setCompanionStep('error');
+      setCompanionError(error.message || 'Failed to generate companion');
+    }
   }
 
   async function updateStatus(status: BookStatus) {
@@ -128,23 +176,38 @@ export default function BookDetailScreen() {
       {/* Companion section */}
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>companion_</Text>
-        {book.companion ? (
+        {companionStep && companionStep !== 'done' && (
+          <CompanionProgress
+            currentStep={companionStep}
+            error={companionError || undefined}
+          />
+        )}
+
+        {companionStep === 'error' && (
+          <Pressable onPress={autoGenerateCompanion} style={styles.retryButton}>
+            <Text style={[styles.retryText, { color: colors.text }]}>
+              [try again]
+            </Text>
+          </Pressable>
+        )}
+
+        {!companionStep && book.companion ? (
           <View style={styles.companionCard}>
             <Image source={{ uri: book.companion.imageUrl }} style={styles.companionImage} />
             <Text style={styles.companionName}>{book.companion.creature.toLowerCase()}</Text>
             <Text style={styles.companionType}>{book.companion.archetype.toLowerCase()}</Text>
           </View>
-        ) : canUnlock ? (
+        ) : !companionStep && canUnlock ? (
           <Pressable style={styles.unlockButton} onPress={handleUnlockCompanion} disabled={generating}>
             <Text style={styles.unlockText}>
               {generating ? 'generating..._' : '[ unlock companion ]'}
             </Text>
           </Pressable>
-        ) : (
+        ) : !companionStep && !book.companion ? (
           <Text style={styles.lockedText}>
             finish book or read 5 hours to unlock_
           </Text>
-        )}
+        ) : null}
       </View>
 
       {/* Start reading button */}
@@ -324,6 +387,15 @@ function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: a
       fontFamily: FONTS.mono,
       fontSize: fontSize('small'),
       letterSpacing: letterSpacing('tight'),
+    },
+    retryButton: {
+      marginTop: 12,
+      paddingVertical: 8,
+    },
+    retryText: {
+      fontFamily: FONTS.mono,
+      fontSize: 14,
+      textAlign: 'center',
     },
   });
 }
