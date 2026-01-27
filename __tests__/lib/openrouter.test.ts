@@ -19,4 +19,16 @@ describe('openrouter', () => {
     expect(supportsImageOutput(imageModel)).toBe(true);
     expect(supportsImageOutput(textModel)).toBe(false);
   });
+
+  it('handles missing architecture gracefully', () => {
+    const response = { data: [{ id: 'x', name: 'X' }] };
+    const models = parseModelsResponse(response);
+    expect(models[0].outputModalities).toEqual(['text']);
+  });
+
+  it('handles empty data array', () => {
+    const response = { data: [] };
+    const models = parseModelsResponse(response);
+    expect(models).toEqual([]);
+  });
 });

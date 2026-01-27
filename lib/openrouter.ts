@@ -6,8 +6,18 @@ export interface OpenRouterModel {
   outputModalities: string[];
 }
 
-export function parseModelsResponse(response: any): OpenRouterModel[] {
-  return (response.data || []).map((m: any) => ({
+interface OpenRouterApiResponse {
+  data: Array<{
+    id: string;
+    name: string;
+    architecture?: {
+      output_modalities?: string[];
+    };
+  }>;
+}
+
+export function parseModelsResponse(response: OpenRouterApiResponse): OpenRouterModel[] {
+  return (response.data || []).map((m) => ({
     id: m.id,
     name: m.name,
     outputModalities: m.architecture?.output_modalities || ['text'],
