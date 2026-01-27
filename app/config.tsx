@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Alert } from 'react-native';
 import { router } from 'expo-router';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { useTheme } from '@/lib/ThemeContext';
-import { settings, Settings } from '@/lib/settings';
+import { settings, Settings, exportAllData, clearProgress, resetApp } from '@/lib/settings';
 import { validateApiKey, validateImageModel } from '@/lib/openrouter';
 import { FONTS } from '@/lib/theme';
 
@@ -102,6 +104,44 @@ export default function ConfigScreen() {
           {imageModelValid === false && <Text style={[styles.hint, { color: colors.error }]}>⚠ model does not support image generation</Text>}
         </View>
       )}
+
+      {/* Display Section */}
+      <Pressable style={styles.sectionHeader} onPress={() => setExpandedSection(expandedSection === 'display' ? null : 'display')}>
+        <Text style={styles.sectionTitle}>[display] {expandedSection === 'display' ? '▼' : '▶'}</Text>
+      </Pressable>
+
+      {expandedSection === 'display' && (
+        <View style={styles.sectionContent}>
+          <Text style={styles.label}>theme_</Text>
+          <View style={styles.row}>
+            {(['auto', 'dark', 'light'] as const).map(t => (
+              <Pressable
+                key={t}
+                style={[styles.toggleButton, config.theme === t && styles.toggleActive]}
+                onPress={() => updateConfig({ theme: t })}
+              >
+                <Text style={[styles.toggleText, config.theme === t && styles.toggleTextActive]}>[{t}]</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={styles.hint}>auto follows your device setting</Text>
+
+          <Text style={styles.label}>font size_</Text>
+          <View style={styles.row}>
+            {([0.85, 1, 1.2] as const).map((s) => (
+              <Pressable
+                key={s}
+                style={[styles.toggleButton, config.fontScale === s && styles.toggleActive]}
+                onPress={() => updateConfig({ fontScale: s })}
+              >
+                <Text style={[styles.toggleText, config.fontScale === s && styles.toggleTextActive, { fontSize: fontSize('body') * s }]}>
+                  A
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -123,5 +163,9 @@ function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: a
     status: { color: colors.textMuted, fontFamily: FONTS.mono, fontSize: fontSize('small'), marginTop: spacing(2) },
     hint: { color: colors.textMuted, fontFamily: FONTS.mono, fontSize: fontSize('small'), marginTop: spacing(1) },
     text: { color: colors.text, fontFamily: FONTS.mono, fontSize: fontSize('body') },
+    toggleButton: { borderWidth: 1, borderColor: colors.border, padding: spacing(3), minWidth: spacing(16), alignItems: 'center' },
+    toggleActive: { backgroundColor: colors.text, borderColor: colors.text },
+    toggleText: { color: colors.textSecondary, fontFamily: FONTS.mono, fontSize: fontSize('small') },
+    toggleTextActive: { color: colors.background },
   });
 }
