@@ -1,6 +1,7 @@
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import { Book } from '@/lib/types';
-import { COLORS, FONTS, spacing, fontSize, letterSpacing } from '@/lib/theme';
+import { FONTS } from '@/lib/theme';
+import { useTheme } from '@/lib/ThemeContext';
 
 interface Props {
   book: Book;
@@ -8,6 +9,10 @@ interface Props {
 }
 
 export function BookCard({ book, onPress }: Props) {
+  const { colors, spacing, fontSize, letterSpacing } = useTheme();
+
+  const styles = createStyles(colors, spacing, fontSize, letterSpacing);
+
   const hours = Math.floor(book.totalReadingTime / 3600);
   const minutes = Math.floor((book.totalReadingTime % 3600) / 60);
 
@@ -26,7 +31,12 @@ export function BookCard({ book, onPress }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (
+  colors: ReturnType<typeof useTheme>['colors'],
+  spacing: ReturnType<typeof useTheme>['spacing'],
+  fontSize: ReturnType<typeof useTheme>['fontSize'],
+  letterSpacing: ReturnType<typeof useTheme>['letterSpacing']
+) => StyleSheet.create({
   container: {
     width: 100,
     marginRight: spacing(3),
@@ -34,29 +44,29 @@ const styles = StyleSheet.create({
   cover: {
     width: 100,
     height: 150,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     marginBottom: spacing(2),
   },
   placeholder: {
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
   placeholderText: {
-    color: COLORS.textMuted,
+    color: colors.textMuted,
     fontFamily: FONTS.mono,
     fontSize: 36,
   },
   title: {
-    color: COLORS.text,
+    color: colors.text,
     fontFamily: FONTS.mono,
     fontSize: fontSize('small'),
     letterSpacing: letterSpacing('tight'),
     marginBottom: spacing(1),
   },
   time: {
-    color: COLORS.textMuted,
+    color: colors.textMuted,
     fontFamily: FONTS.mono,
     fontSize: fontSize('micro'),
     letterSpacing: letterSpacing('tight'),
