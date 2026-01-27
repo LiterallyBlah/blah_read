@@ -1,14 +1,16 @@
 import { Tabs } from 'expo-router';
 import { Text } from 'react-native';
-import { COLORS, FONTS, fontSize } from '@/lib/theme';
+import { FONTS } from '@/lib/theme';
+import { useTheme } from '@/lib/ThemeContext';
 
 // Text-based icons following typewriter aesthetic - using single chars to prevent wrapping
 function TabIcon({ symbol, focused }: { symbol: string; focused: boolean }) {
+  const { colors, fontSize } = useTheme();
   return (
     <Text style={{
       fontFamily: FONTS.mono,
       fontSize: fontSize('body'),
-      color: focused ? COLORS.text : COLORS.textMuted,
+      color: focused ? colors.text : colors.textMuted,
     }}>
       {symbol}
     </Text>
@@ -16,12 +18,13 @@ function TabIcon({ symbol, focused }: { symbol: string; focused: boolean }) {
 }
 
 export default function TabLayout() {
+  const { colors } = useTheme();
   return (
     <Tabs screenOptions={{
       headerShown: false,
       tabBarStyle: {
-        backgroundColor: COLORS.background,
-        borderTopColor: COLORS.border,
+        backgroundColor: colors.background,
+        borderTopColor: colors.border,
         borderTopWidth: 1,
         height: 60,
         paddingTop: 8,
@@ -32,8 +35,8 @@ export default function TabLayout() {
         fontSize: 10,
         letterSpacing: 1,
       },
-      tabBarActiveTintColor: COLORS.text,
-      tabBarInactiveTintColor: COLORS.textMuted,
+      tabBarActiveTintColor: colors.text,
+      tabBarInactiveTintColor: colors.textMuted,
     }}>
       <Tabs.Screen
         name="index"
