@@ -9,7 +9,7 @@ interface InspiredTemplate {
   type: CompanionType;
   description: string;
   traits: string;
-  visualDescription: string;
+  physicalDescription: string;
   keywords: string[];
 }
 
@@ -24,7 +24,7 @@ export const INSPIRED_TEMPLATES: InspiredTemplate[] = [
     type: 'character',
     description: 'A mysterious traveler who has seen countless lands and carries wisdom from distant places.',
     traits: 'Mysterious, wise, well-traveled, introspective',
-    visualDescription: 'Cloaked figure with a walking staff, weathered face, distant gaze, travel-worn clothes',
+    physicalDescription: 'Cloaked figure with a walking staff, weathered face, distant gaze, travel-worn clothes',
     keywords: ['journey', 'travel', 'wander', 'road', 'path', 'quest', 'adventure', 'explore', 'stranger'],
   },
   {
@@ -32,7 +32,7 @@ export const INSPIRED_TEMPLATES: InspiredTemplate[] = [
     type: 'character',
     description: 'A keeper of knowledge who seeks to understand the mysteries of the world through study and research.',
     traits: 'Intelligent, curious, methodical, bookish',
-    visualDescription: 'Spectacled figure with ink-stained fingers, surrounded by books, quill in hand',
+    physicalDescription: 'Spectacled figure with ink-stained fingers, surrounded by books, quill in hand',
     keywords: ['book', 'knowledge', 'learn', 'study', 'library', 'scholar', 'wisdom', 'research', 'read', 'write'],
   },
   {
@@ -40,7 +40,7 @@ export const INSPIRED_TEMPLATES: InspiredTemplate[] = [
     type: 'character',
     description: 'A stalwart protector dedicated to defending those who cannot defend themselves.',
     traits: 'Loyal, brave, protective, steadfast',
-    visualDescription: 'Armored warrior with shield, stern expression, battle-scarred, vigilant stance',
+    physicalDescription: 'Armored warrior with shield, stern expression, battle-scarred, vigilant stance',
     keywords: ['protect', 'guard', 'defend', 'shield', 'warrior', 'knight', 'battle', 'fight', 'safe', 'watch'],
   },
   {
@@ -48,7 +48,7 @@ export const INSPIRED_TEMPLATES: InspiredTemplate[] = [
     type: 'character',
     description: 'A cunning figure who uses wit and deception to navigate the world and achieve their goals.',
     traits: 'Clever, mischievous, quick-witted, unpredictable',
-    visualDescription: 'Sly-eyed figure with a smirk, nimble hands, colorful clothes, always moving',
+    physicalDescription: 'Sly-eyed figure with a smirk, nimble hands, colorful clothes, always moving',
     keywords: ['trick', 'clever', 'cunning', 'deceive', 'wit', 'thief', 'rogue', 'scheme', 'plan', 'escape'],
   },
   {
@@ -56,7 +56,7 @@ export const INSPIRED_TEMPLATES: InspiredTemplate[] = [
     type: 'character',
     description: 'A compassionate soul dedicated to mending wounds and bringing comfort to the suffering.',
     traits: 'Compassionate, gentle, patient, selfless',
-    visualDescription: 'Gentle figure with healing herbs, soft eyes, caring hands, simple robes',
+    physicalDescription: 'Gentle figure with healing herbs, soft eyes, caring hands, simple robes',
     keywords: ['heal', 'cure', 'medicine', 'help', 'care', 'doctor', 'nurse', 'comfort', 'pain', 'sick'],
   },
   {
@@ -64,7 +64,7 @@ export const INSPIRED_TEMPLATES: InspiredTemplate[] = [
     type: 'character',
     description: 'One who lives on the edges of society, finding strength in their solitude and difference.',
     traits: 'Independent, resilient, misunderstood, resourceful',
-    visualDescription: 'Solitary figure in worn clothes, wary eyes, marks of hardship, hidden strength',
+    physicalDescription: 'Solitary figure in worn clothes, wary eyes, marks of hardship, hidden strength',
     keywords: ['alone', 'outcast', 'exile', 'lonely', 'different', 'misfit', 'stranger', 'reject', 'survive'],
   },
   {
@@ -72,7 +72,7 @@ export const INSPIRED_TEMPLATES: InspiredTemplate[] = [
     type: 'character',
     description: 'A wise guide who shapes the paths of others through teaching and example.',
     traits: 'Patient, wise, experienced, nurturing',
-    visualDescription: 'Elder figure with kind eyes, silver hair, teaching gesture, knowing smile',
+    physicalDescription: 'Elder figure with kind eyes, silver hair, teaching gesture, knowing smile',
     keywords: ['teach', 'mentor', 'guide', 'master', 'student', 'lesson', 'learn', 'wisdom', 'old', 'train'],
   },
 
@@ -82,7 +82,7 @@ export const INSPIRED_TEMPLATES: InspiredTemplate[] = [
     type: 'creature',
     description: 'A mischievous being of darkness that dances between light and shadow.',
     traits: 'Playful, elusive, curious, nocturnal',
-    visualDescription: 'Small shadowy figure with glowing eyes, wispy form, darting movements',
+    physicalDescription: 'Small shadowy figure with glowing eyes, wispy form, darting movements',
     keywords: ['shadow', 'dark', 'night', 'spirit', 'ghost', 'mysterious', 'hidden', 'secret', 'whisper'],
   },
   {
@@ -90,7 +90,7 @@ export const INSPIRED_TEMPLATES: InspiredTemplate[] = [
     type: 'creature',
     description: 'A dancing flame given life, bringing warmth and light to dark places.',
     traits: 'Energetic, warm, flickering, bright',
-    visualDescription: 'Floating ball of warm fire, dancing flames, orange and gold glow, sparks trailing',
+    physicalDescription: 'Floating ball of warm fire, dancing flames, orange and gold glow, sparks trailing',
     keywords: ['fire', 'flame', 'burn', 'light', 'warm', 'heat', 'spark', 'blaze', 'glow', 'hot'],
   },
   {
@@ -98,7 +98,7 @@ export const INSPIRED_TEMPLATES: InspiredTemplate[] = [
     type: 'creature',
     description: 'An ancient spirit of the woods that protects the trees and creatures within.',
     traits: 'Ancient, patient, protective, nature-bound',
-    visualDescription: 'Tree-like being with bark skin, leaf hair, moss covering, deep green eyes',
+    physicalDescription: 'Tree-like being with bark skin, leaf hair, moss covering, deep green eyes',
     keywords: ['forest', 'tree', 'wood', 'nature', 'plant', 'green', 'wild', 'grow', 'leaf', 'ancient'],
   },
   {
@@ -106,7 +106,7 @@ export const INSPIRED_TEMPLATES: InspiredTemplate[] = [
     type: 'creature',
     description: 'A majestic bird that rides the winds of tempests and commands the skies.',
     traits: 'Fierce, free, powerful, untameable',
-    visualDescription: 'Large bird with lightning-streaked feathers, sharp talons, electric blue eyes',
+    physicalDescription: 'Large bird with lightning-streaked feathers, sharp talons, electric blue eyes',
     keywords: ['storm', 'wind', 'sky', 'fly', 'bird', 'thunder', 'lightning', 'cloud', 'weather', 'air'],
   },
   {
@@ -114,7 +114,7 @@ export const INSPIRED_TEMPLATES: InspiredTemplate[] = [
     type: 'creature',
     description: 'A mysterious creature from the ocean depths, holding secrets of the abyss.',
     traits: 'Mysterious, ancient, alien, unfathomable',
-    visualDescription: 'Tentacled being with bioluminescent spots, deep blue scales, large dark eyes',
+    physicalDescription: 'Tentacled being with bioluminescent spots, deep blue scales, large dark eyes',
     keywords: ['sea', 'ocean', 'water', 'deep', 'fish', 'swim', 'wave', 'underwater', 'dive', 'ship'],
   },
 
@@ -124,7 +124,7 @@ export const INSPIRED_TEMPLATES: InspiredTemplate[] = [
     type: 'object',
     description: 'An ancient key that unlocks doors thought forever sealed, both literal and metaphorical.',
     traits: 'Mysterious, powerful, sought-after, unique',
-    visualDescription: 'Ornate golden key with intricate designs, glowing runes, worn from ages',
+    physicalDescription: 'Ornate golden key with intricate designs, glowing runes, worn from ages',
     keywords: ['key', 'lock', 'door', 'open', 'secret', 'hidden', 'unlock', 'treasure', 'mystery', 'find'],
   },
   {
@@ -132,7 +132,7 @@ export const INSPIRED_TEMPLATES: InspiredTemplate[] = [
     type: 'object',
     description: 'A compass that points not to north, but to what the bearer truly seeks.',
     traits: 'Guiding, truthful, magical, reliable',
-    visualDescription: 'Brass compass with swirling needle, etched symbols, leather case, soft glow',
+    physicalDescription: 'Brass compass with swirling needle, etched symbols, leather case, soft glow',
     keywords: ['compass', 'direction', 'find', 'search', 'lost', 'guide', 'path', 'way', 'seek', 'navigate'],
   },
   {
@@ -140,7 +140,7 @@ export const INSPIRED_TEMPLATES: InspiredTemplate[] = [
     type: 'object',
     description: 'A smooth stone that captures and preserves memories, allowing them to be relived.',
     traits: 'Precious, fragile, personal, timeless',
-    visualDescription: 'Polished gem with swirling colors inside, warm to touch, fits in palm',
+    physicalDescription: 'Polished gem with swirling colors inside, warm to touch, fits in palm',
     keywords: ['memory', 'remember', 'past', 'time', 'stone', 'gem', 'forget', 'history', 'lost', 'dream'],
   },
   {
@@ -148,7 +148,7 @@ export const INSPIRED_TEMPLATES: InspiredTemplate[] = [
     type: 'object',
     description: 'An ancient book containing powerful words that can shape reality when spoken.',
     traits: 'Powerful, dangerous, coveted, ancient',
-    visualDescription: 'Leather-bound book with metal clasps, glowing pages, mystical symbols',
+    physicalDescription: 'Leather-bound book with metal clasps, glowing pages, mystical symbols',
     keywords: ['book', 'spell', 'magic', 'power', 'word', 'ancient', 'forbidden', 'write', 'read', 'tome'],
   },
   {
@@ -156,7 +156,7 @@ export const INSPIRED_TEMPLATES: InspiredTemplate[] = [
     type: 'object',
     description: 'A legendary sword that has seen countless battles and carries the spirit of its wielders.',
     traits: 'Noble, battle-tested, legendary, loyal',
-    visualDescription: 'Gleaming sword with rune-etched blade, worn leather grip, noble design',
+    physicalDescription: 'Gleaming sword with rune-etched blade, worn leather grip, noble design',
     keywords: ['sword', 'blade', 'weapon', 'fight', 'battle', 'war', 'hero', 'steel', 'cut', 'warrior'],
   },
 ];
@@ -260,7 +260,8 @@ export function generateInspiredCompanions(
     rarity: rarities[index],
     description: template.description,
     traits: template.traits,
-    visualDescription: template.visualDescription,
+    visualDescription: '', // Keep for backwards compatibility
+    physicalDescription: template.physicalDescription,
     imageUrl: null,
     source: 'inspired' as const,
     unlockMethod: null,

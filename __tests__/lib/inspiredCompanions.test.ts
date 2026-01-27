@@ -1,4 +1,13 @@
-import { generateInspiredCompanions } from '@/lib/inspiredCompanions';
+import { generateInspiredCompanions, INSPIRED_TEMPLATES } from '@/lib/inspiredCompanions';
+
+describe('INSPIRED_TEMPLATES', () => {
+  it('all templates have physicalDescription', () => {
+    for (const template of INSPIRED_TEMPLATES) {
+      expect(template).toHaveProperty('physicalDescription');
+      expect(template.physicalDescription).toBeTruthy();
+    }
+  });
+});
 
 describe('inspiredCompanions', () => {
   describe('generateInspiredCompanions', () => {
@@ -48,6 +57,13 @@ describe('inspiredCompanions', () => {
       const result = generateInspiredCompanions('book-123', null as any, 5);
 
       expect(result).toHaveLength(5);
+    });
+
+    it('generates companions with physicalDescription', () => {
+      const companions = generateInspiredCompanions('book-1', 'A story about magic', 3);
+      for (const companion of companions) {
+        expect(companion.physicalDescription).toBeTruthy();
+      }
     });
   });
 });
