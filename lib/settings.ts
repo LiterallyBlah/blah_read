@@ -71,6 +71,48 @@ export async function clearProgress(): Promise<void> {
   });
 }
 
+export interface DeleteOptions {
+  books: boolean;
+  companionsOnly: boolean; // Clear companions but keep books
+  sessions: boolean;
+  progress: boolean;
+  settings: boolean;
+}
+
+export async function selectiveDelete(options: DeleteOptions): Promise<void> {
+  const keysToRemove: string[] = [];
+
+  if (options.books) {
+    keysToRemove.push('blahread:books');
+  } else if (options.companionsOnly) {
+    // Clear companions from all books but keep the books
+    const books = await storage.getBooks();
+    const clearedBooks = books.map(book => ({
+      ...book,
+      companions: undefined,
+      companion: undefined, // Legacy field
+      totalReadingTime: 0, // Reset reading time since companions are tied to it
+    }));
+    await AsyncStorage.setItem('blahread:books', JSON.stringify(clearedBooks));
+  }
+
+  if (options.sessions) {
+    keysToRemove.push('blahread:sessions');
+  }
+
+  if (options.progress) {
+    await clearProgress();
+  }
+
+  if (options.settings) {
+    keysToRemove.push('blahread:settings');
+  }
+
+  if (keysToRemove.length > 0) {
+    await AsyncStorage.multiRemove(keysToRemove);
+  }
+}
+
 export async function resetApp(): Promise<void> {
   await AsyncStorage.multiRemove([
     'blahread:books',

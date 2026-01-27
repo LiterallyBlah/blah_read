@@ -4,11 +4,19 @@ import { router } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useTheme } from '@/lib/ThemeContext';
-import { settings, Settings, exportAllData, clearProgress, resetApp } from '@/lib/settings';
+import { settings, Settings, exportAllData, resetApp, selectiveDelete, DeleteOptions } from '@/lib/settings';
 import { validateApiKey, validateImageModel } from '@/lib/openrouter';
 import { FONTS } from '@/lib/theme';
 
 type ApiStatus = 'not set' | 'testing' | 'connected' | 'invalid';
+
+const defaultDeleteOptions: DeleteOptions = {
+  books: false,
+  companionsOnly: false,
+  sessions: false,
+  progress: false,
+  settings: false,
+};
 
 export default function ConfigScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();
@@ -16,6 +24,7 @@ export default function ConfigScreen() {
   const [apiStatus, setApiStatus] = useState<ApiStatus>('not set');
   const [imageModelValid, setImageModelValid] = useState<boolean | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>('api');
+  const [deleteOptions, setDeleteOptions] = useState<DeleteOptions>(defaultDeleteOptions);
 
   useEffect(() => { loadConfig(); }, []);
 
@@ -52,11 +61,35 @@ export default function ConfigScreen() {
     await Sharing.shareAsync(path);
   }
 
-  async function handleClearProgress() {
-    Alert.alert('Clear Progress', 'Reset all XP, streaks, and loot? Books will be kept.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Clear', style: 'destructive', onPress: async () => { await clearProgress(); Alert.alert('Done', 'Progress cleared.'); } },
-    ]);
+  async function handleSelectiveDelete() {
+    const selected: string[] = [];
+    if (deleteOptions.books) selected.push('books');
+    if (deleteOptions.companionsOnly) selected.push('companions');
+    if (deleteOptions.sessions) selected.push('reading sessions');
+    if (deleteOptions.progress) selected.push('progress & stats');
+    if (deleteOptions.settings) selected.push('settings');
+
+    if (selected.length === 0) return;
+
+    Alert.alert(
+      'Delete Data',
+      `This will permanently delete: ${selected.join(', ')}. This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await selectiveDelete(deleteOptions);
+            setDeleteOptions(defaultDeleteOptions);
+            if (deleteOptions.settings) {
+              await loadConfig(); // Reload config if settings were reset
+            }
+            Alert.alert('Done', 'Selected data has been deleted.');
+          },
+        },
+      ]
+    );
   }
 
   async function handleReset() {
@@ -258,16 +291,108 @@ export default function ConfigScreen() {
             <Text style={styles.actionButtonText}>[download json]</Text>
           </Pressable>
 
-          <Text style={styles.label}>clear progress_</Text>
-          <Pressable style={styles.actionButton} onPress={handleClearProgress}>
-            <Text style={styles.actionButtonText}>[reset stats]</Text>
-          </Pressable>
-          <Text style={styles.hint}>keeps your books, clears xp, streaks, and loot</Text>
+          <Text style={[styles.label, { color: colors.error, marginTop: spacing(6) }]}>delete data_</Text>
+          <Text style={styles.hint}>select what to delete:</Text>
 
-          <Text style={[styles.label, { color: colors.error }]}>reset app_</Text>
+          {/* Delete options toggles */}
+          <View style={styles.deleteOptionsContainer}>
+            <Pressable
+              style={styles.deleteOption}
+              onPress={() => setDeleteOptions(prev => ({
+                ...prev,
+                books: !prev.books,
+                companionsOnly: !prev.books ? false : prev.companionsOnly, // Can't do both
+              }))}
+            >
+              <View style={[styles.checkbox, deleteOptions.books && styles.checkboxChecked]}>
+                {deleteOptions.books && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <View style={styles.deleteOptionText}>
+                <Text style={styles.deleteOptionLabel}>books</Text>
+                <Text style={styles.deleteOptionHint}>removes all books and their companions</Text>
+              </View>
+            </Pressable>
+
+            <Pressable
+              style={[styles.deleteOption, deleteOptions.books && { opacity: 0.4 }]}
+              onPress={() => !deleteOptions.books && setDeleteOptions(prev => ({
+                ...prev,
+                companionsOnly: !prev.companionsOnly,
+              }))}
+              disabled={deleteOptions.books}
+            >
+              <View style={[styles.checkbox, deleteOptions.companionsOnly && styles.checkboxChecked]}>
+                {deleteOptions.companionsOnly && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <View style={styles.deleteOptionText}>
+                <Text style={styles.deleteOptionLabel}>companions only</Text>
+                <Text style={styles.deleteOptionHint}>keeps books, removes all companions and reading time</Text>
+              </View>
+            </Pressable>
+
+            <Pressable
+              style={styles.deleteOption}
+              onPress={() => setDeleteOptions(prev => ({ ...prev, sessions: !prev.sessions }))}
+            >
+              <View style={[styles.checkbox, deleteOptions.sessions && styles.checkboxChecked]}>
+                {deleteOptions.sessions && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <View style={styles.deleteOptionText}>
+                <Text style={styles.deleteOptionLabel}>reading sessions</Text>
+                <Text style={styles.deleteOptionHint}>removes reading history log</Text>
+              </View>
+            </Pressable>
+
+            <Pressable
+              style={styles.deleteOption}
+              onPress={() => setDeleteOptions(prev => ({ ...prev, progress: !prev.progress }))}
+            >
+              <View style={[styles.checkbox, deleteOptions.progress && styles.checkboxChecked]}>
+                {deleteOptions.progress && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <View style={styles.deleteOptionText}>
+                <Text style={styles.deleteOptionLabel}>progress & stats</Text>
+                <Text style={styles.deleteOptionHint}>resets xp, level, streaks, loot boxes</Text>
+              </View>
+            </Pressable>
+
+            <Pressable
+              style={styles.deleteOption}
+              onPress={() => setDeleteOptions(prev => ({ ...prev, settings: !prev.settings }))}
+            >
+              <View style={[styles.checkbox, deleteOptions.settings && styles.checkboxChecked]}>
+                {deleteOptions.settings && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <View style={styles.deleteOptionText}>
+                <Text style={styles.deleteOptionLabel}>settings</Text>
+                <Text style={styles.deleteOptionHint}>resets api keys, theme, goals to defaults</Text>
+              </View>
+            </Pressable>
+          </View>
+
+          {/* Delete button */}
+          <Pressable
+            style={[
+              styles.actionButton,
+              styles.dangerButton,
+              !Object.values(deleteOptions).some(v => v) && { opacity: 0.4 },
+            ]}
+            onPress={handleSelectiveDelete}
+            disabled={!Object.values(deleteOptions).some(v => v)}
+          >
+            <Text style={[styles.actionButtonText, { color: colors.error }]}>
+              [delete selected]
+            </Text>
+          </Pressable>
+
+          <View style={styles.divider} />
+
+          {/* Nuclear option */}
+          <Text style={[styles.label, { color: colors.error }]}>factory reset_</Text>
           <Pressable style={[styles.actionButton, styles.dangerButton]} onPress={handleReset}>
             <Text style={[styles.actionButtonText, { color: colors.error }]}>[delete everything]</Text>
           </Pressable>
+          <Text style={styles.hint}>removes all data and returns app to fresh state</Text>
         </View>
       )}
 
@@ -320,5 +445,22 @@ function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: a
     actionButtonText: { color: colors.textSecondary, fontFamily: FONTS.mono, fontSize: fontSize('small'), textAlign: 'center' },
     dangerButton: { borderColor: colors.error },
     divider: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: spacing(6), marginBottom: spacing(2) },
+    deleteOptionsContainer: { marginTop: spacing(3), marginBottom: spacing(4) },
+    deleteOption: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: spacing(2) },
+    checkbox: {
+      width: 20,
+      height: 20,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginRight: spacing(3),
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: 2,
+    },
+    checkboxChecked: { borderColor: colors.error, backgroundColor: colors.error },
+    checkmark: { color: colors.background, fontFamily: FONTS.mono, fontSize: 12, fontWeight: '700' },
+    deleteOptionText: { flex: 1 },
+    deleteOptionLabel: { color: colors.text, fontFamily: FONTS.mono, fontSize: fontSize('body') },
+    deleteOptionHint: { color: colors.textMuted, fontFamily: FONTS.mono, fontSize: fontSize('small'), marginTop: 2 },
   });
 }
