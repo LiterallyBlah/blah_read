@@ -60,12 +60,34 @@ export default function ConfigScreen() {
   }
 
   async function handleReset() {
-    Alert.prompt('Reset App', 'Type "reset" to confirm deletion of all data.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async (text) => {
-        if (text === 'reset') { await resetApp(); router.replace('/'); }
-      }},
-    ]);
+    Alert.alert(
+      'Reset App',
+      'This will permanently delete all your data including books, progress, and settings. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Everything',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Final Confirmation',
+              'Are you absolutely sure? All data will be lost.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Yes, Delete All',
+                  style: 'destructive',
+                  onPress: async () => {
+                    await resetApp();
+                    router.replace('/');
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
   }
 
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
