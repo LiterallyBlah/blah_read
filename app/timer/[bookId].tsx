@@ -9,12 +9,15 @@ import { calculateXp } from '@/lib/xp';
 import { shouldTriggerLoot, rollLoot } from '@/lib/loot';
 import { updateStreak, getDateString } from '@/lib/streak';
 import { Book, ReadingSession } from '@/lib/types';
-import { COLORS, FONTS, spacing, fontSize, letterSpacing } from '@/lib/theme';
+import { FONTS } from '@/lib/theme';
+import { useTheme } from '@/lib/ThemeContext';
 
 export default function TimerScreen() {
+  const { colors, spacing, fontSize, letterSpacing } = useTheme();
   const { bookId } = useLocalSearchParams<{ bookId: string }>();
   const [book, setBook] = useState<Book | null>(null);
   const { elapsed, isRunning, start, pause, reset } = useTimer();
+  const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
   useEffect(() => {
     loadBook();
@@ -123,10 +126,15 @@ export default function TimerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (
+  colors: ReturnType<typeof useTheme>['colors'],
+  spacing: ReturnType<typeof useTheme>['spacing'],
+  fontSize: ReturnType<typeof useTheme>['fontSize'],
+  letterSpacing: ReturnType<typeof useTheme>['letterSpacing']
+) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing(6),
@@ -138,7 +146,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   title: {
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     fontFamily: FONTS.mono,
     fontSize: fontSize('body'),
     letterSpacing: letterSpacing('tight'),
@@ -146,7 +154,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   timer: {
-    color: COLORS.text,
+    color: colors.text,
     fontFamily: FONTS.mono,
     fontWeight: FONTS.monoBold,
     fontSize: 72, // Large display per spec
@@ -161,13 +169,13 @@ const styles = StyleSheet.create({
   // Primary CTA button (from design system CommandButton)
   primaryButton: {
     borderWidth: 1,
-    borderColor: COLORS.text,
+    borderColor: colors.text,
     paddingVertical: spacing(5), // 20px
     alignItems: 'center',
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   primaryButtonText: {
-    color: COLORS.text,
+    color: colors.text,
     fontFamily: FONTS.mono,
     fontWeight: FONTS.monoBold,
     fontSize: fontSize('large'),
@@ -176,19 +184,19 @@ const styles = StyleSheet.create({
   // Secondary button (compact inline control)
   secondaryButton: {
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     paddingVertical: spacing(4), // 16px
     alignItems: 'center',
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   secondaryButtonText: {
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     fontFamily: FONTS.mono,
     fontSize: fontSize('body'),
     letterSpacing: letterSpacing('tight'),
   },
   manualLink: {
-    color: COLORS.textMuted,
+    color: colors.textMuted,
     fontFamily: FONTS.mono,
     fontSize: fontSize('small'),
     letterSpacing: letterSpacing('tight'),
