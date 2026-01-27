@@ -55,4 +55,55 @@ describe('storage', () => {
     expect(progress.level).toBe(1);
     expect(progress.lootItems).toEqual([]);
   });
+
+  describe('findDuplicateBook', () => {
+    it('finds duplicate by exact ASIN match', async () => {
+      const existingBooks = [
+        { id: '1', title: 'Power', asin: 'B07WNJ7FTQ' },
+      ];
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(existingBooks));
+
+      const duplicate = await storage.findDuplicateBook({ asin: 'B07WNJ7FTQ' });
+      expect(duplicate?.id).toBe('1');
+    });
+
+    it('finds duplicate by title and author match', async () => {
+      const existingBooks = [
+        { id: '1', title: 'Power', authors: ['Aaron Oster'] },
+      ];
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(existingBooks));
+
+      const duplicate = await storage.findDuplicateBook({
+        title: 'Power',
+        authors: ['Aaron Oster']
+      });
+      expect(duplicate?.id).toBe('1');
+    });
+
+    it('handles case-insensitive title matching', async () => {
+      const existingBooks = [
+        { id: '1', title: 'The Power', authors: ['Aaron Oster'] },
+      ];
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(existingBooks));
+
+      const duplicate = await storage.findDuplicateBook({
+        title: 'the power',
+        authors: ['Aaron Oster']
+      });
+      expect(duplicate?.id).toBe('1');
+    });
+
+    it('returns null when no duplicate found', async () => {
+      const existingBooks = [
+        { id: '1', title: 'Different Book', asin: 'B123456789' },
+      ];
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(existingBooks));
+
+      const duplicate = await storage.findDuplicateBook({
+        asin: 'B07WNJ7FTQ',
+        title: 'Power',
+      });
+      expect(duplicate).toBeNull();
+    });
+  });
 });

@@ -1,6 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Book, ReadingSession, UserProgress } from './types';
 
+export interface DuplicateQuery {
+  asin?: string;
+  title?: string;
+  authors?: string[];
+}
+
 const KEYS = {
   BOOKS: 'blahread:books',
   SESSIONS: 'blahread:sessions',
@@ -56,5 +62,40 @@ export const storage = {
 
   async saveProgress(progress: UserProgress): Promise<void> {
     await AsyncStorage.setItem(KEYS.PROGRESS, JSON.stringify(progress));
+  },
+
+  async findDuplicateBook(query: DuplicateQuery): Promise<Book | null> {
+    const books = await this.getBooks();
+
+    // Check ASIN first (exact match)
+    if (query.asin) {
+      const asinMatch = books.find(b => b.asin === query.asin);
+      if (asinMatch) return asinMatch;
+    }
+
+    // Check title + author (fuzzy match)
+    if (query.title) {
+      const normalizedTitle = query.title.toLowerCase().trim();
+      const queryAuthor = query.authors?.[0]?.toLowerCase().trim();
+
+      const titleMatch = books.find(b => {
+        const bookTitle = b.title.toLowerCase().trim();
+        const bookAuthor = b.authors?.[0]?.toLowerCase().trim();
+
+        // Title must match
+        if (bookTitle !== normalizedTitle) return false;
+
+        // If we have author info, it should match too
+        if (queryAuthor && bookAuthor) {
+          return bookAuthor.includes(queryAuthor) || queryAuthor.includes(bookAuthor);
+        }
+
+        return true;
+      });
+
+      if (titleMatch) return titleMatch;
+    }
+
+    return null;
   },
 };
