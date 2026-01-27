@@ -1,6 +1,16 @@
-import { buildImagePrompt } from '@/lib/imageGen';
+import { buildImagePrompt, ImageGenConfig } from '@/lib/imageGen';
 
 describe('imageGen', () => {
+  describe('ImageGenConfig', () => {
+    it('accepts imageSize parameter', () => {
+      const config: ImageGenConfig = {
+        model: 'test-model',
+        imageSize: '2K',
+      };
+      expect(config.imageSize).toBe('2K');
+    });
+  });
+
   describe('buildImagePrompt', () => {
     it('builds pixel art prompt from companion data', () => {
       const prompt = buildImagePrompt('Dragon', ['mystical', 'scaled', 'ancient']);

@@ -1,6 +1,7 @@
 import type { Companion } from './types';
 import { debug } from './debug';
 import { saveCompanionImage } from './imageStorage';
+import { generateImagePrompt } from './imagePromptBuilder';
 
 // OpenRouter API configuration
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -9,6 +10,8 @@ const DEFAULT_MODEL = 'bytedance-seed/seedream-4.5';
 export interface ImageGenConfig {
   model?: string;
   aspectRatio?: '1:1' | '16:9' | '4:3' | '3:4' | '9:16';
+  imageSize?: '1K' | '2K' | '4K';
+  llmModel?: string; // For image prompt generation
 }
 
 /**
@@ -113,7 +116,15 @@ export async function generateImageForCompanion(
   config: ImageGenConfig = {}
 ): Promise<string> {
   const model = config.model || DEFAULT_MODEL;
-  const prompt = buildCompanionImagePrompt(companion);
+
+  // Phase 2: Generate styled prompt via LLM
+  let prompt: string;
+  try {
+    prompt = await generateImagePrompt(companion, apiKey, { model: config.llmModel });
+  } catch (error) {
+    debug.error('imageGen', `Failed to generate prompt for "${companion.name}"`, error);
+    throw error; // No fallback - fail cleanly
+  }
 
   const modalities = getModalitiesForModel(model);
 
@@ -131,11 +142,14 @@ export async function generateImageForCompanion(
     modalities,
   };
 
-  // Add Gemini-specific image config if using a Gemini model
-  if (model.includes('gemini') && config.aspectRatio) {
+  // Add Gemini-specific image config
+  if (model.includes('gemini')) {
     body.image_config = {
-      aspect_ratio: config.aspectRatio,
+      aspect_ratio: config.aspectRatio || '1:1',
     };
+    if (config.imageSize) {
+      (body.image_config as Record<string, unknown>).output_size = config.imageSize;
+    }
   }
 
   debug.log('imageGen', 'Sending request to OpenRouter...', { url: OPENROUTER_API_URL, modalities });
