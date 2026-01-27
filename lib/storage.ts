@@ -20,6 +20,13 @@ const defaultProgress: UserProgress = {
   longestStreak: 0,
   lastReadDate: null,
   lootItems: [],
+  lootBoxes: {
+    availableBoxes: [],
+    openHistory: [],
+  },
+  booksFinished: 0,
+  booksAdded: 0,
+  totalHoursRead: 0,
 };
 
 export const storage = {

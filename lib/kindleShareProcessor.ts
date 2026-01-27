@@ -1,9 +1,12 @@
 import { parseKindleShareText } from './kindleParser';
 import { enrichBookData } from './bookEnrichment';
 import { storage } from './storage';
+import { settings } from './settings';
 import { Book } from './types';
+import { orchestrateCompanionResearch, shouldRunCompanionResearch } from './companionOrchestrator';
+import { generateBufferedImages } from './companionImageQueue';
 
-export type ProcessingStep = 'parsing' | 'checking-duplicate' | 'enriching' | 'saving';
+export type ProcessingStep = 'parsing' | 'checking-duplicate' | 'enriching' | 'researching' | 'generating-images' | 'saving';
 
 export interface ProcessOptions {
   onProgress?: (step: ProcessingStep) => void;
@@ -56,10 +59,13 @@ export async function processKindleShare(
 
   // Step 3: Enrich with metadata
   onProgress?.('enriching');
-  const enrichment = await enrichBookData(parsed.title, parsed.authors[0]);
+  const config = await settings.get();
+  const enrichment = await enrichBookData(parsed.title, parsed.authors[0], {
+    googleBooksApiKey: config.googleBooksApiKey,
+    asin: parsed.asin,
+  });
 
-  // Step 4: Create and save book
-  onProgress?.('saving');
+  // Step 4: Create book object
   const book: Book = {
     id: Date.now().toString(),
     title: parsed.title,
@@ -79,6 +85,25 @@ export async function processKindleShare(
     metadataSynced: enrichment.source !== 'none',
   };
 
+  // Step 5: Research companions (if API key available)
+  if (shouldRunCompanionResearch(book)) {
+    onProgress?.('researching');
+    const companions = await orchestrateCompanionResearch({
+      bookId: book.id,
+      title: book.title,
+      author: book.authors?.[0],
+      synopsis: book.synopsis,
+    });
+    book.companions = companions;
+
+    // Step 6: Generate initial image buffer
+    onProgress?.('generating-images');
+    const generateImage = async () => null; // Placeholder - will be wired to imageGen
+    book.companions = await generateBufferedImages(book.companions, generateImage);
+  }
+
+  // Step 7: Save book
+  onProgress?.('saving');
   try {
     await storage.saveBook(book);
     return {
