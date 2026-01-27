@@ -44,6 +44,10 @@ describe('kindleShareProcessor', () => {
     expect(steps).toContain('parsing');
     expect(steps).toContain('enriching');
     expect(steps).toContain('saving');
+
+    // Should NOT include these anymore:
+    expect(steps).not.toContain('researching');
+    expect(steps).not.toContain('generating-images');
   });
 
   it('returns created book on success', async () => {
