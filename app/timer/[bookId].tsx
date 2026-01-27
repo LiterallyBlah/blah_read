@@ -14,6 +14,7 @@ import { checkLootBoxRewards } from '@/lib/lootBox';
 import { maybeGenerateImages } from '@/lib/companionImageQueue';
 import { generateImageForCompanion } from '@/lib/imageGen';
 import { settings } from '@/lib/settings';
+import { debug, setDebugEnabled } from '@/lib/debug';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 
@@ -45,6 +46,16 @@ export default function TimerScreen() {
   async function handleEnd() {
     if (!book || elapsed === 0) return;
 
+    // Initialize debug mode
+    const config = await settings.get();
+    setDebugEnabled(config.debugMode);
+
+    debug.log('timer', 'Ending reading session', {
+      bookTitle: book.title,
+      elapsed,
+      previousTime: book.totalReadingTime,
+    });
+
     const progress = await storage.getProgress();
     const previousTime = book.totalReadingTime;
     const newTime = previousTime + elapsed;
@@ -60,14 +71,20 @@ export default function TimerScreen() {
     progress.currentStreak = streakUpdate.currentStreak;
     progress.longestStreak = streakUpdate.longestStreak;
     progress.lastReadDate = streakUpdate.lastReadDate;
+    debug.log('timer', 'Streak updated', {
+      currentStreak: progress.currentStreak,
+      longestStreak: progress.longestStreak,
+    });
 
     // Calculate XP with streak multiplier
     const xp = calculateXp(elapsed, progress.currentStreak);
+    debug.log('timer', 'XP calculated', { xp, streakMultiplier: progress.currentStreak });
 
     // Check for loot (every 60 minutes)
     if (shouldTriggerLoot(previousTime, newTime)) {
       const loot = rollLoot();
       progress.lootItems.push(loot);
+      debug.log('timer', 'Loot triggered!', loot);
     }
 
     // Save session
@@ -80,6 +97,7 @@ export default function TimerScreen() {
       xpEarned: xp,
     };
     await storage.saveSession(session);
+    debug.log('timer', 'Session saved');
 
     // Update book
     book.totalReadingTime = newTime;
@@ -88,13 +106,21 @@ export default function TimerScreen() {
     // Process companion unlocks
     let unlockedCompanions: Companion[] = [];
     if (book.companions) {
+      debug.log('timer', 'Processing companion unlocks...');
       const result = processReadingSession(book, elapsed);
       book.companions = result.updatedCompanions;
       unlockedCompanions = result.unlockedCompanions;
 
+      if (unlockedCompanions.length > 0) {
+        debug.log('timer', `Unlocked ${unlockedCompanions.length} companions!`, {
+          names: unlockedCompanions.map(c => c.name),
+        });
+      }
+
       // Add any loot boxes earned from reading time
       if (result.earnedLootBoxes.length > 0) {
         progress.lootBoxes.availableBoxes.push(...result.earnedLootBoxes);
+        debug.log('timer', `Earned ${result.earnedLootBoxes.length} loot boxes`);
       }
     }
 
@@ -111,30 +137,42 @@ export default function TimerScreen() {
     const newLootBoxes = checkLootBoxRewards(previousProgress, progress);
     if (newLootBoxes.length > 0) {
       progress.lootBoxes.availableBoxes.push(...newLootBoxes);
+      debug.log('timer', `Achievement loot boxes earned: ${newLootBoxes.length}`);
     }
 
     await storage.saveProgress(progress);
+    debug.log('timer', 'Progress saved', {
+      totalXp: progress.totalXp,
+      level: progress.level,
+    });
 
     // Trigger background image generation for next unlocks
     if (book.companions) {
-      const config = await settings.get();
       if (config.apiKey) {
+        debug.log('timer', 'Starting background image generation...');
         const generateImage = async (companion: Companion) => {
+          debug.log('timer', `Generating image for "${companion.name}"...`);
           try {
-            return await generateImageForCompanion(companion, config.apiKey!, {
+            const url = await generateImageForCompanion(companion, config.apiKey!, {
               model: config.imageModel,
             });
+            debug.log('timer', `Image generated for "${companion.name}"`);
+            return url;
           } catch (error) {
-            console.error(`Failed to generate image for ${companion.name}:`, error);
+            debug.error('timer', `Failed to generate image for ${companion.name}`, error);
             return null;
           }
         };
         maybeGenerateImages(book, generateImage).then(async updatedBook => {
           await storage.saveBook(updatedBook);
+          debug.log('timer', 'Background image generation complete');
         });
+      } else {
+        debug.warn('timer', 'Skipping image generation - no API key');
       }
     }
 
+    debug.log('timer', 'Session end complete, navigating back');
     router.back();
   }
 

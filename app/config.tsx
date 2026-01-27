@@ -5,6 +5,7 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useTheme } from '@/lib/ThemeContext';
 import { settings, Settings, exportAllData, resetApp, selectiveDelete, DeleteOptions } from '@/lib/settings';
+import { resetDebugCache } from '@/lib/debug';
 import { validateApiKey, validateImageModel } from '@/lib/openrouter';
 import { FONTS } from '@/lib/theme';
 
@@ -406,7 +407,10 @@ export default function ConfigScreen() {
           <Text style={styles.label}>debug mode_</Text>
           <Pressable
             style={[styles.toggleButton, config.debugMode && styles.toggleActive]}
-            onPress={() => updateConfig({ debugMode: !config.debugMode })}
+            onPress={() => {
+              updateConfig({ debugMode: !config.debugMode });
+              resetDebugCache();
+            }}
           >
             <Text style={[styles.toggleText, config.debugMode && styles.toggleTextActive]}>
               [{config.debugMode ? 'on' : 'off'}]
@@ -414,6 +418,7 @@ export default function ConfigScreen() {
           </Pressable>
           <Text style={styles.hint}>shows all companions (locked + unlocked) in collection</Text>
           <Text style={styles.hint}>allows manual unlock by tapping locked companions</Text>
+          <Text style={styles.hint}>enables detailed console logging (expo run)</Text>
         </View>
       )}
     </ScrollView>

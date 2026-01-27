@@ -1,4 +1,5 @@
 import type { Companion } from './types';
+import { debug } from './debug';
 
 // OpenRouter API configuration
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -95,6 +96,13 @@ export async function generateImageForCompanion(
   const model = config.model || DEFAULT_MODEL;
   const prompt = buildCompanionImagePrompt(companion);
 
+  debug.log('imageGen', `Starting image generation for "${companion.name}"`, {
+    model,
+    type: companion.type,
+    rarity: companion.rarity,
+  });
+  debug.log('imageGen', 'Prompt:', prompt);
+
   const body: Record<string, unknown> = {
     model,
     messages: [{ role: 'user', content: prompt }],
@@ -108,6 +116,9 @@ export async function generateImageForCompanion(
     };
   }
 
+  debug.log('imageGen', 'Sending request to OpenRouter...', { url: OPENROUTER_API_URL });
+  debug.time('imageGen', `image-${companion.id}`);
+
   const response = await fetch(OPENROUTER_API_URL, {
     method: 'POST',
     headers: {
@@ -119,18 +130,33 @@ export async function generateImageForCompanion(
     body: JSON.stringify(body),
   });
 
+  debug.timeEnd('imageGen', `image-${companion.id}`);
+
   if (!response.ok) {
     const error = await response.text();
+    debug.error('imageGen', `Request failed with status ${response.status}`, error);
     throw new Error(`Image generation failed: ${error}`);
   }
 
+  debug.log('imageGen', 'Response received', { status: response.status });
+
   const data: OpenRouterImageResponse = await response.json();
+  debug.log('imageGen', 'Response parsed', {
+    hasChoices: !!data.choices?.length,
+    hasImages: !!data.choices?.[0]?.message?.images?.length,
+  });
 
   // Extract image from response
   const images = data.choices?.[0]?.message?.images;
   if (!images || images.length === 0) {
+    debug.error('imageGen', 'No image in response', data);
     throw new Error('No image returned from API');
   }
 
-  return images[0].image_url.url;
+  const imageUrl = images[0].image_url.url;
+  debug.log('imageGen', `Image generated successfully for "${companion.name}"`, {
+    urlPreview: imageUrl.substring(0, 80) + '...',
+  });
+
+  return imageUrl;
 }

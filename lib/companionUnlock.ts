@@ -1,4 +1,5 @@
 import type { Book, BookCompanions, Companion, LootBox } from './types';
+import { debug } from './debug';
 
 /**
  * Reading time milestones in seconds (front-loaded)
@@ -90,7 +91,14 @@ export function processReadingSession(
   earnedLootBoxes: LootBox[];
   updatedCompanions: BookCompanions;
 } {
+  debug.log('unlock', 'Processing reading session', {
+    bookTitle: book.title,
+    sessionDuration: sessionDurationSeconds,
+    previousReadingTime: book.totalReadingTime,
+  });
+
   if (!book.companions) {
+    debug.warn('unlock', 'Book has no companions data');
     return {
       unlockedCompanions: [],
       earnedLootBoxes: [],
@@ -102,6 +110,12 @@ export function processReadingSession(
   const newTime = previousTime + sessionDurationSeconds;
 
   const crossedMilestones = checkReadingTimeUnlocks(previousTime, newTime);
+  debug.log('unlock', 'Milestone check', {
+    previousTime,
+    newTime,
+    crossedMilestones,
+    milestonesValues: crossedMilestones.map(i => READING_TIME_MILESTONES[i] / 60),
+  });
 
   const companions = { ...book.companions };
   const readingQueue = { ...companions.readingTimeQueue };
@@ -117,6 +131,12 @@ export function processReadingSession(
       companion.unlockMethod = 'reading_time';
       companion.unlockedAt = Date.now();
 
+      debug.log('unlock', `Unlocked companion: "${companion.name}"`, {
+        type: companion.type,
+        rarity: companion.rarity,
+        milestoneIndex,
+      });
+
       readingQueue.companions[companionIndex] = companion;
       unlockedCompanions.push(companion);
 
@@ -124,6 +144,8 @@ export function processReadingSession(
         ...companions.unlockedCompanions,
         companion,
       ];
+    } else {
+      debug.log('unlock', 'No more companions in reading queue to unlock');
     }
   }
 
@@ -138,6 +160,11 @@ export function processReadingSession(
     queueExhausted
   );
 
+  debug.log('unlock', 'Post-queue loot box check', {
+    queueExhausted,
+    lootBoxCount,
+  });
+
   const earnedLootBoxes: LootBox[] = [];
   for (let i = 0; i < lootBoxCount; i++) {
     earnedLootBoxes.push({
@@ -146,6 +173,11 @@ export function processReadingSession(
       source: 'reading_overflow',
     });
   }
+
+  debug.log('unlock', 'Session processing complete', {
+    unlockedCount: unlockedCompanions.length,
+    lootBoxesEarned: earnedLootBoxes.length,
+  });
 
   return {
     unlockedCompanions,
