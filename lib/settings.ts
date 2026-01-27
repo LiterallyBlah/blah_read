@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { storage } from './storage';
+import { clearAllImages, deleteBookImages } from './imageStorage';
 
 const SETTINGS_KEY = 'blahread:settings';
 
@@ -84,9 +85,17 @@ export async function selectiveDelete(options: DeleteOptions): Promise<void> {
 
   if (options.books) {
     keysToRemove.push('blahread:books');
+    // Also delete all companion images
+    await clearAllImages();
   } else if (options.companionsOnly) {
     // Clear companions from all books but keep the books
     const books = await storage.getBooks();
+
+    // Delete images for each book
+    for (const book of books) {
+      await deleteBookImages(book.id);
+    }
+
     const clearedBooks = books.map(book => ({
       ...book,
       companions: undefined,
@@ -114,6 +123,10 @@ export async function selectiveDelete(options: DeleteOptions): Promise<void> {
 }
 
 export async function resetApp(): Promise<void> {
+  // Clear all companion images from file system
+  await clearAllImages();
+
+  // Clear all AsyncStorage data
   await AsyncStorage.multiRemove([
     'blahread:books',
     'blahread:sessions',

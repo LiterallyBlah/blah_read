@@ -1,5 +1,6 @@
 import type { Companion } from './types';
 import { debug } from './debug';
+import { saveCompanionImage } from './imageStorage';
 
 // OpenRouter API configuration
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -177,7 +178,16 @@ export async function generateImageForCompanion(
   const imageUrl = images[0].image_url.url;
   debug.log('imageGen', `Image generated successfully for "${companion.name}"`, {
     urlPreview: imageUrl.substring(0, 80) + '...',
+    isBase64: imageUrl.startsWith('data:'),
   });
+
+  // If it's a base64 data URL, save to file system to avoid AsyncStorage limits
+  if (imageUrl.startsWith('data:')) {
+    debug.log('imageGen', `Saving base64 image to file system for "${companion.name}"`);
+    const localUri = await saveCompanionImage(imageUrl, companion.id);
+    debug.log('imageGen', `Image saved locally: ${localUri}`);
+    return localUri;
+  }
 
   return imageUrl;
 }
