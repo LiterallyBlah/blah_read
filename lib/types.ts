@@ -16,6 +16,7 @@ export interface Book {
   createdAt: number;
   finishedAt?: number;
   companions?: BookCompanions;
+  companionsPending?: boolean;
   // Legacy field for migration
   companion?: Companion;
   // Kindle share & metadata enrichment fields
