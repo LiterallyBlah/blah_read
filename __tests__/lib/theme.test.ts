@@ -1,4 +1,4 @@
-import { COLORS, FONTS, spacing, fontSize, letterSpacing } from '@/lib/theme';
+import { COLORS, COLORS_LIGHT, FONTS, spacing, fontSize, letterSpacing } from '@/lib/theme';
 
 describe('theme', () => {
   it('exports COLORS matching design system', () => {
@@ -10,6 +10,12 @@ describe('theme', () => {
     expect(COLORS.border).toBe('#2a2a2a');
     expect(COLORS.success).toBe('#00ff88');
     expect(COLORS.surface).toBe('#1a1a1a');
+  });
+
+  it('exports COLORS_LIGHT with inverted palette', () => {
+    expect(COLORS_LIGHT.background).toBe('#ffffff');
+    expect(COLORS_LIGHT.text).toBe('#0a0a0a');
+    expect(COLORS_LIGHT.success).toBe(COLORS.success); // Status colors unchanged
   });
 
   it('exports FONTS with Courier', () => {

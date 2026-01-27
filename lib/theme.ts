@@ -38,6 +38,44 @@ export const COLORS = {
   prestigeDiamond: '#B9F2FF',
 } as const;
 
+export const COLORS_LIGHT = {
+  // Backgrounds (inverted)
+  background: '#ffffff',
+  backgroundLight: '#f5f5f5',
+  backgroundCard: '#f0f0f0',
+  surface: '#f0f0f0',
+
+  // Text (inverted)
+  primary: '#0a0a0a',
+  primaryMuted: '#333333',
+  text: '#0a0a0a',
+  textSecondary: '#555555',
+  textMuted: '#888888',
+
+  // Borders (inverted)
+  border: '#e0e0e0',
+  secondary: '#e0e0e0',
+  accent: '#d0d0d0',
+
+  // Status (unchanged)
+  success: '#00ff88',
+  error: '#ff4444',
+  warning: '#ffaa00',
+
+  // Rarity (unchanged)
+  rarityCommon: '#555555',
+  rarityRare: '#4A90D9',
+  rarityEpic: '#9B59B6',
+  rarityLegendary: '#F1C40F',
+
+  // Prestige (unchanged)
+  prestigeBronze: '#CD7F32',
+  prestigeSilver: '#C0C0C0',
+  prestigeGold: '#FFD700',
+  prestigePlatinum: '#E5E4E2',
+  prestigeDiamond: '#B9F2FF',
+} as const;
+
 export const FONTS = {
   mono: 'Courier',
   monoWeight: '400' as const,
