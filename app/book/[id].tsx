@@ -7,7 +7,7 @@ import { getNextMilestone } from '@/lib/companionUnlock';
 import { checkLootBoxRewards } from '@/lib/lootBox';
 import { generateBufferedImages } from '@/lib/companionImageQueue';
 import { generateImageForCompanion } from '@/lib/imageGen';
-import { Book, BookStatus } from '@/lib/types';
+import { Book, BookStatus, CompanionRarity } from '@/lib/types';
 import type { Companion } from '@/lib/types';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
@@ -283,6 +283,86 @@ export default function BookDetailScreen() {
     }
   }
 
+  async function handleDebugGenerateRarityImages() {
+    if (!book?.companions) return;
+
+    const config = await settings.get();
+    if (!config.apiKey) {
+      Alert.alert('No API Key', 'Please configure your OpenRouter API key in settings.');
+      return;
+    }
+
+    setIsGeneratingImages(true);
+    setImageGenProgress('Analyzing rarities...');
+
+    try {
+      // Get all companions from all sources
+      const allCompanions = [
+        ...book.companions.unlockedCompanions,
+        ...book.companions.readingTimeQueue.companions,
+        ...book.companions.poolQueue.companions,
+      ];
+
+      // Group by rarity and count those with images
+      const rarities: CompanionRarity[] = ['common', 'rare', 'legendary'];
+      const toGenerate: Companion[] = [];
+
+      for (const rarity of rarities) {
+        const ofRarity = allCompanions.filter(c => c.rarity === rarity);
+        const withImages = ofRarity.filter(c => c.imageUrl);
+        const withoutImages = ofRarity.filter(c => !c.imageUrl);
+        const needed = Math.max(0, 2 - withImages.length);
+
+        console.log(`[Debug Rarity] ${rarity}: ${withImages.length} with images, need ${needed} more`);
+
+        // Add companions that need images, up to the needed amount
+        toGenerate.push(...withoutImages.slice(0, needed));
+      }
+
+      if (toGenerate.length === 0) {
+        Alert.alert('Already Complete', 'Already have 2+ images for each rarity.');
+        setIsGeneratingImages(false);
+        return;
+      }
+
+      setImageGenProgress(`Generating ${toGenerate.length} images...`);
+
+      // Generate images for selected companions
+      let generated = 0;
+      for (const companion of toGenerate) {
+        setImageGenProgress(`[${companion.rarity}] ${companion.name} (${generated + 1}/${toGenerate.length})`);
+        console.log(`[Debug Rarity] Generating ${companion.rarity}: ${companion.name}`);
+
+        try {
+          const url = await generateImageForCompanion(companion, config.apiKey!, {
+            model: config.imageModel,
+            imageSize: config.imageSize,
+            llmModel: config.llmModel,
+          });
+          if (url) {
+            companion.imageUrl = url;
+            generated++;
+          }
+        } catch (error) {
+          console.error(`[Debug Rarity] Failed: ${companion.name}`, error);
+        }
+      }
+
+      // Save updated book
+      const updatedBook = { ...book, companions: { ...book.companions } };
+      await storage.saveBook(updatedBook);
+      setBook(updatedBook);
+
+      setImageGenProgress('Done!');
+      Alert.alert('Rarity Test Complete', `Generated ${generated} images across rarities.`);
+    } catch (error) {
+      console.error('[Debug Rarity] Generation failed:', error);
+      Alert.alert('Generation Failed', String(error));
+    } finally {
+      setIsGeneratingImages(false);
+    }
+  }
+
   if (!book) {
     return (
       <View style={styles.container}>
@@ -399,7 +479,7 @@ export default function BookDetailScreen() {
               </Text>
             )}
 
-            {/* Debug: Generate Images Button */}
+            {/* Debug: Generate Images Buttons */}
             {debugMode && (
               <View style={styles.debugSection}>
                 <Pressable
@@ -409,6 +489,15 @@ export default function BookDetailScreen() {
                 >
                   <Text style={styles.debugButtonText}>
                     {isGeneratingImages ? imageGenProgress : '[generate images]'}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.debugButton, isGeneratingImages && { opacity: 0.5 }, { marginTop: spacing(2) }]}
+                  onPress={handleDebugGenerateRarityImages}
+                  disabled={isGeneratingImages}
+                >
+                  <Text style={styles.debugButtonText}>
+                    [test rarity borders (2 each)]
                   </Text>
                 </Pressable>
               </View>
