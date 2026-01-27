@@ -4,6 +4,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { storage } from '@/lib/storage';
 import { enrichBookData } from '@/lib/bookEnrichment';
 import { getNextMilestone } from '@/lib/companionUnlock';
+import { checkLootBoxRewards } from '@/lib/lootBox';
 import { Book, BookStatus } from '@/lib/types';
 import type { Companion } from '@/lib/types';
 import { FONTS } from '@/lib/theme';
@@ -84,6 +85,7 @@ export default function BookDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [book, setBook] = useState<Book | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [completionLegendary, setCompletionLegendary] = useState<Companion | null>(null);
 
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
@@ -98,12 +100,58 @@ export default function BookDetailScreen() {
 
   async function updateStatus(status: BookStatus) {
     if (!book) return;
-    book.status = status;
-    if (status === 'finished' && !book.finishedAt) {
-      book.finishedAt = Date.now();
+
+    const updatedBook = { ...book, status };
+
+    if (status === 'finished') {
+      updatedBook.finishedAt = Date.now();
+
+      // Handle legendary unlock for book completion
+      if (book.companions) {
+        // Find an unlocked legendary in the pool queue
+        const legendaryIndex = book.companions.poolQueue.companions.findIndex(
+          c => c.rarity === 'legendary' && !c.unlockedAt
+        );
+
+        if (legendaryIndex !== -1) {
+          const legendary: Companion = {
+            ...book.companions.poolQueue.companions[legendaryIndex],
+            unlockMethod: 'book_completion',
+            unlockedAt: Date.now(),
+          };
+
+          updatedBook.companions = {
+            ...book.companions,
+            poolQueue: {
+              ...book.companions.poolQueue,
+              companions: book.companions.poolQueue.companions.map((c, i) =>
+                i === legendaryIndex ? legendary : c
+              ),
+            },
+            unlockedCompanions: [...book.companions.unlockedCompanions, legendary],
+          };
+
+          // Show celebration!
+          setCompletionLegendary(legendary);
+        }
+      }
+
+      // Update progress for loot box rewards
+      const progress = await storage.getProgress();
+      const previousProgress = { ...progress };
+      progress.booksFinished = (progress.booksFinished || 0) + 1;
+
+      // Check for loot box rewards from finishing book
+      const newBoxes = checkLootBoxRewards(previousProgress, progress);
+      if (newBoxes.length > 0) {
+        progress.lootBoxes.availableBoxes.push(...newBoxes);
+      }
+
+      await storage.saveProgress(progress);
     }
-    await storage.saveBook(book);
-    setBook({ ...book });
+
+    await storage.saveBook(updatedBook);
+    setBook(updatedBook);
   }
 
   async function handleDelete() {
@@ -302,6 +350,48 @@ export default function BookDetailScreen() {
       <Pressable style={styles.deleteButton} onPress={handleDelete}>
         <Text style={styles.deleteText}>[delete]</Text>
       </Pressable>
+
+      {/* Legendary Unlock Celebration Modal */}
+      {completionLegendary && (
+        <View style={styles.celebrationOverlay}>
+          <View style={styles.celebrationModal}>
+            <Text style={[styles.celebrationTitle, { color: '#FFD700' }]}>
+              legendary unlocked!
+            </Text>
+
+            {completionLegendary.imageUrl ? (
+              <Image
+                source={{ uri: completionLegendary.imageUrl }}
+                style={styles.celebrationImage}
+                resizeMode="contain"
+              />
+            ) : (
+              <View style={[styles.celebrationImage, { backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center' }]}>
+                <Text style={{ color: colors.textMuted, fontFamily: FONTS.mono, fontSize: 48 }}>?</Text>
+              </View>
+            )}
+
+            <Text style={styles.celebrationName}>
+              {completionLegendary.name.toLowerCase()}
+            </Text>
+
+            <Text style={styles.celebrationDescription}>
+              {completionLegendary.description}
+            </Text>
+
+            <Text style={styles.celebrationBonus}>
+              +2 loot boxes awarded!
+            </Text>
+
+            <Pressable
+              style={styles.celebrationButton}
+              onPress={() => setCompletionLegendary(null)}
+            >
+              <Text style={styles.celebrationButtonText}>[continue]</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -482,6 +572,67 @@ function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: a
       fontFamily: FONTS.mono,
       fontSize: fontSize('small'),
       letterSpacing: letterSpacing('tight'),
+    },
+    celebrationOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.9)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: spacing(6),
+    },
+    celebrationModal: {
+      padding: spacing(6),
+      borderWidth: 2,
+      borderColor: '#FFD700',
+      alignItems: 'center',
+      maxWidth: 300,
+    },
+    celebrationTitle: {
+      fontFamily: FONTS.mono,
+      fontWeight: FONTS.monoBold,
+      fontSize: fontSize('title'),
+      marginBottom: spacing(4),
+    },
+    celebrationImage: {
+      width: 128,
+      height: 128,
+      marginBottom: spacing(4),
+    },
+    celebrationName: {
+      fontFamily: FONTS.mono,
+      fontWeight: FONTS.monoBold,
+      fontSize: fontSize('large'),
+      color: colors.text,
+      marginBottom: spacing(2),
+    },
+    celebrationDescription: {
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginBottom: spacing(4),
+    },
+    celebrationBonus: {
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('body'),
+      color: '#FFD700',
+      marginBottom: spacing(6),
+    },
+    celebrationButton: {
+      borderWidth: 1,
+      borderColor: colors.text,
+      paddingVertical: spacing(3),
+      paddingHorizontal: spacing(6),
+    },
+    celebrationButtonText: {
+      fontFamily: FONTS.mono,
+      fontWeight: FONTS.monoBold,
+      fontSize: fontSize('body'),
+      color: colors.text,
     },
   });
 }
