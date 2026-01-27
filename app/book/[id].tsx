@@ -375,7 +375,7 @@ export default function BookDetailScreen() {
   const minutes = Math.floor((book.totalReadingTime % 3600) / 60);
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Back button */}
       <Pressable style={styles.backButton} onPress={() => router.back()}>
         <Text style={styles.backText}>{'<'} back</Text>
@@ -591,8 +591,11 @@ function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: a
     container: {
       flex: 1,
       backgroundColor: colors.background,
+    },
+    contentContainer: {
       padding: spacing(6),
       paddingTop: spacing(16),
+      paddingBottom: spacing(20),
     },
     loading: {
       color: colors.textSecondary,

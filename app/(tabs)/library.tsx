@@ -180,7 +180,7 @@ const createStyles = (
       color: colors.text,
     },
     list: {
-      paddingBottom: spacing(8),
+      paddingBottom: spacing(20),
     },
     row: {
       marginBottom: spacing(4),

@@ -32,7 +32,7 @@ export default function ProfileScreen() {
   const hours = Math.floor(totalTime / 3600);
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <Text style={styles.title}>profile_</Text>
 
       <Pressable style={styles.configLink} onPress={() => router.push('/config')}>
@@ -112,8 +112,11 @@ function createStyles(colors: any, spacing: (n: number) => number, fontSize: (si
     container: {
       flex: 1,
       backgroundColor: colors.background,
+    },
+    contentContainer: {
       padding: spacing(6),
       paddingTop: spacing(16),
+      paddingBottom: spacing(20),
     },
     title: {
       color: colors.text,
@@ -229,8 +232,9 @@ function createStyles(colors: any, spacing: (n: number) => number, fontSize: (si
     },
     configLink: {
       position: 'absolute',
-      top: spacing(16),
-      right: spacing(6),
+      top: spacing(14),
+      right: spacing(4),
+      padding: spacing(3),
     },
     configLinkText: {
       color: colors.textSecondary,

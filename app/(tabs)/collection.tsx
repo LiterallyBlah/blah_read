@@ -237,6 +237,7 @@ export default function CollectionScreen() {
             companion={companion}
             colors={colors}
             spacing={spacing}
+            debugMode={debugMode}
             onPress={companion.isLocked && debugMode ? () => handleDebugUnlock(companion) : undefined}
           />
         ))}
@@ -254,11 +255,13 @@ function CompanionCard({
   companion,
   colors,
   spacing,
+  debugMode,
   onPress,
 }: {
   companion: DisplayCompanion;
   colors: ReturnType<typeof useTheme>['colors'];
   spacing: ReturnType<typeof useTheme>['spacing'];
+  debugMode?: boolean;
   onPress?: () => void;
 }) {
   const rarityColors: Record<string, string> = {
@@ -286,8 +289,8 @@ function CompanionCard({
         opacity: companion.isLocked ? 0.6 : 1,
       }}
     >
-      {companion.isLocked ? (
-        // Locked companion - show silhouette
+      {companion.isLocked && !debugMode ? (
+        // Locked companion - show silhouette (only in non-debug mode)
         <View style={{
           width: '100%',
           aspectRatio: 1,
@@ -299,16 +302,29 @@ function CompanionCard({
           <Text style={{ color: colors.textMuted, fontFamily: FONTS.mono, fontSize: 24 }}>🔒</Text>
         </View>
       ) : companion.imageUrl ? (
-        <Image
-          source={{ uri: companion.imageUrl }}
-          style={{
-            width: '100%',
-            aspectRatio: 1,
-            marginBottom: spacing(2),
-            backgroundColor: colors.surface,
-          }}
-          resizeMode="contain"
-        />
+        <View style={{ width: '100%', aspectRatio: 1, marginBottom: spacing(2) }}>
+          <Image
+            source={{ uri: companion.imageUrl }}
+            style={{
+              width: '100%',
+              height: '100%',
+              backgroundColor: colors.surface,
+            }}
+            resizeMode="contain"
+          />
+          {companion.isLocked && debugMode && (
+            <View style={{
+              position: 'absolute',
+              top: 4,
+              right: 4,
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              borderRadius: 4,
+              padding: 2,
+            }}>
+              <Text style={{ fontSize: 10 }}>🔒</Text>
+            </View>
+          )}
+        </View>
       ) : (
         <View style={{
           width: '100%',
@@ -327,7 +343,7 @@ function CompanionCard({
         fontSize: 12,
         marginBottom: spacing(1),
       }}>
-        {companion.isLocked ? '???' : companion.name.toLowerCase()}
+        {companion.isLocked && !debugMode ? '???' : companion.name.toLowerCase()}
       </Text>
       <Text style={{
         color: companion.isLocked ? colors.textMuted : borderColor,
@@ -420,6 +436,7 @@ function createStyles(
       flexDirection: 'row',
       flexWrap: 'wrap',
       padding: spacing(6),
+      paddingBottom: spacing(20),
       justifyContent: 'space-between',
     },
     emptyText: {

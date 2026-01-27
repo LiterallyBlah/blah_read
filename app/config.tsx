@@ -129,7 +129,7 @@ export default function ConfigScreen() {
   if (!config) return <View style={styles.container}><Text style={styles.text}>loading..._</Text></View>;
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <Pressable style={styles.backButton} onPress={() => router.back()}>
         <Text style={styles.backText}>{'<'} back</Text>
       </Pressable>
@@ -443,7 +443,8 @@ export default function ConfigScreen() {
 
 function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: any) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background, padding: spacing(6), paddingTop: spacing(16) },
+    container: { flex: 1, backgroundColor: colors.background },
+    contentContainer: { padding: spacing(6), paddingTop: spacing(16), paddingBottom: spacing(20) },
     backButton: { marginBottom: spacing(6) },
     backText: { color: colors.textSecondary, fontFamily: FONTS.mono, fontSize: fontSize('body') },
     title: { color: colors.text, fontFamily: FONTS.mono, fontWeight: '700', fontSize: fontSize('title'), marginBottom: spacing(6) },
