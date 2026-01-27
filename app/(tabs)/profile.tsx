@@ -4,11 +4,15 @@ import { useFocusEffect, router } from 'expo-router';
 import { storage } from '@/lib/storage';
 import { calculateLevel, xpProgress } from '@/lib/xp';
 import { Book, UserProgress, LootItem, Companion } from '@/lib/types';
-import { COLORS, FONTS, spacing, fontSize, letterSpacing } from '@/lib/theme';
+import { FONTS } from '@/lib/theme';
+import { useTheme } from '@/lib/ThemeContext';
 
 export default function ProfileScreen() {
+  const { colors, spacing, fontSize, letterSpacing } = useTheme();
   const [progress, setProgress] = useState<UserProgress | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
+
+  const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
   useFocusEffect(
     useCallback(() => {
@@ -103,133 +107,135 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    padding: spacing(6),
-    paddingTop: spacing(16),
-  },
-  title: {
-    color: COLORS.text,
-    fontFamily: FONTS.mono,
-    fontWeight: FONTS.monoBold,
-    fontSize: fontSize('title'),
-    letterSpacing: letterSpacing('normal'),
-    marginBottom: spacing(8),
-  },
-  section: {
-    marginBottom: spacing(8),
-  },
-  sectionTitle: {
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('body'),
-    letterSpacing: letterSpacing('tight'),
-    marginBottom: spacing(4),
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing(4),
-  },
-  statBox: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statValue: {
-    color: COLORS.text,
-    fontFamily: FONTS.mono,
-    fontWeight: FONTS.monoBold,
-    fontSize: fontSize('title'),
-    letterSpacing: letterSpacing('tight'),
-  },
-  statLabel: {
-    color: COLORS.textMuted,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('micro'),
-    letterSpacing: letterSpacing('tight'),
-  },
-  xpSection: {
-    marginTop: spacing(2),
-  },
-  xpBar: {
-    height: 4,
-    backgroundColor: COLORS.backgroundCard,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  xpFill: {
-    height: '100%',
-    backgroundColor: COLORS.success,
-  },
-  xpText: {
-    color: COLORS.textMuted,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('micro'),
-    letterSpacing: letterSpacing('tight'),
-    marginTop: spacing(1),
-  },
-  lootGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing(2),
-  },
-  lootItem: {
-    padding: spacing(2),
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-    minWidth: 60,
-  },
-  lootIcon: {
-    fontSize: 20,
-    marginBottom: spacing(1),
-  },
-  lootName: {
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('micro'),
-    letterSpacing: letterSpacing('tight'),
-  },
-  rarity_common: { borderColor: COLORS.rarityCommon },
-  rarity_rare: { borderColor: COLORS.rarityRare },
-  rarity_epic: { borderColor: COLORS.rarityEpic },
-  rarity_legendary: { borderColor: COLORS.rarityLegendary },
-  companionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing(3),
-  },
-  companionCard: {
-    alignItems: 'center',
-  },
-  companionImage: {
-    width: 64,
-    height: 64,
-    backgroundColor: COLORS.backgroundCard,
-    marginBottom: spacing(1),
-  },
-  companionName: {
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('micro'),
-    letterSpacing: letterSpacing('tight'),
-  },
-  emptyText: {
-    color: COLORS.textMuted,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('small'),
-    letterSpacing: letterSpacing('tight'),
-  },
-  configLink: {
-    position: 'absolute',
-    top: spacing(16),
-    right: spacing(6),
-  },
-  configLinkText: {
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('small'),
-  },
-});
+function createStyles(colors: any, spacing: (n: number) => number, fontSize: (size: string) => number, letterSpacing: (size: string) => number) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      padding: spacing(6),
+      paddingTop: spacing(16),
+    },
+    title: {
+      color: colors.text,
+      fontFamily: FONTS.mono,
+      fontWeight: FONTS.monoBold,
+      fontSize: fontSize('title'),
+      letterSpacing: letterSpacing('normal'),
+      marginBottom: spacing(8),
+    },
+    section: {
+      marginBottom: spacing(8),
+    },
+    sectionTitle: {
+      color: colors.textSecondary,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('body'),
+      letterSpacing: letterSpacing('tight'),
+      marginBottom: spacing(4),
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: spacing(4),
+    },
+    statBox: {
+      alignItems: 'center',
+      flex: 1,
+    },
+    statValue: {
+      color: colors.text,
+      fontFamily: FONTS.mono,
+      fontWeight: FONTS.monoBold,
+      fontSize: fontSize('title'),
+      letterSpacing: letterSpacing('tight'),
+    },
+    statLabel: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('micro'),
+      letterSpacing: letterSpacing('tight'),
+    },
+    xpSection: {
+      marginTop: spacing(2),
+    },
+    xpBar: {
+      height: 4,
+      backgroundColor: colors.backgroundCard,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    xpFill: {
+      height: '100%',
+      backgroundColor: colors.success,
+    },
+    xpText: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('micro'),
+      letterSpacing: letterSpacing('tight'),
+      marginTop: spacing(1),
+    },
+    lootGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing(2),
+    },
+    lootItem: {
+      padding: spacing(2),
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      minWidth: 60,
+    },
+    lootIcon: {
+      fontSize: 20,
+      marginBottom: spacing(1),
+    },
+    lootName: {
+      color: colors.textSecondary,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('micro'),
+      letterSpacing: letterSpacing('tight'),
+    },
+    rarity_common: { borderColor: colors.rarityCommon },
+    rarity_rare: { borderColor: colors.rarityRare },
+    rarity_epic: { borderColor: colors.rarityEpic },
+    rarity_legendary: { borderColor: colors.rarityLegendary },
+    companionGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing(3),
+    },
+    companionCard: {
+      alignItems: 'center',
+    },
+    companionImage: {
+      width: 64,
+      height: 64,
+      backgroundColor: colors.backgroundCard,
+      marginBottom: spacing(1),
+    },
+    companionName: {
+      color: colors.textSecondary,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('micro'),
+      letterSpacing: letterSpacing('tight'),
+    },
+    emptyText: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+    },
+    configLink: {
+      position: 'absolute',
+      top: spacing(16),
+      right: spacing(6),
+    },
+    configLinkText: {
+      color: colors.textSecondary,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+    },
+  });
+}
