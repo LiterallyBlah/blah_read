@@ -6,9 +6,123 @@ import { calculateXp } from '@/lib/xp';
 import { shouldTriggerLoot, rollLoot } from '@/lib/loot';
 import { updateStreak, getDateString } from '@/lib/streak';
 import { ReadingSession } from '@/lib/types';
-import { COLORS, FONTS, spacing, fontSize, letterSpacing } from '@/lib/theme';
+import { FONTS } from '@/lib/theme';
+import { useTheme } from '@/lib/ThemeContext';
+
+type Colors = ReturnType<typeof useTheme>['colors'];
+type Spacing = ReturnType<typeof useTheme>['spacing'];
+type FontSize = ReturnType<typeof useTheme>['fontSize'];
+type LetterSpacing = ReturnType<typeof useTheme>['letterSpacing'];
+
+function createStyles(
+  colors: Colors,
+  spacing: Spacing,
+  fontSize: FontSize,
+  letterSpacing: LetterSpacing
+) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      padding: spacing(6),
+      paddingTop: spacing(16),
+    },
+    backButton: {
+      marginBottom: spacing(6),
+    },
+    backText: {
+      color: colors.textSecondary,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('body'),
+      letterSpacing: letterSpacing('tight'),
+    },
+    title: {
+      color: colors.text,
+      fontFamily: FONTS.mono,
+      fontWeight: FONTS.monoBold,
+      fontSize: fontSize('title'),
+      letterSpacing: letterSpacing('normal'),
+      marginBottom: spacing(2),
+    },
+    subtitle: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('body'),
+      letterSpacing: letterSpacing('tight'),
+      marginBottom: spacing(10),
+    },
+    inputRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing(8),
+    },
+    inputGroup: {
+      alignItems: 'center',
+    },
+    input: {
+      width: 80,
+      height: 80,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.backgroundCard,
+      color: colors.text,
+      fontFamily: FONTS.mono,
+      fontWeight: FONTS.monoBold,
+      fontSize: 36,
+      textAlign: 'center',
+    },
+    inputLabel: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('micro'),
+      letterSpacing: letterSpacing('tight'),
+      marginTop: spacing(1),
+    },
+    separator: {
+      color: colors.text,
+      fontFamily: FONTS.mono,
+      fontSize: 36,
+      marginHorizontal: spacing(3),
+    },
+    presets: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: spacing(2),
+      marginBottom: spacing(10),
+    },
+    presetButton: {
+      paddingVertical: spacing(2),
+      paddingHorizontal: spacing(3),
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    presetText: {
+      color: colors.textSecondary,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+    },
+    submitButton: {
+      borderWidth: 1,
+      borderColor: colors.text,
+      paddingVertical: spacing(5),
+      alignItems: 'center',
+    },
+    submitText: {
+      color: colors.text,
+      fontFamily: FONTS.mono,
+      fontWeight: FONTS.monoBold,
+      fontSize: fontSize('large'),
+      letterSpacing: letterSpacing('hero'),
+    },
+  });
+}
 
 export default function ManualEntryScreen() {
+  const { colors, spacing, fontSize, letterSpacing } = useTheme();
+  const styles = createStyles(colors, spacing, fontSize, letterSpacing);
+
   const { bookId } = useLocalSearchParams<{ bookId: string }>();
   const [hours, setHours] = useState('0');
   const [minutes, setMinutes] = useState('30');
@@ -142,101 +256,3 @@ export default function ManualEntryScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    padding: spacing(6),
-    paddingTop: spacing(16),
-  },
-  backButton: {
-    marginBottom: spacing(6),
-  },
-  backText: {
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('body'),
-    letterSpacing: letterSpacing('tight'),
-  },
-  title: {
-    color: COLORS.text,
-    fontFamily: FONTS.mono,
-    fontWeight: FONTS.monoBold,
-    fontSize: fontSize('title'),
-    letterSpacing: letterSpacing('normal'),
-    marginBottom: spacing(2),
-  },
-  subtitle: {
-    color: COLORS.textMuted,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('body'),
-    letterSpacing: letterSpacing('tight'),
-    marginBottom: spacing(10),
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing(8),
-  },
-  inputGroup: {
-    alignItems: 'center',
-  },
-  input: {
-    width: 80,
-    height: 80,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.backgroundCard,
-    color: COLORS.text,
-    fontFamily: FONTS.mono,
-    fontWeight: FONTS.monoBold,
-    fontSize: 36,
-    textAlign: 'center',
-  },
-  inputLabel: {
-    color: COLORS.textMuted,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('micro'),
-    letterSpacing: letterSpacing('tight'),
-    marginTop: spacing(1),
-  },
-  separator: {
-    color: COLORS.text,
-    fontFamily: FONTS.mono,
-    fontSize: 36,
-    marginHorizontal: spacing(3),
-  },
-  presets: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: spacing(2),
-    marginBottom: spacing(10),
-  },
-  presetButton: {
-    paddingVertical: spacing(2),
-    paddingHorizontal: spacing(3),
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  presetText: {
-    color: COLORS.textSecondary,
-    fontFamily: FONTS.mono,
-    fontSize: fontSize('small'),
-    letterSpacing: letterSpacing('tight'),
-  },
-  submitButton: {
-    borderWidth: 1,
-    borderColor: COLORS.text,
-    paddingVertical: spacing(5),
-    alignItems: 'center',
-  },
-  submitText: {
-    color: COLORS.text,
-    fontFamily: FONTS.mono,
-    fontWeight: FONTS.monoBold,
-    fontSize: fontSize('large'),
-    letterSpacing: letterSpacing('hero'),
-  },
-});
