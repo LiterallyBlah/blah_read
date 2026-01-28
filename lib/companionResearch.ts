@@ -4,6 +4,10 @@ import type {
   CompanionRarity,
   CompanionType,
 } from './types';
+import type { CompanionEffect, EffectType } from './companionEffects';
+import type { Genre } from './genres';
+import { GENRES, isValidGenre } from './genres';
+import { EFFECT_TYPES, calculateEffectMagnitude } from './companionEffects';
 
 /**
  * Structured output schema for OpenRouter
@@ -23,14 +27,33 @@ export const RESEARCH_SCHEMA = {
           role: { type: 'string' },
           traits: { type: 'string' },
           physicalDescription: { type: 'string' },
+          effects: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                type: { type: 'string', enum: ['xp_boost', 'luck_boost', 'drop_rate_boost', 'completion_bonus'] },
+                targetGenre: { type: 'string' },
+              },
+              required: ['type'],
+            },
+          },
         },
-        required: ['name', 'type', 'rarity', 'description', 'role', 'traits', 'physicalDescription'],
+        required: ['name', 'type', 'rarity', 'description', 'role', 'traits', 'physicalDescription', 'effects'],
       },
     },
     researchConfidence: { type: 'string', enum: ['high', 'medium', 'low'] },
   },
   required: ['companions', 'researchConfidence'],
 };
+
+/**
+ * Effect data as returned from the LLM (without magnitude)
+ */
+export interface LLMEffectData {
+  type: string;
+  targetGenre?: string;
+}
 
 export interface ResearchResponse {
   companions: Array<{
@@ -41,6 +64,7 @@ export interface ResearchResponse {
     role: string;
     traits: string;
     physicalDescription: string;
+    effects: LLMEffectData[];
   }>;
   researchConfidence: 'high' | 'medium' | 'low';
 }
@@ -55,6 +79,7 @@ export interface ParsedResearch {
  */
 export function buildResearchPrompt(title: string, author?: string): string {
   const authorPart = author ? ` by ${author}` : '';
+  const genreList = GENRES.join(', ');
 
   return `Research the book "${title}"${authorPart} and identify up to 15 notable entities from it.
 
@@ -69,6 +94,32 @@ For each entity, provide:
 - role: Their role in the story
 - traits: Notable personality traits or abilities
 - physicalDescription: Physical appearance ONLY - body type, coloring, clothing, features, expressions, size. Do NOT include art style, framing, backgrounds, or borders.
+- effects: 1-2 special abilities that provide gameplay bonuses (see below)
+
+EFFECTS:
+Each companion should have 1-2 effects. Choose effect types that thematically fit the entity:
+
+Effect types:
+- "xp_boost": Increases XP gained. Best for scholarly, wise, or mentor-type entities. Can target a specific genre.
+- "luck_boost": Improves loot box tier chances. Best for lucky, magical, or fortune-related entities.
+- "drop_rate_boost": Chance for bonus loot drops. Best for resourceful, treasure-hunting, or generous entities.
+- "completion_bonus": Extra levels awarded on book completion. ONLY for legendary companions (max 1 per book). Best for achievement-oriented or heroic entities.
+
+For xp_boost effects, you may optionally specify a targetGenre if the entity strongly relates to a specific genre.
+Valid genres: ${genreList}
+
+Effect format example:
+[
+  { "type": "xp_boost", "targetGenre": "fantasy" },
+  { "type": "luck_boost" }
+]
+
+Guidelines for effects:
+- Match effects to the entity's character (a wizard might boost fantasy XP, a thief might boost drop rates)
+- Common companions: 1 effect
+- Rare companions: 1-2 effects
+- Legendary companions: 2 effects, and ONE legendary per book may have "completion_bonus"
+- DO NOT include magnitude values - these are calculated separately based on rarity
 
 Focus on:
 1. Main characters (protagonist, antagonist, key supporting cast)
@@ -84,27 +135,70 @@ Return exactly the JSON structure requested.`;
 }
 
 /**
+ * Validate and convert LLM effect data to CompanionEffect with magnitude
+ */
+function parseEffect(effectData: LLMEffectData, rarity: CompanionRarity): CompanionEffect | null {
+  // Validate effect type
+  if (!EFFECT_TYPES.includes(effectData.type as EffectType)) {
+    return null;
+  }
+
+  const effectType = effectData.type as EffectType;
+
+  // completion_bonus is only valid for legendary companions
+  if (effectType === 'completion_bonus' && rarity !== 'legendary') {
+    return null;
+  }
+
+  // Calculate magnitude based on rarity
+  const magnitude = calculateEffectMagnitude(rarity);
+
+  // Validate targetGenre if provided
+  let targetGenre: Genre | undefined;
+  if (effectData.targetGenre) {
+    if (isValidGenre(effectData.targetGenre)) {
+      targetGenre = effectData.targetGenre;
+    }
+    // If invalid genre, we just ignore the targetGenre (effect becomes global)
+  }
+
+  return {
+    type: effectType,
+    magnitude,
+    targetGenre,
+  };
+}
+
+/**
  * Parse the structured response from the LLM into Companion objects
  */
 export function parseResearchResponse(
   response: ResearchResponse,
   bookId: string
 ): ParsedResearch {
-  const companions: Companion[] = response.companions.map((item, index) => ({
-    id: `${bookId}-companion-${index}-${Date.now()}`,
-    bookId,
-    name: item.name,
-    type: item.type,
-    rarity: item.rarity,
-    description: item.description,
-    traits: item.traits,
-    visualDescription: '', // Keep for backwards compatibility
-    physicalDescription: item.physicalDescription,
-    imageUrl: null,
-    source: 'discovered' as const,
-    unlockMethod: null,
-    unlockedAt: null,
-  }));
+  const companions: Companion[] = response.companions.map((item, index) => {
+    // Parse and validate effects
+    const effects: CompanionEffect[] = (item.effects || [])
+      .map(e => parseEffect(e, item.rarity))
+      .filter((e): e is CompanionEffect => e !== null);
+
+    return {
+      id: `${bookId}-companion-${index}-${Date.now()}`,
+      bookId,
+      name: item.name,
+      type: item.type,
+      rarity: item.rarity,
+      description: item.description,
+      traits: item.traits,
+      visualDescription: '', // Keep for backwards compatibility
+      physicalDescription: item.physicalDescription,
+      imageUrl: null,
+      source: 'discovered' as const,
+      unlockMethod: null,
+      unlockedAt: null,
+      effects: effects.length > 0 ? effects : undefined,
+    };
+  });
 
   return {
     companions,
