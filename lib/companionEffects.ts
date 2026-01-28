@@ -1,5 +1,5 @@
 // lib/companionEffects.ts
-import { CompanionRarity } from './types';
+import { CompanionRarity, Companion } from './types';
 import { Genre } from './genres';
 
 export const EFFECT_TYPES = [
@@ -34,4 +34,59 @@ export function getAvailableEffectTypes(rarity: CompanionRarity): EffectType[] {
     return [...EFFECT_TYPES];
   }
   return EFFECT_TYPES.filter(t => t !== 'completion_bonus');
+}
+
+export interface ActiveEffects {
+  xpBoost: number;
+  luckBoost: number;
+  dropRateBoost: number;
+  completionBonus: number;
+}
+
+export function calculateActiveEffects(
+  equippedCompanions: Companion[],
+  bookGenres: Genre[]
+): ActiveEffects {
+  const effects: ActiveEffects = {
+    xpBoost: 0,
+    luckBoost: 0,
+    dropRateBoost: 0,
+    completionBonus: 0,
+  };
+
+  for (const companion of equippedCompanions) {
+    // Handle companions with no effects (effects undefined/null)
+    if (!companion.effects) {
+      continue;
+    }
+
+    for (const effect of companion.effects) {
+      // Check if effect applies
+      // If effect has no targetGenre, it applies (global effect)
+      // If effect has targetGenre, only apply if bookGenres includes it
+      const applies = !effect.targetGenre || bookGenres.includes(effect.targetGenre);
+
+      if (!applies) {
+        continue;
+      }
+
+      // Sum effect by type
+      switch (effect.type) {
+        case 'xp_boost':
+          effects.xpBoost += effect.magnitude;
+          break;
+        case 'luck_boost':
+          effects.luckBoost += effect.magnitude;
+          break;
+        case 'drop_rate_boost':
+          effects.dropRateBoost += effect.magnitude;
+          break;
+        case 'completion_bonus':
+          effects.completionBonus += effect.magnitude;
+          break;
+      }
+    }
+  }
+
+  return effects;
 }
