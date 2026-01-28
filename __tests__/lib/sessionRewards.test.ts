@@ -313,27 +313,19 @@ describe('sessionRewards', () => {
         });
       });
 
-      it('should use luck boost when rolling box tier', () => {
+      it('should create blank boxes without tier (tier determined at open time)', () => {
         const mockBook = createMockBook();
         const mockProgress = createMockProgress();
         const companion = createMockCompanion('comp-1', [
-          { type: 'luck_boost', magnitude: 0.30, targetGenre: 'fantasy' },
+          { type: 'luck', magnitude: 0.30, targetGenre: 'fantasy' },
         ]);
 
-        // Run multiple times to check luck affects tiers statistically
-        let goldCount = 0;
-        const trials = 100;
+        // Even with luck boost, boxes should not have tier assigned at earn time
+        const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
 
-        for (let i = 0; i < trials; i++) {
-          const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
-          if (result.lootBoxes[0]?.tier === 'gold') {
-            goldCount++;
-          }
-        }
-
-        // With luck boost, should get more gold than base 5%
-        // This is probabilistic, but 30% luck boost should meaningfully increase gold rate
-        expect(goldCount).toBeGreaterThan(2);
+        expect(result.lootBoxes.length).toBe(1);
+        expect(result.lootBoxes[0].tier).toBeUndefined();
+        // Tier will be determined at open time using the luck boost
       });
     });
 
@@ -452,13 +444,13 @@ describe('sessionRewards', () => {
         const mockProgress = createMockProgress();
         const companion = createMockCompanion('comp-1', [
           { type: 'xp_boost', magnitude: 0.20, targetGenre: 'fantasy' },
-          { type: 'luck_boost', magnitude: 0.15 },
+          { type: 'luck', magnitude: 0.15 },
         ]);
 
         const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
 
         expect(result.activeEffects.xpBoost).toBe(0.20);
-        expect(result.activeEffects.luckBoost).toBe(0.15);
+        expect(result.activeEffects.luck).toBe(0.15);
       });
     });
 
@@ -574,13 +566,13 @@ describe('sessionRewards', () => {
           ],
         });
         const companion = createMockCompanion('comp-1', [
-          { type: 'luck_boost', magnitude: 0.10, targetGenre: 'fantasy' },
+          { type: 'luck', magnitude: 0.10, targetGenre: 'fantasy' },
         ]);
 
         const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
 
         // Total luck boost should be 0.15 (using toBeCloseTo for floating point)
-        expect(result.activeEffects.luckBoost).toBeCloseTo(0.15);
+        expect(result.activeEffects.luck).toBeCloseTo(0.15);
       });
     });
 
@@ -628,6 +620,60 @@ describe('sessionRewards', () => {
       });
     });
 
+    describe('blank box earning', () => {
+      it('should create boxes without tier', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+
+        // 1 hour session = 1 level = 1 box
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600, false);
+
+        expect(result.lootBoxes.length).toBe(1);
+        expect(result.lootBoxes[0].tier).toBeUndefined();
+        expect(result.lootBoxes[0].source).toBe('level_up');
+      });
+
+      it('should create completion boxes without tier', () => {
+        const mockBook = createMockBook({
+          pageCount: 90, // 3 level floor
+          progression: {
+            level: 1,
+            totalSeconds: 3600,
+            levelUps: [],
+          },
+        });
+        const mockProgress = createMockProgress();
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 0, true);
+
+        const completionBoxes = result.lootBoxes.filter(b => b.source === 'completion');
+        expect(completionBoxes.length).toBe(2); // 3 - 1 = 2 bonus levels
+        completionBoxes.forEach(box => {
+          expect(box.tier).toBeUndefined();
+        });
+      });
+
+      it('should create bonus drop boxes without tier', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+
+        // Mock rollBonusDrop to always return true
+        jest.spyOn(lootV3, 'rollBonusDrop').mockReturnValue(true);
+
+        const companion = createMockCompanion('comp-1', [
+          { type: 'drop_rate_boost', magnitude: 0.50, targetGenre: 'fantasy' },
+        ]);
+
+        const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
+
+        const bonusBoxes = result.lootBoxes.filter(b => b.source === 'bonus_drop');
+        expect(bonusBoxes.length).toBe(1);
+        expect(bonusBoxes[0].tier).toBeUndefined();
+
+        jest.restoreAllMocks();
+      });
+    });
+
     describe('edge cases', () => {
       it('should handle book with no genres', () => {
         const mockBook = createMockBook({ normalizedGenres: [] });
@@ -670,7 +716,7 @@ describe('sessionRewards', () => {
         const result = processSessionEnd(mockBook, mockProgress, [], 3600);
 
         expect(result.activeEffects.xpBoost).toBe(0);
-        expect(result.activeEffects.luckBoost).toBe(0);
+        expect(result.activeEffects.luck).toBe(0);
         expect(result.activeEffects.dropRateBoost).toBe(0);
         expect(result.activeEffects.completionBonus).toBe(0);
       });

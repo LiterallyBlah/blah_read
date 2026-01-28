@@ -5,12 +5,12 @@
  * and calculates all rewards: book levels, XP, genre levels, loot boxes.
  */
 
-import { Book, UserProgress, Companion, LootBoxV3, LootBoxTier, GenreLevels } from './types';
+import { Book, UserProgress, Companion, LootBoxV3, GenreLevels } from './types';
 import { Genre, GENRES } from './genres';
 import { processReadingTime, calculateCompletionBonus } from './bookLeveling';
 import { calculateActiveEffects, ActiveEffects } from './companionEffects';
 import { getActiveEffects as getConsumableEffects, tickConsumables } from './consumableManager';
-import { rollBoxTier, rollBonusDrop } from './lootV3';
+import { rollBonusDrop } from './lootV3';
 import { getStreakMultiplier } from './xp';
 
 // Constants
@@ -57,24 +57,32 @@ function combineEffects(
   consumableEffects: ReturnType<typeof getConsumableEffects>
 ): {
   totalXpBoost: number;
-  totalLuckBoost: number;
+  totalLuck: number;
+  totalRareLuck: number;
+  totalLegendaryLuck: number;
   totalDropRateBoost: number;
   combinedActiveEffects: ActiveEffects;
 } {
   const totalXpBoost = companionEffects.xpBoost + consumableEffects.xpBoost;
-  const totalLuckBoost = companionEffects.luckBoost + consumableEffects.luckBoost;
+  const totalLuck = companionEffects.luck + consumableEffects.luck;
+  const totalRareLuck = companionEffects.rareLuck + consumableEffects.rareLuck;
+  const totalLegendaryLuck = companionEffects.legendaryLuck + consumableEffects.legendaryLuck;
   const totalDropRateBoost = companionEffects.dropRateBoost + consumableEffects.dropRateBoost;
 
   const combinedActiveEffects: ActiveEffects = {
     xpBoost: companionEffects.xpBoost + consumableEffects.xpBoost,
-    luckBoost: companionEffects.luckBoost + consumableEffects.luckBoost,
+    luck: companionEffects.luck + consumableEffects.luck,
+    rareLuck: companionEffects.rareLuck + consumableEffects.rareLuck,
+    legendaryLuck: companionEffects.legendaryLuck + consumableEffects.legendaryLuck,
     dropRateBoost: companionEffects.dropRateBoost + consumableEffects.dropRateBoost,
     completionBonus: companionEffects.completionBonus,
   };
 
   return {
     totalXpBoost,
-    totalLuckBoost,
+    totalLuck,
+    totalRareLuck,
+    totalLegendaryLuck,
     totalDropRateBoost,
     combinedActiveEffects,
   };
@@ -112,7 +120,7 @@ export function processSessionEnd(
   const consumableEffects = getConsumableEffects(activeConsumables);
 
   // Step 3: Combine boosts
-  const { totalXpBoost, totalLuckBoost, totalDropRateBoost, combinedActiveEffects } =
+  const { totalXpBoost, totalDropRateBoost, combinedActiveEffects } =
     combineEffects(companionEffects, consumableEffects);
 
   // Step 4: Process book leveling
@@ -158,16 +166,15 @@ export function processSessionEnd(
     }
   }
 
-  // Step 8: Roll loot boxes (1 per level, use luck boost for tier)
+  // Step 8: Create blank loot boxes (tier determined at open time)
   const lootBoxes: LootBoxV3[] = [];
 
   // Level up boxes
   const regularLevelsGained = levelResult.levelsGained;
   for (let i = 0; i < regularLevelsGained; i++) {
-    const tier = rollBoxTier(totalLuckBoost);
     lootBoxes.push({
       id: generateLootBoxId(),
-      tier,
+      // tier intentionally omitted - blank box
       earnedAt: now,
       source: 'level_up',
       bookId: book.id,
@@ -176,23 +183,21 @@ export function processSessionEnd(
 
   // Completion bonus boxes
   for (let i = 0; i < completionBonusLevels; i++) {
-    const tier = rollBoxTier(totalLuckBoost);
     lootBoxes.push({
       id: generateLootBoxId(),
-      tier,
+      // tier intentionally omitted - blank box
       earnedAt: now,
       source: 'completion',
       bookId: book.id,
     });
   }
 
-  // Step 9: Check bonus drop (rollBonusDrop with drop rate boost)
+  // Step 9: Check bonus drop (still uses drop rate boost)
   const bonusDropTriggered = rollBonusDrop(totalDropRateBoost);
   if (bonusDropTriggered) {
-    const bonusTier = rollBoxTier(totalLuckBoost);
     lootBoxes.push({
       id: generateLootBoxId(),
-      tier: bonusTier,
+      // tier intentionally omitted - blank box
       earnedAt: now,
       source: 'bonus_drop',
       bookId: book.id,
