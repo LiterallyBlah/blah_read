@@ -1,9 +1,19 @@
+import { Genre } from './genres';
+import { CompanionEffect } from './companionEffects';
+
 export type BookStatus = 'to_read' | 'reading' | 'finished';
 
 export type CompanionRarity = 'common' | 'rare' | 'legendary';
 export type CompanionType = 'character' | 'creature' | 'object';
 export type CompanionSource = 'discovered' | 'inspired';
 export type CompanionUnlockMethod = 'reading_time' | 'loot_box' | 'book_completion';
+
+// Book level tracking
+export interface BookProgression {
+  level: number;
+  totalSeconds: number; // Reading time for this book
+  levelUps: number[]; // Timestamps of level ups (for loot tracking)
+}
 
 export interface Book {
   id: string;
@@ -28,6 +38,9 @@ export interface Book {
   publishedDate?: string | null;
   source?: 'kindle-share' | 'manual' | 'url';
   metadataSynced?: boolean;
+  // Reward System V3 fields
+  normalizedGenres?: Genre[]; // Normalized genres for reward system
+  progression?: BookProgression; // Book-specific progression
 }
 
 export interface ReadingSession {
@@ -58,6 +71,8 @@ export interface Companion {
   creature?: string;
   keywords?: string[];
   generatedAt?: number;
+  // Reward System V3 fields
+  effects?: CompanionEffect[]; // Companion effects
 }
 
 export interface CompanionQueue {
@@ -88,6 +103,47 @@ export interface LootBoxState {
   }>;
 }
 
+// Active consumable effect
+export interface ActiveConsumable {
+  consumableId: string;
+  remainingDuration: number; // Sessions or uses remaining
+  appliedAt: number; // Timestamp
+}
+
+// Loadout system
+export interface CompanionLoadout {
+  slots: (string | null)[]; // Companion IDs, null = empty slot
+  unlockedSlots: number; // 1, 2, or 3
+}
+
+// Slot unlock progress
+export interface SlotUnlockProgress {
+  slot2Points: number;
+  slot3Points: number;
+  // Track which milestones have been counted
+  booksFinished: number;
+  hoursLogged: number;
+  companionsCollected: number;
+  sessionsCompleted: number;
+  genreLevelTens: string[]; // Genre IDs that hit level 10
+  genresRead: string[]; // Unique genres read
+}
+
+// Genre levels
+export type GenreLevels = Record<Genre, number>;
+
+// Loot box tiers
+export type LootBoxTier = 'wood' | 'silver' | 'gold';
+
+// Enhanced loot box for V3
+export interface LootBoxV3 {
+  id: string;
+  tier: LootBoxTier;
+  earnedAt: number;
+  source: 'level_up' | 'bonus_drop' | 'completion';
+  bookId?: string;
+}
+
 export interface UserProgress {
   totalXp: number;
   level: number;
@@ -100,6 +156,12 @@ export interface UserProgress {
   booksFinished: number;
   booksAdded: number;
   totalHoursRead: number;
+  // Reward System V3 fields
+  genreLevels?: GenreLevels; // Per-genre levels
+  loadout?: CompanionLoadout; // Equipped companions
+  slotProgress?: SlotUnlockProgress; // Slot unlock tracking
+  activeConsumables?: ActiveConsumable[]; // Active consumable effects
+  lootBoxesV3?: LootBoxV3[]; // Tiered loot boxes
 }
 
 export interface LootItem {
