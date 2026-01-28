@@ -1,0 +1,613 @@
+import {
+  processSessionEnd,
+  SessionRewardResult,
+  BASE_XP_PER_MINUTE,
+} from '@/lib/sessionRewards';
+import { Book, UserProgress, Companion, LootBoxV3 } from '@/lib/types';
+import { Genre, GENRES } from '@/lib/genres';
+import { CompanionEffect, ActiveEffects } from '@/lib/companionEffects';
+import * as lootV3 from '@/lib/lootV3';
+
+// Helper to create a minimal valid book
+function createMockBook(overrides: Partial<Book> = {}): Book {
+  return {
+    id: 'book-1',
+    title: 'Test Book',
+    coverUrl: null,
+    synopsis: null,
+    sourceUrl: null,
+    status: 'reading',
+    totalReadingTime: 0,
+    createdAt: Date.now(),
+    normalizedGenres: ['fantasy'] as Genre[],
+    progression: {
+      level: 0,
+      totalSeconds: 0,
+      levelUps: [],
+    },
+    pageCount: 300,
+    ...overrides,
+  };
+}
+
+// Helper to create a minimal valid user progress
+function createMockProgress(overrides: Partial<UserProgress> = {}): UserProgress {
+  const genreLevels: Record<Genre, number> = {} as Record<Genre, number>;
+  for (const genre of GENRES) {
+    genreLevels[genre] = 0;
+  }
+
+  return {
+    totalXp: 0,
+    level: 1,
+    currentStreak: 0,
+    longestStreak: 0,
+    lastReadDate: null,
+    lootItems: [],
+    lootBoxes: {
+      availableBoxes: [],
+      openHistory: [],
+    },
+    booksFinished: 0,
+    booksAdded: 0,
+    totalHoursRead: 0,
+    genreLevels,
+    loadout: {
+      slots: [null, null, null],
+      unlockedSlots: 1,
+    },
+    slotProgress: {
+      slot2Points: 0,
+      slot3Points: 0,
+      booksFinished: 0,
+      hoursLogged: 0,
+      companionsCollected: 0,
+      sessionsCompleted: 0,
+      genreLevelTens: [],
+      genresRead: [],
+    },
+    activeConsumables: [],
+    lootBoxesV3: [],
+    ...overrides,
+  };
+}
+
+// Helper to create a mock companion with effects
+function createMockCompanion(
+  id: string,
+  effects: CompanionEffect[] = []
+): Companion {
+  return {
+    id,
+    bookId: 'book-1',
+    name: 'Test Companion',
+    type: 'creature',
+    rarity: 'common',
+    description: 'A test companion',
+    traits: 'friendly, helpful',
+    visualDescription: 'A small creature',
+    imageUrl: null,
+    source: 'discovered',
+    unlockMethod: 'reading_time',
+    unlockedAt: Date.now(),
+    effects,
+  };
+}
+
+describe('sessionRewards', () => {
+  describe('BASE_XP_PER_MINUTE constant', () => {
+    it('should be 10 XP per minute', () => {
+      expect(BASE_XP_PER_MINUTE).toBe(10);
+    });
+  });
+
+  describe('processSessionEnd', () => {
+    describe('basic session processing', () => {
+      it('should process reading session and award levels', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+
+        // 1 hour (3600 seconds) = 1 level
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(result.bookLevelsGained).toBe(1);
+        expect(result.newBookLevel).toBe(1);
+        expect(result.lootBoxes.length).toBe(1);
+      });
+
+      it('should award no levels for short sessions', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+
+        // 30 minutes = no level
+        const result = processSessionEnd(mockBook, mockProgress, [], 1800);
+
+        expect(result.bookLevelsGained).toBe(0);
+        expect(result.newBookLevel).toBe(0);
+        expect(result.lootBoxes.length).toBe(0);
+      });
+
+      it('should award multiple levels for long sessions', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+
+        // 3 hours = 3 levels
+        const result = processSessionEnd(mockBook, mockProgress, [], 10800);
+
+        expect(result.bookLevelsGained).toBe(3);
+        expect(result.newBookLevel).toBe(3);
+        expect(result.lootBoxes.length).toBe(3);
+      });
+
+      it('should track levels on book with existing progression', () => {
+        const mockBook = createMockBook({
+          progression: {
+            level: 2,
+            totalSeconds: 7200, // 2 hours
+            levelUps: [3600, 7200],
+          },
+        });
+        const mockProgress = createMockProgress();
+
+        // Add 1 more hour = level 3
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(result.bookLevelsGained).toBe(1);
+        expect(result.newBookLevel).toBe(3);
+      });
+    });
+
+    describe('XP calculation', () => {
+      it('should calculate base XP correctly', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+
+        // 60 minutes = 600 XP base (10 XP/min)
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(result.xpGained).toBe(600);
+      });
+
+      it('should apply XP boost from companions', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+        const companion = createMockCompanion('comp-1', [
+          { type: 'xp_boost', magnitude: 0.20, targetGenre: 'fantasy' },
+        ]);
+
+        // 60 minutes with 20% boost = 720 XP
+        const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
+
+        expect(result.xpGained).toBeGreaterThan(600); // 600 base * 1.2 = 720
+        expect(result.xpGained).toBe(720);
+      });
+
+      it('should apply global XP boost regardless of genre', () => {
+        const mockBook = createMockBook({ normalizedGenres: ['mystery-thriller'] });
+        const mockProgress = createMockProgress();
+        const companion = createMockCompanion('comp-1', [
+          { type: 'xp_boost', magnitude: 0.20 }, // No targetGenre = global
+        ]);
+
+        const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
+
+        expect(result.xpGained).toBe(720); // 600 * 1.2
+      });
+
+      it('should not apply genre-specific boost if genre does not match', () => {
+        const mockBook = createMockBook({ normalizedGenres: ['mystery-thriller'] });
+        const mockProgress = createMockProgress();
+        const companion = createMockCompanion('comp-1', [
+          { type: 'xp_boost', magnitude: 0.20, targetGenre: 'fantasy' }, // Wrong genre
+        ]);
+
+        const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
+
+        expect(result.xpGained).toBe(600); // No boost applied
+      });
+
+      it('should stack multiple XP boosts', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+        const companion1 = createMockCompanion('comp-1', [
+          { type: 'xp_boost', magnitude: 0.20, targetGenre: 'fantasy' },
+        ]);
+        const companion2 = createMockCompanion('comp-2', [
+          { type: 'xp_boost', magnitude: 0.10 }, // Global
+        ]);
+
+        // 600 * (1 + 0.20 + 0.10) = 780
+        const result = processSessionEnd(mockBook, mockProgress, [companion1, companion2], 3600);
+
+        expect(result.xpGained).toBe(780);
+      });
+    });
+
+    describe('genre level increases', () => {
+      it('should increase genre level for book genres', () => {
+        const mockBook = createMockBook({ normalizedGenres: ['fantasy'] });
+        const mockProgress = createMockProgress();
+
+        // 1 level = 1 genre level increase
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(result.genreLevelIncreases.fantasy).toBe(1);
+      });
+
+      it('should increase multiple genre levels if book has multiple genres', () => {
+        const mockBook = createMockBook({
+          normalizedGenres: ['fantasy', 'romance'],
+        });
+        const mockProgress = createMockProgress();
+
+        // 2 levels = 2 increases per genre
+        const result = processSessionEnd(mockBook, mockProgress, [], 7200);
+
+        expect(result.genreLevelIncreases.fantasy).toBe(2);
+        expect(result.genreLevelIncreases.romance).toBe(2);
+      });
+
+      it('should not increase genre levels when no level gained', () => {
+        const mockBook = createMockBook({ normalizedGenres: ['fantasy'] });
+        const mockProgress = createMockProgress();
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 1800); // 30 min
+
+        expect(result.genreLevelIncreases.fantasy).toBe(0);
+      });
+    });
+
+    describe('loot box generation', () => {
+      it('should generate one loot box per level gained', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 7200); // 2 levels
+
+        expect(result.lootBoxes.length).toBe(2);
+        result.lootBoxes.forEach(box => {
+          expect(box.source).toBe('level_up');
+          expect(box.bookId).toBe('book-1');
+        });
+      });
+
+      it('should use luck boost when rolling box tier', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+        const companion = createMockCompanion('comp-1', [
+          { type: 'luck_boost', magnitude: 0.30, targetGenre: 'fantasy' },
+        ]);
+
+        // Run multiple times to check luck affects tiers statistically
+        let goldCount = 0;
+        const trials = 100;
+
+        for (let i = 0; i < trials; i++) {
+          const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
+          if (result.lootBoxes[0]?.tier === 'gold') {
+            goldCount++;
+          }
+        }
+
+        // With luck boost, should get more gold than base 5%
+        // This is probabilistic, but 30% luck boost should meaningfully increase gold rate
+        expect(goldCount).toBeGreaterThan(2);
+      });
+    });
+
+    describe('bonus drop', () => {
+      it('should not trigger bonus drop with 0 drop rate boost', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+
+        // Without drop rate boost, no bonus drops
+        let bonusCount = 0;
+        for (let i = 0; i < 100; i++) {
+          const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+          if (result.bonusDropTriggered) bonusCount++;
+        }
+
+        expect(bonusCount).toBe(0);
+      });
+
+      it('should trigger bonus drop based on drop rate boost', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+        const companion = createMockCompanion('comp-1', [
+          { type: 'drop_rate_boost', magnitude: 0.50, targetGenre: 'fantasy' },
+        ]);
+
+        // With 50% drop rate, should trigger sometimes
+        let bonusCount = 0;
+        for (let i = 0; i < 100; i++) {
+          const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
+          if (result.bonusDropTriggered) bonusCount++;
+        }
+
+        expect(bonusCount).toBeGreaterThan(20); // At least some triggers
+        expect(bonusCount).toBeLessThan(80); // Not always
+      });
+
+      it('should add bonus loot box when bonus drop triggers', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+
+        // Mock rollBonusDrop to always return true
+        jest.spyOn(lootV3, 'rollBonusDrop').mockReturnValue(true);
+
+        const companion = createMockCompanion('comp-1', [
+          { type: 'drop_rate_boost', magnitude: 0.50, targetGenre: 'fantasy' },
+        ]);
+
+        const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
+
+        expect(result.bonusDropTriggered).toBe(true);
+        // Should have 1 level up box + 1 bonus drop box
+        const bonusBoxes = result.lootBoxes.filter(b => b.source === 'bonus_drop');
+        expect(bonusBoxes.length).toBe(1);
+
+        jest.restoreAllMocks();
+      });
+    });
+
+    describe('completion bonus', () => {
+      it('should award completion bonus levels when isCompletion is true', () => {
+        const mockBook = createMockBook({
+          pageCount: 300, // 300 pages = 10 level floor
+          progression: {
+            level: 4,
+            totalSeconds: 14400, // 4 hours = 4 levels
+            levelUps: [],
+          },
+        });
+        const mockProgress = createMockProgress();
+
+        // isCompletion = true, should get 6 bonus levels (10 - 4)
+        const result = processSessionEnd(mockBook, mockProgress, [], 0, true);
+
+        expect(result.bookLevelsGained).toBe(6); // Completion bonus
+        expect(result.newBookLevel).toBe(10);
+        expect(result.lootBoxes.length).toBe(6);
+      });
+
+      it('should not award completion bonus when already at or above floor', () => {
+        const mockBook = createMockBook({
+          pageCount: 300, // 300 pages = 10 level floor
+          progression: {
+            level: 12,
+            totalSeconds: 43200, // 12 hours
+            levelUps: [],
+          },
+        });
+        const mockProgress = createMockProgress();
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 0, true);
+
+        expect(result.bookLevelsGained).toBe(0);
+      });
+
+      it('should award completion loot boxes with completion source', () => {
+        const mockBook = createMockBook({
+          pageCount: 90, // 3 level floor
+          progression: {
+            level: 1,
+            totalSeconds: 3600,
+            levelUps: [],
+          },
+        });
+        const mockProgress = createMockProgress();
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 0, true);
+
+        const completionBoxes = result.lootBoxes.filter(b => b.source === 'completion');
+        expect(completionBoxes.length).toBe(2); // 3 - 1 = 2 bonus levels
+      });
+    });
+
+    describe('active effects tracking', () => {
+      it('should return active effects in result', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+        const companion = createMockCompanion('comp-1', [
+          { type: 'xp_boost', magnitude: 0.20, targetGenre: 'fantasy' },
+          { type: 'luck_boost', magnitude: 0.15 },
+        ]);
+
+        const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
+
+        expect(result.activeEffects.xpBoost).toBe(0.20);
+        expect(result.activeEffects.luckBoost).toBe(0.15);
+      });
+    });
+
+    describe('book and progress updates', () => {
+      it('should return updated book with new progression', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(result.updatedBook.progression?.level).toBe(1);
+        expect(result.updatedBook.progression?.totalSeconds).toBe(3600);
+      });
+
+      it('should return updated progress with new XP', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress({ totalXp: 100 });
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(result.updatedProgress.totalXp).toBe(700); // 100 + 600
+      });
+
+      it('should return updated progress with new genre levels', () => {
+        const mockBook = createMockBook({ normalizedGenres: ['fantasy', 'romance'] });
+        const mockProgress = createMockProgress();
+        mockProgress.genreLevels!.fantasy = 5;
+        mockProgress.genreLevels!.romance = 3;
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 7200); // 2 levels
+
+        expect(result.updatedProgress.genreLevels?.fantasy).toBe(7);
+        expect(result.updatedProgress.genreLevels?.romance).toBe(5);
+      });
+
+      it('should return updated progress with new loot boxes', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(result.updatedProgress.lootBoxesV3?.length).toBe(1);
+      });
+
+      it('should tick consumables after processing', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress({
+          activeConsumables: [
+            { consumableId: 'weak_xp_1', remainingDuration: 2, appliedAt: Date.now() },
+          ],
+        });
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        // Duration should be decremented
+        expect(result.updatedProgress.activeConsumables?.length).toBe(1);
+        expect(result.updatedProgress.activeConsumables?.[0].remainingDuration).toBe(1);
+      });
+
+      it('should remove expired consumables', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress({
+          activeConsumables: [
+            { consumableId: 'weak_xp_1', remainingDuration: 1, appliedAt: Date.now() },
+          ],
+        });
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        // Consumable should be removed (duration was 1, now 0)
+        expect(result.updatedProgress.activeConsumables?.length).toBe(0);
+      });
+    });
+
+    describe('consumable effects integration', () => {
+      it('should apply XP boost from active consumables', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress({
+          activeConsumables: [
+            { consumableId: 'weak_xp_1', remainingDuration: 1, appliedAt: Date.now() }, // +10% XP
+          ],
+        });
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        // 600 base * 1.10 = 660
+        expect(result.xpGained).toBe(660);
+      });
+
+      it('should combine companion and consumable XP boosts', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress({
+          activeConsumables: [
+            { consumableId: 'weak_xp_1', remainingDuration: 1, appliedAt: Date.now() }, // +10% XP
+          ],
+        });
+        const companion = createMockCompanion('comp-1', [
+          { type: 'xp_boost', magnitude: 0.20, targetGenre: 'fantasy' },
+        ]);
+
+        // 600 base * (1 + 0.10 + 0.20) = 780
+        const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
+
+        expect(result.xpGained).toBe(780);
+      });
+
+      it('should combine luck boosts from companions and consumables', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress({
+          activeConsumables: [
+            { consumableId: 'weak_luck_1', remainingDuration: 1, appliedAt: Date.now() }, // +5% luck
+          ],
+        });
+        const companion = createMockCompanion('comp-1', [
+          { type: 'luck_boost', magnitude: 0.10, targetGenre: 'fantasy' },
+        ]);
+
+        const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
+
+        // Total luck boost should be 0.15 (using toBeCloseTo for floating point)
+        expect(result.activeEffects.luckBoost).toBeCloseTo(0.15);
+      });
+    });
+
+    describe('edge cases', () => {
+      it('should handle book with no genres', () => {
+        const mockBook = createMockBook({ normalizedGenres: [] });
+        const mockProgress = createMockProgress();
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(result.bookLevelsGained).toBe(1);
+        // All genre increases should be 0
+        for (const genre of GENRES) {
+          expect(result.genreLevelIncreases[genre]).toBe(0);
+        }
+      });
+
+      it('should handle book with undefined normalizedGenres', () => {
+        const mockBook = createMockBook();
+        delete mockBook.normalizedGenres;
+        const mockProgress = createMockProgress();
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(result.bookLevelsGained).toBe(1);
+      });
+
+      it('should handle book with no progression', () => {
+        const mockBook = createMockBook();
+        delete mockBook.progression;
+        const mockProgress = createMockProgress();
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(result.newBookLevel).toBe(1);
+        expect(result.updatedBook.progression?.level).toBe(1);
+      });
+
+      it('should handle empty companions array', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(result.activeEffects.xpBoost).toBe(0);
+        expect(result.activeEffects.luckBoost).toBe(0);
+        expect(result.activeEffects.dropRateBoost).toBe(0);
+        expect(result.activeEffects.completionBonus).toBe(0);
+      });
+
+      it('should handle companion with no effects', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+        const companion = createMockCompanion('comp-1', []);
+
+        const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
+
+        expect(result.xpGained).toBe(600); // Base XP, no boost
+      });
+
+      it('should handle 0 session seconds', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 0);
+
+        expect(result.bookLevelsGained).toBe(0);
+        expect(result.xpGained).toBe(0);
+        expect(result.lootBoxes.length).toBe(0);
+      });
+    });
+  });
+});
