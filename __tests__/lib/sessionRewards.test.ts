@@ -465,28 +465,28 @@ describe('sessionRewards', () => {
         const mockBook = createMockBook();
         const mockProgress = createMockProgress({
           activeConsumables: [
-            { consumableId: 'weak_xp_1', remainingDuration: 2, appliedAt: Date.now() },
+            { consumableId: 'weak_xp_1', remainingDuration: 120, appliedAt: Date.now() },
           ],
         });
 
-        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600); // 60 min session
 
-        // Duration should be decremented
+        // Duration should be decremented by 60 minutes
         expect(result.updatedProgress.activeConsumables?.length).toBe(1);
-        expect(result.updatedProgress.activeConsumables?.[0].remainingDuration).toBe(1);
+        expect(result.updatedProgress.activeConsumables?.[0].remainingDuration).toBe(60);
       });
 
       it('should remove expired consumables', () => {
         const mockBook = createMockBook();
         const mockProgress = createMockProgress({
           activeConsumables: [
-            { consumableId: 'weak_xp_1', remainingDuration: 1, appliedAt: Date.now() },
+            { consumableId: 'weak_xp_1', remainingDuration: 30, appliedAt: Date.now() },
           ],
         });
 
-        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600); // 60 min session
 
-        // Consumable should be removed (duration was 1, now 0)
+        // Consumable should be removed (duration was 30, session was 60 min)
         expect(result.updatedProgress.activeConsumables?.length).toBe(0);
       });
     });
@@ -496,7 +496,7 @@ describe('sessionRewards', () => {
         const mockBook = createMockBook();
         const mockProgress = createMockProgress({
           activeConsumables: [
-            { consumableId: 'weak_xp_1', remainingDuration: 1, appliedAt: Date.now() }, // +10% XP
+            { consumableId: 'weak_xp_1', remainingDuration: 60, appliedAt: Date.now() }, // +10% XP
           ],
         });
 
@@ -510,7 +510,7 @@ describe('sessionRewards', () => {
         const mockBook = createMockBook();
         const mockProgress = createMockProgress({
           activeConsumables: [
-            { consumableId: 'weak_xp_1', remainingDuration: 1, appliedAt: Date.now() }, // +10% XP
+            { consumableId: 'weak_xp_1', remainingDuration: 60, appliedAt: Date.now() }, // +10% XP
           ],
         });
         const companion = createMockCompanion('comp-1', [
@@ -527,7 +527,7 @@ describe('sessionRewards', () => {
         const mockBook = createMockBook();
         const mockProgress = createMockProgress({
           activeConsumables: [
-            { consumableId: 'weak_luck_1', remainingDuration: 1, appliedAt: Date.now() }, // +5% luck
+            { consumableId: 'weak_luck_1', remainingDuration: 120, appliedAt: Date.now() }, // +5% luck
           ],
         });
         const companion = createMockCompanion('comp-1', [

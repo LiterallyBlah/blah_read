@@ -77,13 +77,13 @@ export function getActiveEffects(active: ActiveConsumable[]): ConsumableEffects 
 }
 
 /**
- * Tick all consumables, decrementing duration and removing expired ones.
+ * Tick all consumables, decrementing duration by session minutes and removing expired ones.
  */
-export function tickConsumables(active: ActiveConsumable[]): ActiveConsumable[] {
+export function tickConsumables(active: ActiveConsumable[], sessionMinutes: number): ActiveConsumable[] {
   return active
     .map(c => ({
       ...c,
-      remainingDuration: c.remainingDuration - 1,
+      remainingDuration: c.remainingDuration - sessionMinutes,
     }))
     .filter(c => c.remainingDuration > 0);
 }

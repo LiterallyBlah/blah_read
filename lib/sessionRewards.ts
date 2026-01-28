@@ -210,8 +210,9 @@ export function processSessionEnd(
     updatedGenreLevels[genre] = (updatedGenreLevels[genre] || 0) + genreLevelIncreases[genre];
   }
 
-  // Step 11b: Tick consumables
-  const tickedConsumables = tickConsumables(activeConsumables);
+  // Step 11b: Tick consumables (pass session minutes)
+  const sessionMinutes = sessionSeconds / 60;
+  const tickedConsumables = tickConsumables(activeConsumables, sessionMinutes);
 
   const existingLootBoxesV3 = progress.lootBoxesV3 || [];
 

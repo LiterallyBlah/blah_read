@@ -14,7 +14,7 @@ describe('addActiveConsumable', () => {
     const result = addActiveConsumable([], consumable);
     expect(result.length).toBe(1);
     expect(result[0].consumableId).toBe('weak_xp_1');
-    expect(result[0].remainingDuration).toBe(1);
+    expect(result[0].remainingDuration).toBe(60); // 60 minutes
   });
 
   it('should stack same consumables additively', () => {
@@ -127,46 +127,73 @@ describe('getActiveEffects', () => {
 describe('tickConsumables', () => {
   it('should decrement duration and remove expired', () => {
     const active: ActiveConsumable[] = [
-      { consumableId: 'weak_xp_1', remainingDuration: 1, appliedAt: Date.now() },
-      { consumableId: 'med_xp_1', remainingDuration: 2, appliedAt: Date.now() },
+      { consumableId: 'weak_xp_1', remainingDuration: 30, appliedAt: Date.now() },
+      { consumableId: 'med_xp_1', remainingDuration: 90, appliedAt: Date.now() },
     ];
-    const result = tickConsumables(active);
+    const result = tickConsumables(active, 60); // 60 minute session
     expect(result.length).toBe(1);
     expect(result[0].consumableId).toBe('med_xp_1');
-    expect(result[0].remainingDuration).toBe(1);
+    expect(result[0].remainingDuration).toBe(30);
   });
 
   it('should return empty array when all consumables expire', () => {
     const active: ActiveConsumable[] = [
-      { consumableId: 'weak_xp_1', remainingDuration: 1, appliedAt: Date.now() },
+      { consumableId: 'weak_xp_1', remainingDuration: 30, appliedAt: Date.now() },
     ];
-    const result = tickConsumables(active);
+    const result = tickConsumables(active, 60);
     expect(result.length).toBe(0);
   });
 
   it('should handle empty active list', () => {
-    const result = tickConsumables([]);
+    const result = tickConsumables([], 60);
     expect(result.length).toBe(0);
   });
 
   it('should preserve appliedAt timestamps', () => {
     const appliedAt = Date.now() - 10000;
     const active: ActiveConsumable[] = [
-      { consumableId: 'med_xp_1', remainingDuration: 2, appliedAt },
+      { consumableId: 'med_xp_1', remainingDuration: 120, appliedAt },
     ];
-    const result = tickConsumables(active);
+    const result = tickConsumables(active, 60);
     expect(result[0].appliedAt).toBe(appliedAt);
   });
 
   it('should decrement all consumables', () => {
     const active: ActiveConsumable[] = [
-      { consumableId: 'med_luck_1', remainingDuration: 3, appliedAt: Date.now() },
-      { consumableId: 'strong_luck_1', remainingDuration: 5, appliedAt: Date.now() },
+      { consumableId: 'med_luck_1', remainingDuration: 180, appliedAt: Date.now() },
+      { consumableId: 'strong_luck_1', remainingDuration: 300, appliedAt: Date.now() },
     ];
-    const result = tickConsumables(active);
+    const result = tickConsumables(active, 60);
     expect(result.length).toBe(2);
-    expect(result[0].remainingDuration).toBe(2);
-    expect(result[1].remainingDuration).toBe(4);
+    expect(result[0].remainingDuration).toBe(120);
+    expect(result[1].remainingDuration).toBe(240);
+  });
+});
+
+describe('tickConsumables with minutes', () => {
+  it('should decrement duration by session minutes', () => {
+    const active: ActiveConsumable[] = [
+      { consumableId: 'weak_xp_1', remainingDuration: 60, appliedAt: Date.now() },
+    ];
+    const result = tickConsumables(active, 30); // 30 minute session
+    expect(result.length).toBe(1);
+    expect(result[0].remainingDuration).toBe(30);
+  });
+
+  it('should remove consumable when minutes exceed remaining duration', () => {
+    const active: ActiveConsumable[] = [
+      { consumableId: 'weak_xp_1', remainingDuration: 20, appliedAt: Date.now() },
+    ];
+    const result = tickConsumables(active, 30); // 30 minute session
+    expect(result.length).toBe(0);
+  });
+
+  it('should handle fractional minutes correctly', () => {
+    const active: ActiveConsumable[] = [
+      { consumableId: 'med_luck_1', remainingDuration: 180, appliedAt: Date.now() },
+    ];
+    const result = tickConsumables(active, 45);
+    expect(result[0].remainingDuration).toBe(135);
   });
 });
 

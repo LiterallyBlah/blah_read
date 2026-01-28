@@ -109,7 +109,7 @@ export interface LootBoxState {
 // Active consumable effect
 export interface ActiveConsumable {
   consumableId: string;
-  remainingDuration: number; // Sessions or uses remaining
+  remainingDuration: number; // Minutes remaining
   appliedAt: number; // Timestamp
 }
 
