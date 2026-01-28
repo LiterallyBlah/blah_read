@@ -5,9 +5,9 @@ import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
 import { storage } from '@/lib/storage';
 import { openLootBox, getPoolCompanions } from '@/lib/lootBox';
+import { openLootBoxV3 } from '@/lib/lootBoxV3';
 import { LootBoxReveal } from '@/components/LootBoxReveal';
 import type { Companion, LootBoxV3, LootBoxTier } from '@/lib/types';
-import { rollLootForTier, LootResult } from '@/lib/lootV3';
 import { ConsumableDefinition } from '@/lib/consumables';
 import { addActiveConsumable } from '@/lib/consumableManager';
 
@@ -50,33 +50,49 @@ export default function LootBoxScreen() {
       storage.getProgress(),
     ]);
 
+    // Get equipped companions
+    const loadout = progress.loadout ?? { slots: [null, null, null], unlockedSlots: 1 };
+    const allCompanions = books.flatMap(b => b.companions?.unlockedCompanions ?? []);
+    const equippedCompanions = (loadout.slots ?? [])
+      .filter((id): id is string => id !== null)
+      .map(id => allCompanions.find(c => c.id === id))
+      .filter((c): c is Companion => c !== undefined);
+
+    // Get current book for genre targeting
+    const currentBook = books
+      .filter(b => b.status === 'reading')
+      .sort((a, b) => b.totalReadingTime - a.totalReadingTime)[0];
+    const bookGenres = currentBook?.normalizedGenres ?? [];
+
     // Check if we have V3 boxes first
     const v3Boxes = progress.lootBoxesV3 || [];
     if (v3Boxes.length > 0) {
-      // Open V3 box using new loot system
       const boxToOpen = v3Boxes[0];
-      const lootResult = rollLootForTier(boxToOpen.tier);
+
+      // Open using new system with tier rolling and pity
+      const { rolledTier, lootResult, updatedProgress } = openLootBoxV3(
+        boxToOpen,
+        progress,
+        equippedCompanions,
+        bookGenres
+      );
 
       // Remove the opened box
-      progress.lootBoxesV3 = v3Boxes.slice(1);
+      updatedProgress.lootBoxesV3 = v3Boxes.slice(1);
 
       if (lootResult.category === 'consumable' && lootResult.consumable) {
         // Handle consumable drop
-        progress.activeConsumables = addActiveConsumable(
-          progress.activeConsumables || [],
+        updatedProgress.activeConsumables = addActiveConsumable(
+          updatedProgress.activeConsumables || [],
           lootResult.consumable
         );
-        await storage.saveProgress(progress);
+        await storage.saveProgress(updatedProgress);
 
         setRevealedConsumable(lootResult.consumable);
-        setRevealedTier(boxToOpen.tier);
+        setRevealedTier(rolledTier);
         setRevealedCompanion(null);
       } else if (lootResult.category === 'companion' && lootResult.companionRarity) {
         // Handle companion drop - get from pool
-        const currentBook = books
-          .filter(b => b.status === 'reading')
-          .sort((a, b) => b.totalReadingTime - a.totalReadingTime)[0];
-
         const pool = getPoolCompanions(books);
         const { companion } = openLootBox(pool, currentBook?.id || null);
 
@@ -94,37 +110,37 @@ export default function LootBoxScreen() {
             }
           }
 
-          await storage.saveProgress(progress);
+          await storage.saveProgress(updatedProgress);
           setRevealedCompanion(companion);
-          setRevealedTier(boxToOpen.tier);
+          setRevealedTier(rolledTier);
           setRevealedConsumable(null);
         } else {
-          // No companion available - give a fallback consumable instead
-          const fallbackConsumable = lootResult.consumable || {
+          // No companion available - give a fallback consumable
+          const fallbackConsumable = {
             id: 'weak_xp_1',
             name: 'Minor XP Scroll',
-            description: '+10% XP next session',
+            description: '+10% XP for 60 min',
             tier: 'weak' as const,
             effectType: 'xp_boost' as const,
             magnitude: 0.10,
-            duration: 1,
+            duration: 60,
           };
-          progress.activeConsumables = addActiveConsumable(
-            progress.activeConsumables || [],
+          updatedProgress.activeConsumables = addActiveConsumable(
+            updatedProgress.activeConsumables || [],
             fallbackConsumable
           );
-          await storage.saveProgress(progress);
+          await storage.saveProgress(updatedProgress);
 
           setRevealedConsumable(fallbackConsumable);
-          setRevealedTier(boxToOpen.tier);
+          setRevealedTier(rolledTier);
           setRevealedCompanion(null);
         }
       }
 
-      const newV3Count = (progress.lootBoxesV3?.length || 0);
+      const newV3Count = updatedProgress.lootBoxesV3?.length || 0;
       const v2Count = progress.lootBoxes?.availableBoxes?.length || 0;
       setBoxCount(v2Count + newV3Count);
-      setBoxesV3(progress.lootBoxesV3 || []);
+      setBoxesV3(updatedProgress.lootBoxesV3 || []);
       setRevealing(false);
       return;
     }
@@ -135,12 +151,7 @@ export default function LootBoxScreen() {
       return;
     }
 
-    // Get current book (most recently read)
-    const currentBook = books
-      .filter(b => b.status === 'reading')
-      .sort((a, b) => b.totalReadingTime - a.totalReadingTime)[0];
-
-    // Get pool and open box
+    // Get pool and open box (currentBook already defined above)
     const pool = getPoolCompanions(books);
     const { companion } = openLootBox(pool, currentBook?.id || null);
 
@@ -216,11 +227,16 @@ export default function LootBoxScreen() {
     }
   };
 
-  // Group boxes by tier for display
+  // Group boxes by tier for display (only count boxes with known tiers)
   const tierCounts = boxesV3.reduce((acc, box) => {
-    acc[box.tier] = (acc[box.tier] || 0) + 1;
+    if (box.tier) {
+      acc[box.tier] = (acc[box.tier] || 0) + 1;
+    }
     return acc;
   }, {} as Record<LootBoxTier, number>);
+
+  // Count blank boxes (unknown tier until opened)
+  const blankBoxCount = boxesV3.filter(b => !b.tier).length;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
