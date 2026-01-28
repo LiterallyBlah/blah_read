@@ -212,6 +212,115 @@ describe('companionEffects', () => {
     });
   });
 
+  describe('calculateActiveEffects with new luck types', () => {
+    it('should sum luck effects correctly', () => {
+      const companions: Companion[] = [
+        {
+          id: 'c1',
+          bookId: 'b1',
+          name: 'Test',
+          type: 'creature',
+          rarity: 'common',
+          description: '',
+          traits: '',
+          visualDescription: '',
+          imageUrl: null,
+          source: 'discovered',
+          unlockMethod: null,
+          unlockedAt: null,
+          effects: [{ type: 'luck', magnitude: 0.05 }],
+        },
+        {
+          id: 'c2',
+          bookId: 'b1',
+          name: 'Test2',
+          type: 'creature',
+          rarity: 'legendary',
+          description: '',
+          traits: '',
+          visualDescription: '',
+          imageUrl: null,
+          source: 'discovered',
+          unlockMethod: null,
+          unlockedAt: null,
+          effects: [{ type: 'legendary_luck', magnitude: 0.25 }],
+        },
+      ];
+
+      const result = calculateActiveEffects(companions, []);
+      expect(result.luck).toBe(0.05);
+      expect(result.rareLuck).toBe(0);
+      expect(result.legendaryLuck).toBe(0.25);
+    });
+
+    it('should sum multiple companions with same luck type', () => {
+      const companions: Companion[] = [
+        {
+          id: 'c1',
+          bookId: 'b1',
+          name: 'Test1',
+          type: 'creature',
+          rarity: 'common',
+          description: '',
+          traits: '',
+          visualDescription: '',
+          imageUrl: null,
+          source: 'discovered',
+          unlockMethod: null,
+          unlockedAt: null,
+          effects: [{ type: 'rare_luck', magnitude: 0.05 }],
+        },
+        {
+          id: 'c2',
+          bookId: 'b1',
+          name: 'Test2',
+          type: 'creature',
+          rarity: 'rare',
+          description: '',
+          traits: '',
+          visualDescription: '',
+          imageUrl: null,
+          source: 'discovered',
+          unlockMethod: null,
+          unlockedAt: null,
+          effects: [{ type: 'rare_luck', magnitude: 0.15 }],
+        },
+      ];
+
+      const result = calculateActiveEffects(companions, []);
+      expect(result.rareLuck).toBeCloseTo(0.20);
+    });
+
+    it('should sum all three luck types from a single companion', () => {
+      const companions: Companion[] = [
+        {
+          id: 'c1',
+          bookId: 'b1',
+          name: 'Lucky Charm',
+          type: 'creature',
+          rarity: 'legendary',
+          description: '',
+          traits: '',
+          visualDescription: '',
+          imageUrl: null,
+          source: 'discovered',
+          unlockMethod: null,
+          unlockedAt: null,
+          effects: [
+            { type: 'luck', magnitude: 0.10 },
+            { type: 'rare_luck', magnitude: 0.08 },
+            { type: 'legendary_luck', magnitude: 0.30 },
+          ],
+        },
+      ];
+
+      const result = calculateActiveEffects(companions, []);
+      expect(result.luck).toBeCloseTo(0.10);
+      expect(result.rareLuck).toBeCloseTo(0.08);
+      expect(result.legendaryLuck).toBeCloseTo(0.30);
+    });
+  });
+
   describe('canEquipCompanion', () => {
     it('should allow common companions with no requirements', () => {
       const result = canEquipCompanion('common', 'fantasy', 0, 0);
