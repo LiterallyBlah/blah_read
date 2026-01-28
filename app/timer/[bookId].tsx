@@ -187,7 +187,9 @@ export default function TimerScreen() {
       <Text style={styles.title}>{book?.title.toLowerCase() || 'loading...'}_</Text>
 
       {/* Large timer display */}
-      <Text style={styles.timer}>{formatTime(elapsed)}</Text>
+      <Text style={styles.timer} numberOfLines={1} adjustsFontSizeToFit>
+        {formatTime(elapsed)}
+      </Text>
 
       {/* Control buttons */}
       <View style={styles.buttons}>

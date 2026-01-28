@@ -1,6 +1,6 @@
 // Follows BlahFret design system - lowercase, trailing underscores, bracket actions
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Animated, ImageBackground } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { storage } from '@/lib/storage';
 import { calculateLevel, xpProgress } from '@/lib/xp';
@@ -67,12 +67,22 @@ export default function HomeScreen() {
       {/* Current book card */}
       {currentBook ? (
         <Pressable
-          style={styles.currentBook}
+          style={[styles.currentBook, currentBook.coverUrl && styles.currentBookWithCover]}
           onPress={() => router.push(`/timer/${currentBook.id}`)}
         >
-          <Text style={styles.bookLabel}>currently reading_</Text>
-          <Text style={styles.bookTitle}>{currentBook.title.toLowerCase()}</Text>
-          <Text style={styles.startButton}>[ start reading ]</Text>
+          {currentBook.coverUrl && (
+            <ImageBackground
+              source={{ uri: currentBook.coverUrl }}
+              style={StyleSheet.absoluteFillObject}
+              imageStyle={styles.coverImage}
+              resizeMode="cover"
+            />
+          )}
+          <View style={[styles.coverOverlay, !currentBook.coverUrl && styles.noCoverOverlay]}>
+            <Text style={styles.bookLabel}>currently reading_</Text>
+            <Text style={styles.bookTitle}>{currentBook.title.toLowerCase()}</Text>
+            <Text style={styles.startButton}>[ start reading ]</Text>
+          </View>
         </Pressable>
       ) : (
         <Pressable style={styles.currentBook} onPress={() => router.push('/library')}>
@@ -146,6 +156,24 @@ function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: a
       borderColor: colors.border,
       backgroundColor: colors.backgroundCard,
       padding: spacing(6),
+      overflow: 'hidden',
+    },
+    currentBookWithCover: {
+      padding: 0,
+    },
+    coverImage: {
+      opacity: 0.4,
+    },
+    coverOverlay: {
+      flex: 1,
+      width: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: spacing(6),
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    },
+    noCoverOverlay: {
+      backgroundColor: 'transparent',
     },
     bookLabel: {
       color: colors.textSecondary,

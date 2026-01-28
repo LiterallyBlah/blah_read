@@ -17,9 +17,9 @@ export function getBorderInstruction(rarity: CompanionRarity): string {
     case 'common':
       return 'The sprite should have NO border or frame. Clean edges directly against the white background.';
     case 'rare':
-      return 'Add a decorative border in blue (#4A90D9), 2-3 pixels wide. You have creative freedom over the pattern - simple lines, dotted edges, small flourishes, or geometric designs all work.';
+      return 'Add a decorative border in blue (#4A90D9), 2-3 pixels wide. The border must run edge-to-edge around the entire perimeter of the image, forming a complete rectangular frame. You have creative freedom over the pattern - simple lines, dotted edges, small flourishes, or geometric designs all work.';
     case 'legendary':
-      return 'Add an ornate border in gold (#F1C40F), 2-3 pixels wide. Make it feel prestigious - you have creative freedom over the pattern. Could be elegant filigree, royal motifs, shimmering edges, or other special designs.';
+      return 'Add an ornate border in gold (#F1C40F), 2-3 pixels wide. The border must run edge-to-edge around the entire perimeter of the image, forming a complete rectangular frame. Make it feel prestigious - you have creative freedom over the pattern. Could be elegant filigree, royal motifs, shimmering edges, or other special designs.';
   }
 }
 

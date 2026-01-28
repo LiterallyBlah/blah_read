@@ -1,7 +1,4 @@
-import * as FileSystem from 'expo-file-system';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const FS = FileSystem as any;
+import * as FileSystem from 'expo-file-system/legacy';
 
 // Simple console logging to avoid circular dependency with debug.ts -> settings.ts
 const log = (msg: string, data?: unknown) => {
@@ -13,16 +10,16 @@ const log = (msg: string, data?: unknown) => {
 /**
  * Directory for storing companion images
  */
-const IMAGE_DIR = `${FS.documentDirectory}companion-images/`;
+const IMAGE_DIR = `${FileSystem.documentDirectory}companion-images/`;
 
 /**
  * Ensure the image directory exists
  */
 async function ensureImageDir(): Promise<void> {
-  const dirInfo = await FS.getInfoAsync(IMAGE_DIR);
+  const dirInfo = await FileSystem.getInfoAsync(IMAGE_DIR);
   if (!dirInfo.exists) {
     log( 'Creating image directory');
-    await FS.makeDirectoryAsync(IMAGE_DIR, { intermediates: true });
+    await FileSystem.makeDirectoryAsync(IMAGE_DIR, { intermediates: true });
   }
 }
 
@@ -55,8 +52,8 @@ export async function saveCompanionImage(
     fileUri,
   });
 
-  await FS.writeAsStringAsync(fileUri, base64Data, {
-    encoding: FS.EncodingType.Base64,
+  await FileSystem.writeAsStringAsync(fileUri, base64Data, {
+    encoding: FileSystem.EncodingType.Base64,
   });
 
   log( `Image saved: ${filename}`);
@@ -73,9 +70,9 @@ export async function deleteCompanionImage(imageUri: string): Promise<void> {
   }
 
   try {
-    const fileInfo = await FS.getInfoAsync(imageUri);
+    const fileInfo = await FileSystem.getInfoAsync(imageUri);
     if (fileInfo.exists) {
-      await FS.deleteAsync(imageUri);
+      await FileSystem.deleteAsync(imageUri);
       log( `Deleted image: ${imageUri}`);
     }
   } catch (error) {
@@ -89,14 +86,14 @@ export async function deleteCompanionImage(imageUri: string): Promise<void> {
  */
 export async function deleteBookImages(bookId: string): Promise<void> {
   try {
-    const dirInfo = await FS.getInfoAsync(IMAGE_DIR);
+    const dirInfo = await FileSystem.getInfoAsync(IMAGE_DIR);
     if (!dirInfo.exists) return;
 
-    const files = await FS.readDirectoryAsync(IMAGE_DIR);
+    const files = await FileSystem.readDirectoryAsync(IMAGE_DIR);
     const bookFiles = files.filter((f: string) => f.startsWith(bookId));
 
     for (const file of bookFiles) {
-      await FS.deleteAsync(`${IMAGE_DIR}${file}`);
+      await FileSystem.deleteAsync(`${IMAGE_DIR}${file}`);
     }
 
     log( `Deleted ${bookFiles.length} images for book ${bookId}`);
@@ -110,14 +107,14 @@ export async function deleteBookImages(bookId: string): Promise<void> {
  */
 export async function getImageStorageSize(): Promise<number> {
   try {
-    const dirInfo = await FS.getInfoAsync(IMAGE_DIR);
+    const dirInfo = await FileSystem.getInfoAsync(IMAGE_DIR);
     if (!dirInfo.exists) return 0;
 
-    const files = await FS.readDirectoryAsync(IMAGE_DIR);
+    const files = await FileSystem.readDirectoryAsync(IMAGE_DIR);
     let totalSize = 0;
 
     for (const file of files) {
-      const fileInfo = await FS.getInfoAsync(`${IMAGE_DIR}${file}`);
+      const fileInfo = await FileSystem.getInfoAsync(`${IMAGE_DIR}${file}`);
       if (fileInfo.exists && 'size' in fileInfo) {
         totalSize += fileInfo.size || 0;
       }
@@ -134,9 +131,9 @@ export async function getImageStorageSize(): Promise<number> {
  */
 export async function clearAllImages(): Promise<void> {
   try {
-    const dirInfo = await FS.getInfoAsync(IMAGE_DIR);
+    const dirInfo = await FileSystem.getInfoAsync(IMAGE_DIR);
     if (dirInfo.exists) {
-      await FS.deleteAsync(IMAGE_DIR, { idempotent: true });
+      await FileSystem.deleteAsync(IMAGE_DIR, { idempotent: true });
       log( 'Cleared all companion images');
     }
   } catch (error) {
