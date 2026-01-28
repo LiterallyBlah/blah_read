@@ -32,7 +32,7 @@ export const RESEARCH_SCHEMA = {
             items: {
               type: 'object',
               properties: {
-                type: { type: 'string', enum: ['xp_boost', 'luck_boost', 'drop_rate_boost', 'completion_bonus'] },
+                type: { type: 'string', enum: ['xp_boost', 'luck', 'rare_luck', 'legendary_luck', 'drop_rate_boost', 'completion_bonus'] },
                 targetGenre: { type: 'string' },
               },
               required: ['type'],
@@ -101,7 +101,9 @@ Each companion should have 1-2 effects. Choose effect types that thematically fi
 
 Effect types:
 - "xp_boost": Increases XP gained. Best for scholarly, wise, or mentor-type entities. Can target a specific genre.
-- "luck_boost": Improves loot box tier chances. Best for lucky, magical, or fortune-related entities.
+- "luck": Improves base loot box tier chances. Best for lucky, magical, or fortune-related entities.
+- "rare_luck": Increases chance of silver tier (rare only). Best for treasure hunters or collectors.
+- "legendary_luck": Increases chance of gold tier (legendary only). Best for legendary mythical entities.
 - "drop_rate_boost": Chance for bonus loot drops. Best for resourceful, treasure-hunting, or generous entities.
 - "completion_bonus": Extra levels awarded on book completion. ONLY for legendary companions (max 1 per book). Best for achievement-oriented or heroic entities.
 
@@ -111,7 +113,7 @@ Valid genres: ${genreList}
 Effect format example:
 [
   { "type": "xp_boost", "targetGenre": "fantasy" },
-  { "type": "luck_boost" }
+  { "type": "luck" }
 ]
 
 Guidelines for effects:

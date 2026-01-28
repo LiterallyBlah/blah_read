@@ -69,7 +69,9 @@ export default function TimerScreen() {
 
     const combined: ActiveEffects = {
       xpBoost: companionEffects.xpBoost + consumableEffects.xpBoost,
-      luckBoost: companionEffects.luckBoost + consumableEffects.luckBoost,
+      luck: companionEffects.luck + consumableEffects.luck,
+      rareLuck: companionEffects.rareLuck + consumableEffects.rareLuck,
+      legendaryLuck: companionEffects.legendaryLuck + consumableEffects.legendaryLuck,
       dropRateBoost: companionEffects.dropRateBoost + consumableEffects.dropRateBoost,
       completionBonus: companionEffects.completionBonus,
     };
@@ -299,8 +301,8 @@ export default function TimerScreen() {
     if (activeEffects.xpBoost > 0) {
       effects.push(`+${Math.round(activeEffects.xpBoost * 100)}% xp`);
     }
-    if (activeEffects.luckBoost > 0) {
-      effects.push(`+${Math.round(activeEffects.luckBoost * 100)}% luck`);
+    if (activeEffects.luck > 0) {
+      effects.push(`+${Math.round(activeEffects.luck * 100)}% luck`);
     }
     if (activeEffects.dropRateBoost > 0) {
       effects.push(`+${Math.round(activeEffects.dropRateBoost * 100)}% drops`);

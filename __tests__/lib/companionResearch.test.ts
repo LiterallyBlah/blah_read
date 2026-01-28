@@ -34,7 +34,7 @@ describe('companionResearch', () => {
       const prompt = buildResearchPrompt('Test Book', 'Author');
       expect(prompt).toContain('effects');
       expect(prompt).toContain('xp_boost');
-      expect(prompt).toContain('luck_boost');
+      expect(prompt).toContain('luck');
       expect(prompt).toContain('drop_rate_boost');
       expect(prompt).toContain('completion_bonus');
       expect(prompt).toContain('targetGenre');
@@ -70,7 +70,7 @@ describe('companionResearch', () => {
             role: 'Antagonist',
             traits: 'Greedy, cunning, powerful',
             physicalDescription: 'Large red dragon with golden eyes',
-            effects: [{ type: 'luck_boost' }, { type: 'drop_rate_boost' }],
+            effects: [{ type: 'luck' }, { type: 'drop_rate_boost' }],
           },
         ],
         researchConfidence: 'high' as const,
@@ -121,7 +121,7 @@ describe('companionResearch', () => {
           physicalDescription: 'Elderly man with long beard and robes',
           effects: [
             { type: 'xp_boost', targetGenre: 'fantasy' },
-            { type: 'luck_boost' },
+            { type: 'luck' },
           ],
         }],
         researchConfidence: 'high' as const,
@@ -132,7 +132,7 @@ describe('companionResearch', () => {
       expect(result.companions[0].effects![0].type).toBe('xp_boost');
       expect(result.companions[0].effects![0].targetGenre).toBe('fantasy');
       expect(result.companions[0].effects![0].magnitude).toBeGreaterThan(0);
-      expect(result.companions[0].effects![1].type).toBe('luck_boost');
+      expect(result.companions[0].effects![1].type).toBe('luck');
       expect(result.companions[0].effects![1].magnitude).toBeGreaterThan(0);
     });
 
