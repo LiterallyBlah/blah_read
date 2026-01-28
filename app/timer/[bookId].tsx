@@ -1,14 +1,12 @@
 // Clean OLED-black focus screen per spec - monochrome typewriter aesthetic
 import { useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Image, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useTimer } from '@/hooks/useTimer';
 import { storage } from '@/lib/storage';
-import { calculateXp } from '@/lib/xp';
-import { shouldTriggerLoot, rollLoot } from '@/lib/loot';
 import { updateStreak, getDateString } from '@/lib/streak';
-import { Book, ReadingSession, Companion } from '@/lib/types';
+import { Book, ReadingSession, Companion, UserProgress } from '@/lib/types';
 import { processReadingSession } from '@/lib/companionUnlock';
 import { checkLootBoxRewards } from '@/lib/lootBox';
 import { maybeGenerateImages } from '@/lib/companionImageQueue';
@@ -17,23 +15,67 @@ import { settings } from '@/lib/settings';
 import { debug, setDebugEnabled } from '@/lib/debug';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
+// V3 Reward System imports
+import { processSessionEnd } from '@/lib/sessionRewards';
+import { getEquippedCompanionIds } from '@/lib/loadout';
+import { calculateActiveEffects, ActiveEffects } from '@/lib/companionEffects';
+import { getActiveEffects as getConsumableEffects } from '@/lib/consumableManager';
 
 export default function TimerScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();
   const { bookId } = useLocalSearchParams<{ bookId: string }>();
   const [book, setBook] = useState<Book | null>(null);
+  const [equippedCompanions, setEquippedCompanions] = useState<Companion[]>([]);
+  const [activeEffects, setActiveEffects] = useState<ActiveEffects | null>(null);
   const { elapsed, isRunning, start, pause, reset } = useTimer();
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
   useEffect(() => {
-    loadBook();
+    loadBookAndCompanions();
     activateKeepAwakeAsync();
-    return () => deactivateKeepAwake();
+    return () => {
+      deactivateKeepAwake();
+    };
   }, []);
 
-  async function loadBook() {
+  async function loadBookAndCompanions() {
     const books = await storage.getBooks();
-    setBook(books.find(b => b.id === bookId) || null);
+    const foundBook = books.find(b => b.id === bookId) || null;
+    setBook(foundBook);
+
+    // Load equipped companions and calculate active effects
+    const progress = await storage.getProgress();
+    const loadout = progress.loadout || { slots: [null, null, null], unlockedSlots: 1 };
+    const equippedIds = getEquippedCompanionIds(loadout);
+
+    // Gather all companions from all books
+    const allCompanions: Companion[] = [];
+    for (const b of books) {
+      if (b.companions?.unlockedCompanions) {
+        allCompanions.push(...b.companions.unlockedCompanions);
+      }
+    }
+
+    // Resolve equipped companion IDs to actual companion objects
+    const equipped = equippedIds
+      .map(id => allCompanions.find(c => c.id === id))
+      .filter((c): c is Companion => c !== undefined);
+    setEquippedCompanions(equipped);
+
+    // Calculate combined active effects (companion + consumable)
+    const bookGenres = foundBook?.normalizedGenres || [];
+    const companionEffects = calculateActiveEffects(equipped, bookGenres);
+    const consumableEffects = getConsumableEffects(progress.activeConsumables || []);
+
+    const combined: ActiveEffects = {
+      xpBoost: companionEffects.xpBoost + consumableEffects.xpBoost,
+      luckBoost: companionEffects.luckBoost + consumableEffects.luckBoost,
+      dropRateBoost: companionEffects.dropRateBoost + consumableEffects.dropRateBoost,
+      completionBonus: companionEffects.completionBonus,
+    };
+    setActiveEffects(combined);
+
+    debug.log('timer', 'Active effects calculated', combined);
   }
 
   function formatTime(seconds: number): string {
@@ -58,7 +100,6 @@ export default function TimerScreen() {
 
     const progress = await storage.getProgress();
     const previousTime = book.totalReadingTime;
-    const newTime = previousTime + elapsed;
 
     // Update streak
     const today = getDateString();
@@ -76,39 +117,67 @@ export default function TimerScreen() {
       longestStreak: progress.longestStreak,
     });
 
-    // Calculate XP with streak multiplier
-    const xp = calculateXp(elapsed, progress.currentStreak);
-    debug.log('timer', 'XP calculated', { xp, streakMultiplier: progress.currentStreak });
+    // Process V3 session rewards (book levels, XP, loot boxes)
+    const sessionResult = processSessionEnd(
+      book,
+      progress,
+      equippedCompanions,
+      elapsed,
+      false // isCompletion - timer screen doesn't handle book completion
+    );
 
-    // Check for loot (every 60 minutes)
-    if (shouldTriggerLoot(previousTime, newTime)) {
-      const loot = rollLoot();
-      progress.lootItems.push(loot);
-      debug.log('timer', 'Loot triggered!', loot);
+    debug.log('timer', 'V3 Session rewards processed', {
+      xpGained: sessionResult.xpGained,
+      bookLevelsGained: sessionResult.bookLevelsGained,
+      newBookLevel: sessionResult.newBookLevel,
+      lootBoxesEarned: sessionResult.lootBoxes.length,
+      bonusDrop: sessionResult.bonusDropTriggered,
+    });
+
+    // Use the updated book and progress from session processor
+    let updatedBook = sessionResult.updatedBook;
+    let updatedProgress = sessionResult.updatedProgress;
+
+    // Merge streak updates into the progress (sessionRewards doesn't handle streaks)
+    updatedProgress = {
+      ...updatedProgress,
+      currentStreak: progress.currentStreak,
+      longestStreak: progress.longestStreak,
+      lastReadDate: progress.lastReadDate,
+    };
+
+    // Update slot progress for session completed milestone
+    if (updatedProgress.slotProgress) {
+      updatedProgress.slotProgress = {
+        ...updatedProgress.slotProgress,
+        sessionsCompleted: (updatedProgress.slotProgress.sessionsCompleted || 0) + 1,
+      };
+      debug.log('timer', 'Slot progress updated', {
+        sessionsCompleted: updatedProgress.slotProgress.sessionsCompleted,
+      });
     }
 
-    // Save session
+    // Save session record
     const session: ReadingSession = {
       id: Date.now().toString(),
       bookId: book.id,
       startTime: Date.now() - elapsed * 1000,
       endTime: Date.now(),
       duration: elapsed,
-      xpEarned: xp,
+      xpEarned: sessionResult.xpGained,
     };
     await storage.saveSession(session);
     debug.log('timer', 'Session saved');
 
-    // Update book
-    book.totalReadingTime = newTime;
-    book.status = 'reading';
+    // Update book status
+    updatedBook.status = 'reading';
 
-    // Process companion unlocks
+    // Process companion unlocks (legacy system - still needed for unlocking companions)
     let unlockedCompanions: Companion[] = [];
-    if (book.companions) {
+    if (updatedBook.companions) {
       debug.log('timer', 'Processing companion unlocks...');
-      const result = processReadingSession(book, elapsed);
-      book.companions = result.updatedCompanions;
+      const result = processReadingSession(updatedBook, elapsed);
+      updatedBook.companions = result.updatedCompanions;
       unlockedCompanions = result.unlockedCompanions;
 
       if (unlockedCompanions.length > 0) {
@@ -117,64 +186,134 @@ export default function TimerScreen() {
         });
       }
 
-      // Add any loot boxes earned from reading time
+      // Add any loot boxes earned from reading time (legacy loot boxes)
       if (result.earnedLootBoxes.length > 0) {
-        progress.lootBoxes.availableBoxes.push(...result.earnedLootBoxes);
-        debug.log('timer', `Earned ${result.earnedLootBoxes.length} loot boxes`);
+        updatedProgress.lootBoxes.availableBoxes.push(...result.earnedLootBoxes);
+        debug.log('timer', `Earned ${result.earnedLootBoxes.length} legacy loot boxes`);
       }
     }
 
-    await storage.saveBook(book);
+    await storage.saveBook(updatedBook);
 
-    // Update progress
-    const previousProgress = { ...progress };
-    progress.totalXp += xp;
-    progress.totalHoursRead = Math.floor(
-      (await storage.getBooks()).reduce((sum, b) => sum + b.totalReadingTime, 0) / 3600
+    // Update total hours read for legacy achievements
+    const allBooks = await storage.getBooks();
+    updatedProgress.totalHoursRead = Math.floor(
+      allBooks.reduce((sum, b) => sum + b.totalReadingTime, 0) / 3600
     );
 
-    // Check for achievement-based loot boxes
-    const newLootBoxes = checkLootBoxRewards(previousProgress, progress);
+    // Check for achievement-based loot boxes (legacy)
+    const previousProgress = { ...progress, totalXp: progress.totalXp };
+    const newLootBoxes = checkLootBoxRewards(previousProgress, updatedProgress);
     if (newLootBoxes.length > 0) {
-      progress.lootBoxes.availableBoxes.push(...newLootBoxes);
+      updatedProgress.lootBoxes.availableBoxes.push(...newLootBoxes);
       debug.log('timer', `Achievement loot boxes earned: ${newLootBoxes.length}`);
     }
 
-    await storage.saveProgress(progress);
+    await storage.saveProgress(updatedProgress);
     debug.log('timer', 'Progress saved', {
-      totalXp: progress.totalXp,
-      level: progress.level,
+      totalXp: updatedProgress.totalXp,
+      level: updatedProgress.level,
     });
 
-    // Trigger background image generation for next unlocks
-    if (book.companions) {
-      if (config.apiKey) {
-        debug.log('timer', 'Starting background image generation...');
-        const generateImage = async (companion: Companion) => {
-          debug.log('timer', `Generating image for "${companion.name}"...`);
-          try {
-            const url = await generateImageForCompanion(companion, config.apiKey!, {
-              model: config.imageModel,
-            });
-            debug.log('timer', `Image generated for "${companion.name}"`);
-            return url;
-          } catch (error) {
-            debug.error('timer', `Failed to generate image for ${companion.name}`, error);
-            return null;
-          }
-        };
-        maybeGenerateImages(book, generateImage).then(async updatedBook => {
-          await storage.saveBook(updatedBook);
-          debug.log('timer', 'Background image generation complete');
-        });
-      } else {
-        debug.warn('timer', 'Skipping image generation - no API key');
-      }
+    // Show notifications for V3 rewards
+    const notifications: string[] = [];
+
+    if (sessionResult.bookLevelsGained > 0) {
+      notifications.push(`book level ${sessionResult.newBookLevel}!`);
     }
 
-    debug.log('timer', 'Session end complete, navigating back');
-    router.back();
+    if (sessionResult.lootBoxes.length > 0) {
+      const boxCount = sessionResult.lootBoxes.length;
+      notifications.push(`${boxCount} loot box${boxCount > 1 ? 'es' : ''} earned`);
+    }
+
+    if (sessionResult.bonusDropTriggered) {
+      notifications.push('bonus drop!');
+    }
+
+    if (notifications.length > 0) {
+      Alert.alert(
+        'Session Complete',
+        `+${sessionResult.xpGained} XP\n${notifications.join('\n')}`,
+        [{ text: 'OK', onPress: () => router.back() }]
+      );
+    } else {
+      // Trigger background image generation for next unlocks
+      if (updatedBook.companions) {
+        if (config.apiKey) {
+          debug.log('timer', 'Starting background image generation...');
+          const generateImage = async (companion: Companion) => {
+            debug.log('timer', `Generating image for "${companion.name}"...`);
+            try {
+              const url = await generateImageForCompanion(companion, config.apiKey!, {
+                model: config.imageModel,
+              });
+              debug.log('timer', `Image generated for "${companion.name}"`);
+              return url;
+            } catch (error) {
+              debug.error('timer', `Failed to generate image for ${companion.name}`, error);
+              return null;
+            }
+          };
+          maybeGenerateImages(updatedBook, generateImage).then(async finalBook => {
+            await storage.saveBook(finalBook);
+            debug.log('timer', 'Background image generation complete');
+          });
+        } else {
+          debug.warn('timer', 'Skipping image generation - no API key');
+        }
+      }
+
+      debug.log('timer', 'Session end complete, navigating back');
+      router.back();
+    }
+
+    // Start background image generation even when showing notifications
+    if (notifications.length > 0 && updatedBook.companions && config.apiKey) {
+      debug.log('timer', 'Starting background image generation...');
+      const generateImage = async (companion: Companion) => {
+        debug.log('timer', `Generating image for "${companion.name}"...`);
+        try {
+          const url = await generateImageForCompanion(companion, config.apiKey!, {
+            model: config.imageModel,
+          });
+          debug.log('timer', `Image generated for "${companion.name}"`);
+          return url;
+        } catch (error) {
+          debug.error('timer', `Failed to generate image for ${companion.name}`, error);
+          return null;
+        }
+      };
+      maybeGenerateImages(updatedBook, generateImage).then(async finalBook => {
+        await storage.saveBook(finalBook);
+        debug.log('timer', 'Background image generation complete');
+      });
+    }
   }
+
+  // Format active effects for display
+  function formatActiveEffects(): string[] {
+    if (!activeEffects) return [];
+    const effects: string[] = [];
+
+    if (activeEffects.xpBoost > 0) {
+      effects.push(`+${Math.round(activeEffects.xpBoost * 100)}% xp`);
+    }
+    if (activeEffects.luckBoost > 0) {
+      effects.push(`+${Math.round(activeEffects.luckBoost * 100)}% luck`);
+    }
+    if (activeEffects.dropRateBoost > 0) {
+      effects.push(`+${Math.round(activeEffects.dropRateBoost * 100)}% drops`);
+    }
+    if (activeEffects.completionBonus > 0) {
+      effects.push(`+${Math.round(activeEffects.completionBonus * 100)}% completion`);
+    }
+
+    return effects;
+  }
+
+  const displayEffects = formatActiveEffects();
+  const hasActiveEffects = displayEffects.length > 0;
 
   return (
     <View style={styles.container}>
@@ -185,6 +324,14 @@ export default function TimerScreen() {
 
       {/* Book title */}
       <Text style={styles.title}>{book?.title.toLowerCase() || 'loading...'}_</Text>
+
+      {/* Active modifiers display */}
+      {hasActiveEffects && (
+        <View style={styles.modifiersContainer}>
+          <Text style={styles.modifiersLabel}>active bonuses:</Text>
+          <Text style={styles.modifiersText}>{displayEffects.join(' | ')}</Text>
+        </View>
+      )}
 
       {/* Large timer display */}
       <Text style={styles.timer} numberOfLines={1} adjustsFontSizeToFit>
@@ -240,8 +387,25 @@ const createStyles = (
     fontFamily: FONTS.mono,
     fontSize: fontSize('body'),
     letterSpacing: letterSpacing('tight'),
-    marginBottom: spacing(8),
+    marginBottom: spacing(4),
     textAlign: 'center',
+  },
+  modifiersContainer: {
+    marginBottom: spacing(6),
+    alignItems: 'center',
+  },
+  modifiersLabel: {
+    color: colors.textMuted,
+    fontFamily: FONTS.mono,
+    fontSize: fontSize('small'),
+    letterSpacing: letterSpacing('tight'),
+    marginBottom: spacing(1),
+  },
+  modifiersText: {
+    color: colors.accent,
+    fontFamily: FONTS.mono,
+    fontSize: fontSize('small'),
+    letterSpacing: letterSpacing('tight'),
   },
   timer: {
     color: colors.text,
