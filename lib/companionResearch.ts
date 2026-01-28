@@ -227,11 +227,16 @@ function shuffleArray<T>(array: T[]): T[] {
  * - One legendary reserved for pool (lucky loot box pull)
  * - One legendary reserved for book completion
  * - Randomize order within each queue
+ *
+ * Legendary designation:
+ * - completionLegendary: Awarded when user finishes reading the book
+ * - poolLegendary: Can be won from gold loot boxes
  */
 export function assignCompanionQueues(companions: Companion[]): {
   readingTimeQueue: CompanionQueue;
   poolQueue: CompanionQueue;
   completionLegendary: Companion | null;
+  poolLegendary: Companion | null;
 } {
   // Sort by rarity importance
   const legendaries = companions.filter(c => c.rarity === 'legendary');
@@ -243,10 +248,28 @@ export function assignCompanionQueues(companions: Companion[]): {
   const shuffledRares = shuffleArray(rares);
   const shuffledCommons = shuffleArray(commons);
 
-  // Allocate legendaries: 1 for reading-time, 1 for pool, 1 for completion
-  const readingTimeLegendary = shuffledLegendaries[0] || null;
-  const poolLegendary = shuffledLegendaries[1] || shuffledLegendaries[0] || null;
-  const completionLegendary = shuffledLegendaries[2] || shuffledLegendaries[1] || shuffledLegendaries[0] || null;
+  // Allocate legendaries with clear designation:
+  // - completionLegendary: First legendary, awarded when user finishes the book
+  // - poolLegendary: Second legendary, available in gold loot boxes
+  // - readingTimeLegendary: Third legendary (or reuse), for reading time milestones
+  let completionLegendary: Companion | null = null;
+  let poolLegendary: Companion | null = null;
+  let readingTimeLegendary: Companion | null = null;
+
+  if (shuffledLegendaries.length >= 2) {
+    // First legendary is completion reward
+    completionLegendary = shuffledLegendaries[0];
+    // Second legendary goes to loot pool
+    poolLegendary = shuffledLegendaries[1];
+    // Third (or second) for reading time
+    readingTimeLegendary = shuffledLegendaries[2] || shuffledLegendaries[1];
+  } else if (shuffledLegendaries.length === 1) {
+    // If only one legendary, prioritize completion reward
+    completionLegendary = shuffledLegendaries[0];
+    // No pool legendary if only one exists
+    poolLegendary = null;
+    readingTimeLegendary = null;
+  }
 
   // Split rares: ~half to reading-time, ~half to pool
   const raresForReadingTime = shuffledRares.slice(0, Math.ceil(shuffledRares.length / 2));
@@ -280,5 +303,6 @@ export function assignCompanionQueues(companions: Companion[]): {
       nextGenerateIndex: 0,
     },
     completionLegendary,
+    poolLegendary,
   };
 }

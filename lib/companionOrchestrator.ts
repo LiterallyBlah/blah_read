@@ -90,18 +90,19 @@ export async function orchestrateCompanionResearch(
       }
     }
 
-    const { readingTimeQueue, poolQueue, completionLegendary } =
+    const { readingTimeQueue, poolQueue, completionLegendary, poolLegendary } =
       assignCompanionQueues(allCompanions);
 
     debug.log('research', 'Assigned companion queues', {
       readingTimeQueue: readingTimeQueue.companions.length,
       poolQueue: poolQueue.companions.length,
       hasCompletionLegendary: !!completionLegendary,
+      hasPoolLegendary: !!poolLegendary,
     });
 
-    // Ensure completion legendary is in pool queue if not already
-    if (completionLegendary && !poolQueue.companions.includes(completionLegendary)) {
-      poolQueue.companions.push(completionLegendary);
+    // Ensure pool legendary is in pool queue if not already
+    if (poolLegendary && !poolQueue.companions.includes(poolLegendary)) {
+      poolQueue.companions.push(poolLegendary);
     }
 
     debug.log('research', 'Research complete', { confidence });
@@ -112,6 +113,8 @@ export async function orchestrateCompanionResearch(
       readingTimeQueue,
       poolQueue,
       unlockedCompanions: [],
+      completionLegendary,
+      poolLegendary,
     };
   } catch (error) {
     debug.error('research', 'Companion research failed', error);
@@ -130,7 +133,8 @@ function createInspiredOnlyResult(input: ResearchInput): BookCompanions {
     TARGET_COMPANION_COUNT
   );
 
-  const { readingTimeQueue, poolQueue } = assignCompanionQueues(inspired);
+  const { readingTimeQueue, poolQueue, completionLegendary, poolLegendary } =
+    assignCompanionQueues(inspired);
 
   return {
     researchComplete: true,
@@ -138,6 +142,8 @@ function createInspiredOnlyResult(input: ResearchInput): BookCompanions {
     readingTimeQueue,
     poolQueue,
     unlockedCompanions: [],
+    completionLegendary,
+    poolLegendary,
   };
 }
 

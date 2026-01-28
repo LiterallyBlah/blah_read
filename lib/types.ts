@@ -86,6 +86,9 @@ export interface BookCompanions {
   readingTimeQueue: CompanionQueue;
   poolQueue: CompanionQueue;
   unlockedCompanions: Companion[];
+  // Book-specific legendary companions
+  completionLegendary?: Companion | null; // Awarded when user finishes the book
+  poolLegendary?: Companion | null; // Can be won from gold loot boxes
 }
 
 export interface LootBox {

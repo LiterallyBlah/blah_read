@@ -25,6 +25,7 @@ describe('companionOrchestrator', () => {
   describe('orchestrateCompanionResearch', () => {
     it('returns BookCompanions structure on successful research', async () => {
       // Generate 12 companions to maintain 'high' confidence
+      // 2 legendaries, 3 rares, 7 commons
       const companions = Array.from({ length: 12 }, (_, i) => ({
         name: `Character ${i}`,
         type: 'character' as const,
@@ -51,6 +52,14 @@ describe('companionOrchestrator', () => {
       expect(result.researchConfidence).toBe('high');
       expect(result.readingTimeQueue.companions.length).toBeGreaterThanOrEqual(0);
       expect(result.poolQueue.companions.length).toBeGreaterThanOrEqual(0);
+
+      // With 2 legendaries, both completion and pool legendaries should be set
+      expect(result.completionLegendary).not.toBeNull();
+      expect(result.poolLegendary).not.toBeNull();
+      expect(result.completionLegendary?.rarity).toBe('legendary');
+      expect(result.poolLegendary?.rarity).toBe('legendary');
+      // They should be different companions
+      expect(result.completionLegendary?.id).not.toBe(result.poolLegendary?.id);
     });
 
     it('falls back to inspired companions on API failure', async () => {
@@ -73,20 +82,23 @@ describe('companionOrchestrator', () => {
     });
 
     it('supplements with inspired companions when research returns few results', async () => {
-      (executeCompanionResearch as jest.Mock).mockResolvedValue({
+      const mockResponse = {
         companions: [
           {
             name: 'Hero',
-            type: 'character',
-            rarity: 'legendary',
+            type: 'character' as const,
+            rarity: 'legendary' as const,
             description: 'The only known character',
             role: 'Protagonist',
             traits: 'Brave',
-            visualDescription: 'Warrior',
+            physicalDescription: 'Warrior appearance',
+            effects: [{ type: 'xp_boost' }],
           },
         ],
-        researchConfidence: 'medium',
-      });
+        researchConfidence: 'medium' as const,
+      };
+
+      (executeCompanionResearch as jest.Mock).mockResolvedValue(mockResponse);
 
       const result = await orchestrateCompanionResearch({
         bookId: 'book-123',
@@ -95,10 +107,22 @@ describe('companionOrchestrator', () => {
         synopsis: 'A mysterious tale',
       });
 
-      const allCompanions = [
-        ...result.readingTimeQueue.companions,
-        ...result.poolQueue.companions,
-      ];
+      // Collect all companions including book-specific legendaries
+      // Use a Map to deduplicate (poolLegendary is also in poolQueue)
+      const companionMap = new Map<string, typeof result.readingTimeQueue.companions[0]>();
+      for (const c of result.readingTimeQueue.companions) {
+        companionMap.set(c.id, c);
+      }
+      for (const c of result.poolQueue.companions) {
+        companionMap.set(c.id, c);
+      }
+      if (result.completionLegendary) {
+        companionMap.set(result.completionLegendary.id, result.completionLegendary);
+      }
+      if (result.poolLegendary) {
+        companionMap.set(result.poolLegendary.id, result.poolLegendary);
+      }
+      const allCompanions = Array.from(companionMap.values());
 
       // Should have padded to ~15 companions
       expect(allCompanions.length).toBeGreaterThanOrEqual(10);
@@ -106,8 +130,22 @@ describe('companionOrchestrator', () => {
       // Should have mix of discovered and inspired
       const discovered = allCompanions.filter(c => c.source === 'discovered');
       const inspired = allCompanions.filter(c => c.source === 'inspired');
+
       expect(discovered.length).toBe(1);
       expect(inspired.length).toBeGreaterThan(0);
+
+      // The discovered legendary should be somewhere in the pool
+      const heroCompanion = allCompanions.find(c => c.name === 'Hero');
+      expect(heroCompanion).toBeDefined();
+      expect(heroCompanion?.source).toBe('discovered');
+
+      // With multiple legendaries (1 discovered + inspired legendaries),
+      // both completion and pool legendaries should be set
+      expect(result.completionLegendary).not.toBeNull();
+      expect(result.completionLegendary?.rarity).toBe('legendary');
+      // Since inspired companions also include legendaries, poolLegendary should be set
+      expect(result.poolLegendary).not.toBeNull();
+      expect(result.poolLegendary?.rarity).toBe('legendary');
     });
 
     it('falls back to inspired when no API key is configured', async () => {

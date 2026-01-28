@@ -298,5 +298,58 @@ describe('companionResearch', () => {
       expect(result.readingTimeQueue.nextGenerateIndex).toBe(0);
       expect(result.poolQueue.nextGenerateIndex).toBe(0);
     });
+
+    describe('legendary designation', () => {
+      it('designates completion and pool legendaries when 2+ legendaries exist', () => {
+        const result = assignCompanionQueues(mockCompanions);
+
+        // With 2 legendaries, both should be designated
+        expect(result.completionLegendary).not.toBeNull();
+        expect(result.poolLegendary).not.toBeNull();
+        expect(result.completionLegendary?.rarity).toBe('legendary');
+        expect(result.poolLegendary?.rarity).toBe('legendary');
+        // They should be different companions
+        expect(result.completionLegendary?.id).not.toBe(result.poolLegendary?.id);
+      });
+
+      it('only designates completionLegendary when exactly 1 legendary exists', () => {
+        const singleLegendaryCompanions: Companion[] = [
+          { id: '1', bookId: 'b1', name: 'Hero', type: 'character', rarity: 'legendary', description: '', traits: '', visualDescription: '', imageUrl: null, source: 'discovered', unlockMethod: null, unlockedAt: null },
+          { id: '2', bookId: 'b1', name: 'Sidekick', type: 'character', rarity: 'rare', description: '', traits: '', visualDescription: '', imageUrl: null, source: 'discovered', unlockMethod: null, unlockedAt: null },
+          { id: '3', bookId: 'b1', name: 'Guard', type: 'character', rarity: 'common', description: '', traits: '', visualDescription: '', imageUrl: null, source: 'discovered', unlockMethod: null, unlockedAt: null },
+        ];
+
+        const result = assignCompanionQueues(singleLegendaryCompanions);
+
+        // Only completion legendary should be set
+        expect(result.completionLegendary).not.toBeNull();
+        expect(result.completionLegendary?.name).toBe('Hero');
+        // No pool legendary when only 1 legendary exists
+        expect(result.poolLegendary).toBeNull();
+      });
+
+      it('returns null for both when no legendaries exist', () => {
+        const noLegendaryCompanions: Companion[] = [
+          { id: '1', bookId: 'b1', name: 'Sidekick', type: 'character', rarity: 'rare', description: '', traits: '', visualDescription: '', imageUrl: null, source: 'discovered', unlockMethod: null, unlockedAt: null },
+          { id: '2', bookId: 'b1', name: 'Guard', type: 'character', rarity: 'common', description: '', traits: '', visualDescription: '', imageUrl: null, source: 'discovered', unlockMethod: null, unlockedAt: null },
+        ];
+
+        const result = assignCompanionQueues(noLegendaryCompanions);
+
+        expect(result.completionLegendary).toBeNull();
+        expect(result.poolLegendary).toBeNull();
+      });
+
+      it('includes poolLegendary in poolQueue companions', () => {
+        const result = assignCompanionQueues(mockCompanions);
+
+        if (result.poolLegendary) {
+          const poolLegendaryInQueue = result.poolQueue.companions.some(
+            c => c.id === result.poolLegendary?.id
+          );
+          expect(poolLegendaryInQueue).toBe(true);
+        }
+      });
+    });
   });
 });
