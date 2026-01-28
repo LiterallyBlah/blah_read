@@ -7,6 +7,10 @@ import {
   rollLoot,
   rollLootForTier,
   rollBonusDrop,
+  rollBoxTierWithPity,
+  PityState,
+  PITY_BONUS_PER_MISS,
+  PITY_HARD_CAP,
   BOX_TIER_ODDS,
   CATEGORY_ODDS,
   CONSUMABLE_TIER_ODDS,
@@ -338,6 +342,61 @@ describe('lootV3', () => {
       }
       expect(bonusCount).toBeGreaterThan(0);
       expect(bonusCount).toBeLessThan(100);
+    });
+  });
+
+  describe('rollBoxTierWithPity', () => {
+    it('should export pity constants', () => {
+      expect(PITY_BONUS_PER_MISS).toBe(0.03);
+      expect(PITY_HARD_CAP).toBe(25);
+    });
+
+    it('should return gold at hard cap', () => {
+      const pityState: PityState = { goldPityCounter: 25 };
+      const result = rollBoxTierWithPity(0, 0, 0, pityState);
+      expect(result.tier).toBe('gold');
+      expect(result.newPityCounter).toBe(0); // Reset after gold
+    });
+
+    it('should reset pity counter on gold', () => {
+      // With high pity, we have good gold chance
+      let gotGold = false;
+      for (let i = 0; i < 100; i++) {
+        const result = rollBoxTierWithPity(0.5, 0, 0.5, { goldPityCounter: 24 });
+        if (result.tier === 'gold') {
+          expect(result.newPityCounter).toBe(0);
+          gotGold = true;
+          break;
+        }
+      }
+      expect(gotGold).toBe(true);
+    });
+
+    it('should increment pity counter on non-gold', () => {
+      // With 0 luck, mostly wood/silver
+      let gotNonGold = false;
+      for (let i = 0; i < 100; i++) {
+        const result = rollBoxTierWithPity(0, 0, 0, { goldPityCounter: 5 });
+        if (result.tier !== 'gold') {
+          expect(result.newPityCounter).toBe(6);
+          gotNonGold = true;
+          break;
+        }
+      }
+      expect(gotNonGold).toBe(true);
+    });
+
+    it('should apply legendary_luck to gold share', () => {
+      const trials = 1000;
+      let goldCount0 = 0;
+      let goldCountHigh = 0;
+
+      for (let i = 0; i < trials; i++) {
+        if (rollBoxTierWithPity(0.3, 0, 0, { goldPityCounter: 0 }).tier === 'gold') goldCount0++;
+        if (rollBoxTierWithPity(0.3, 0, 0.3, { goldPityCounter: 0 }).tier === 'gold') goldCountHigh++;
+      }
+
+      expect(goldCountHigh).toBeGreaterThan(goldCount0);
     });
   });
 });

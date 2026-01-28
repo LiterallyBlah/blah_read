@@ -174,3 +174,77 @@ export function rollLootForTier(boxTier: LootBoxTier): LootResult {
     };
   }
 }
+
+// Pity system constants
+export const PITY_BONUS_PER_MISS = 0.03; // +3% gold chance per non-gold box
+export const PITY_HARD_CAP = 25; // Guaranteed gold after 25 non-gold boxes
+
+export interface PityState {
+  goldPityCounter: number;
+}
+
+export interface TierRollResult {
+  tier: LootBoxTier;
+  newPityCounter: number;
+}
+
+/**
+ * Roll for box tier using layered luck system with pity.
+ *
+ * Layer 1: luck reduces wood chance
+ * Layer 2: rare_luck and legendary_luck distribute non-wood between silver/gold
+ * Pity: +3% gold per miss, guaranteed at 25
+ */
+export function rollBoxTierWithPity(
+  luck: number,
+  rareLuck: number,
+  legendaryLuck: number,
+  pityState: PityState
+): TierRollResult {
+  // Hard cap: guaranteed gold at 25 misses
+  if (pityState.goldPityCounter >= PITY_HARD_CAP) {
+    return { tier: 'gold', newPityCounter: 0 };
+  }
+
+  // Clamp inputs
+  const clampedLuck = Math.max(0, Math.min(1, luck));
+  const clampedLegendaryLuck = Math.max(0, Math.min(1, legendaryLuck));
+
+  // Calculate pity bonus
+  const pityBonus = pityState.goldPityCounter * PITY_BONUS_PER_MISS;
+
+  // Layer 1: Wood vs non-wood
+  const woodChance = BOX_TIER_ODDS.wood * (1 - clampedLuck);
+  const nonWoodChance = 1 - woodChance;
+
+  // Layer 2: Distribute non-wood between silver and gold
+  // Base ratio: 25:5 = 83.3% silver, 16.7% gold
+  const baseGoldShare = BOX_TIER_ODDS.gold / (BOX_TIER_ODDS.silver + BOX_TIER_ODDS.gold);
+
+  // legendary_luck triples gold's share per point
+  let goldShare = baseGoldShare * (1 + clampedLegendaryLuck * 3) + pityBonus;
+  goldShare = Math.min(goldShare, 1); // Cap at 100%
+
+  const silverShare = 1 - goldShare;
+
+  // Calculate final probabilities
+  const goldChance = nonWoodChance * goldShare;
+  const silverChance = nonWoodChance * silverShare;
+
+  // Roll
+  const roll = Math.random();
+
+  let tier: LootBoxTier;
+  if (roll < goldChance) {
+    tier = 'gold';
+  } else if (roll < goldChance + silverChance) {
+    tier = 'silver';
+  } else {
+    tier = 'wood';
+  }
+
+  // Update pity counter
+  const newPityCounter = tier === 'gold' ? 0 : pityState.goldPityCounter + 1;
+
+  return { tier, newPityCounter };
+}
