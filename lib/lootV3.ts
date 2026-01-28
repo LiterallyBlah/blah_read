@@ -122,6 +122,16 @@ export function rollConsumable(boxTier: LootBoxTier): ConsumableDefinition {
 }
 
 /**
+ * Roll for a bonus drop based on drop rate boost.
+ * @param dropRateBoost - Value between 0 and 1, chance for bonus drop
+ * @returns true if bonus drop should occur
+ */
+export function rollBonusDrop(dropRateBoost: number): boolean {
+  if (dropRateBoost <= 0) return false;
+  return Math.random() < dropRateBoost;
+}
+
+/**
  * Complete loot roll using the three-layer system.
  * 1. Roll box tier (with luck boost)
  * 2. Roll category
