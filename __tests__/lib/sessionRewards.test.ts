@@ -234,17 +234,17 @@ describe('sessionRewards', () => {
         expect(result.genreLevelIncreases.fantasy).toBe(1);
       });
 
-      it('should increase multiple genre levels if book has multiple genres', () => {
+      it('should distribute levels across multiple genres', () => {
         const mockBook = createMockBook({
           normalizedGenres: ['fantasy', 'romance'],
         });
         const mockProgress = createMockProgress();
 
-        // 2 levels = 2 increases per genre
+        // 2 levels distributed across 2 genres = 1 each
         const result = processSessionEnd(mockBook, mockProgress, [], 7200);
 
-        expect(result.genreLevelIncreases.fantasy).toBe(2);
-        expect(result.genreLevelIncreases.romance).toBe(2);
+        expect(result.genreLevelIncreases.fantasy).toBe(1);
+        expect(result.genreLevelIncreases.romance).toBe(1);
       });
 
       it('should not increase genre levels when no level gained', () => {
@@ -254,6 +254,48 @@ describe('sessionRewards', () => {
         const result = processSessionEnd(mockBook, mockProgress, [], 1800); // 30 min
 
         expect(result.genreLevelIncreases.fantasy).toBe(0);
+      });
+    });
+
+    describe('genre level distribution', () => {
+      it('should distribute levels evenly across multiple genres', () => {
+        const mockBook = createMockBook({
+          normalizedGenres: ['fantasy', 'romance'],
+        });
+        const mockProgress = createMockProgress();
+
+        // 2 levels gained with 2 genres = 1 level each
+        const result = processSessionEnd(mockBook, mockProgress, [], 7200);
+
+        expect(result.genreLevelIncreases.fantasy).toBe(1);
+        expect(result.genreLevelIncreases.romance).toBe(1);
+      });
+
+      it('should give full levels to single-genre books', () => {
+        const mockBook = createMockBook({
+          normalizedGenres: ['fantasy'],
+        });
+        const mockProgress = createMockProgress();
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 7200);
+
+        expect(result.genreLevelIncreases.fantasy).toBe(2);
+      });
+
+      it('should handle odd level distribution with floor division', () => {
+        const mockBook = createMockBook({
+          normalizedGenres: ['fantasy', 'romance', 'horror'],
+        });
+        const mockProgress = createMockProgress();
+
+        // 2 levels with 3 genres = floor(2/3) = 0 each, remainder 2
+        // Distribute remainder: fantasy gets 1, romance gets 1, horror gets 0
+        const result = processSessionEnd(mockBook, mockProgress, [], 7200);
+
+        const total = result.genreLevelIncreases.fantasy +
+                      result.genreLevelIncreases.romance +
+                      result.genreLevelIncreases.horror;
+        expect(total).toBe(2); // Total levels preserved
       });
     });
 
@@ -446,10 +488,11 @@ describe('sessionRewards', () => {
         mockProgress.genreLevels!.fantasy = 5;
         mockProgress.genreLevels!.romance = 3;
 
-        const result = processSessionEnd(mockBook, mockProgress, [], 7200); // 2 levels
+        // 2 levels distributed across 2 genres = 1 each
+        const result = processSessionEnd(mockBook, mockProgress, [], 7200);
 
-        expect(result.updatedProgress.genreLevels?.fantasy).toBe(7);
-        expect(result.updatedProgress.genreLevels?.romance).toBe(5);
+        expect(result.updatedProgress.genreLevels?.fantasy).toBe(6); // 5 + 1
+        expect(result.updatedProgress.genreLevels?.romance).toBe(4); // 3 + 1
       });
 
       it('should return updated progress with new loot boxes', () => {

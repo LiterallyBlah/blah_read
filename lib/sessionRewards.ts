@@ -142,10 +142,20 @@ export function processSessionEnd(
   const baseXp = Math.round(minutes * BASE_XP_PER_MINUTE * streakMultiplier);
   const xpGained = Math.round(baseXp * (1 + totalXpBoost));
 
-  // Step 7: Calculate genre level increases (1 per book level for each book genre)
+  // Step 7: Calculate genre level increases (distribute evenly across genres)
   const genreLevelIncreases = createEmptyGenreLevelIncreases();
-  for (const genre of bookGenres) {
-    genreLevelIncreases[genre] = levelsGained;
+
+  if (bookGenres.length > 0 && levelsGained > 0) {
+    const basePerGenre = Math.floor(levelsGained / bookGenres.length);
+    let remainder = levelsGained % bookGenres.length;
+
+    for (const genre of bookGenres) {
+      genreLevelIncreases[genre] = basePerGenre;
+      if (remainder > 0) {
+        genreLevelIncreases[genre]++;
+        remainder--;
+      }
+    }
   }
 
   // Step 8: Roll loot boxes (1 per level, use luck boost for tier)
