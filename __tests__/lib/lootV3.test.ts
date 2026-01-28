@@ -5,6 +5,7 @@ import {
   rollCompanionRarity,
   rollConsumable,
   rollLoot,
+  rollLootForTier,
   rollBonusDrop,
   BOX_TIER_ODDS,
   CATEGORY_ODDS,
@@ -261,6 +262,42 @@ describe('lootV3', () => {
         if (rollLoot(0.50).boxTier === 'gold') goldCount50++;
       }
       expect(goldCount50).toBeGreaterThan(goldCount0);
+    });
+  });
+
+  describe('rollLootForTier', () => {
+    it('should always return the specified tier', () => {
+      const tiers: LootBoxTier[] = ['wood', 'silver', 'gold'];
+      for (const tier of tiers) {
+        for (let i = 0; i < 10; i++) {
+          const result = rollLootForTier(tier);
+          expect(result.boxTier).toBe(tier);
+        }
+      }
+    });
+
+    it('should respect tier-based loot rules for gold box', () => {
+      // Gold boxes should never give weak consumables
+      const trials = 50;
+      for (let i = 0; i < trials; i++) {
+        const result = rollLootForTier('gold');
+        expect(result.boxTier).toBe('gold');
+        if (result.consumable) {
+          expect(result.consumable.tier).not.toBe('weak');
+        }
+      }
+    });
+
+    it('should respect tier-based loot rules for wood box', () => {
+      // Wood boxes should only give common companions
+      const trials = 50;
+      for (let i = 0; i < trials; i++) {
+        const result = rollLootForTier('wood');
+        expect(result.boxTier).toBe('wood');
+        if (result.companionRarity) {
+          expect(result.companionRarity).toBe('common');
+        }
+      }
     });
   });
 

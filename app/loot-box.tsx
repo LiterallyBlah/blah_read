@@ -7,7 +7,7 @@ import { storage } from '@/lib/storage';
 import { openLootBox, getPoolCompanions } from '@/lib/lootBox';
 import { LootBoxReveal } from '@/components/LootBoxReveal';
 import type { Companion, LootBoxV3, LootBoxTier } from '@/lib/types';
-import { rollLoot, LootResult } from '@/lib/lootV3';
+import { rollLootForTier, LootResult } from '@/lib/lootV3';
 import { ConsumableDefinition } from '@/lib/consumables';
 import { addActiveConsumable } from '@/lib/consumableManager';
 
@@ -55,7 +55,7 @@ export default function LootBoxScreen() {
     if (v3Boxes.length > 0) {
       // Open V3 box using new loot system
       const boxToOpen = v3Boxes[0];
-      const lootResult = rollLoot(0); // TODO: Apply luck boost from consumables
+      const lootResult = rollLootForTier(boxToOpen.tier);
 
       // Remove the opened box
       progress.lootBoxesV3 = v3Boxes.slice(1);

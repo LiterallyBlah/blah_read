@@ -4,11 +4,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, router } from 'expo-router';
 import { storage } from '@/lib/storage';
 import { calculateLevel, xpProgress } from '@/lib/xp';
-import { Book, UserProgress, LootItem, Companion } from '@/lib/types';
+import { Book, UserProgress, Companion } from '@/lib/types';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 import { GENRES, GENRE_DISPLAY_NAMES, Genre } from '@/lib/genres';
-import { getActiveEffects as getConsumableEffects } from '@/lib/consumableManager';
 import { getConsumableById } from '@/lib/consumables';
 import { calculateSlot2Progress, calculateSlot3Progress, SLOT_2_POINTS, SLOT_3_POINTS } from '@/lib/slotProgress';
 
@@ -17,6 +16,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const [progress, setProgress] = useState<UserProgress | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
+  const [genresExpanded, setGenresExpanded] = useState(false);
 
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
@@ -36,6 +36,21 @@ export default function ProfileScreen() {
   const companions = books.flatMap(b => b.companions?.unlockedCompanions || []);
   const totalTime = books.reduce((sum, b) => sum + b.totalReadingTime, 0);
   const hours = Math.floor(totalTime / 3600);
+
+  // Calculate loot box counts
+  const v2BoxCount = progress?.lootBoxes?.availableBoxes?.length || 0;
+  const v3Boxes = progress?.lootBoxesV3 || [];
+  const totalBoxCount = v2BoxCount + v3Boxes.length;
+  const woodCount = v3Boxes.filter(b => b.tier === 'wood').length;
+  const silverCount = v3Boxes.filter(b => b.tier === 'silver').length;
+  const goldCount = v3Boxes.filter(b => b.tier === 'gold').length;
+
+  // Sort genres by level (highest first)
+  const sortedGenres = GENRES
+    .map(genre => ({ genre, level: progress?.genreLevels?.[genre] || 0 }))
+    .sort((a, b) => b.level - a.level);
+  const topGenre = sortedGenres[0];
+  const remainingGenres = sortedGenres.slice(1);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={[styles.contentContainer, { paddingBottom: spacing(6) + insets.bottom }]}>
@@ -76,57 +91,7 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* Loot section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>loot_</Text>
-        {progress?.lootItems && progress.lootItems.length > 0 ? (
-          <View style={styles.lootGrid}>
-            {progress.lootItems.map((item: LootItem) => (
-              <View key={item.id} style={[styles.lootItem, styles[`rarity_${item.rarity}` as keyof typeof styles]]}>
-                <Text style={styles.lootIcon}>{item.icon}</Text>
-                <Text style={styles.lootName}>{item.name.toLowerCase()}</Text>
-              </View>
-            ))}
-          </View>
-        ) : (
-          <Text style={styles.emptyText}>no loot yet - keep reading!_</Text>
-        )}
-      </View>
-
-      {/* Companions section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>companions_</Text>
-        {companions.length > 0 ? (
-          <View style={styles.companionGrid}>
-            {companions.map((c: Companion) => (
-              <View key={c.id} style={styles.companionCard}>
-                <Image source={{ uri: c.imageUrl }} style={styles.companionImage} />
-                <Text style={styles.companionName}>{c.creature?.toLowerCase() || c.name?.toLowerCase()}</Text>
-              </View>
-            ))}
-          </View>
-        ) : (
-          <Text style={styles.emptyText}>finish a book to unlock companions_</Text>
-        )}
-      </View>
-
-      {/* Genre Levels section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>genre levels_</Text>
-        <View style={styles.genreGrid}>
-          {GENRES.map((genre: Genre) => {
-            const genreLevel = progress?.genreLevels?.[genre] || 0;
-            return (
-              <View key={genre} style={styles.genreItem}>
-                <Text style={styles.genreLevel}>{genreLevel}</Text>
-                <Text style={styles.genreName}>{GENRE_DISPLAY_NAMES[genre].toLowerCase()}</Text>
-              </View>
-            );
-          })}
-        </View>
-      </View>
-
-      {/* Loadout section */}
+      {/* Loadout section - moved to top */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>loadout_</Text>
         {progress?.loadout ? (
@@ -172,6 +137,91 @@ export default function ProfileScreen() {
           </View>
         ) : (
           <Text style={styles.emptyText}>loadout not initialized_</Text>
+        )}
+      </View>
+
+      {/* Active Effects section - right after loadout */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>active effects_</Text>
+        {progress?.activeConsumables && progress.activeConsumables.length > 0 ? (
+          <View style={styles.consumablesList}>
+            {progress.activeConsumables.map((ac, index) => {
+              const consumable = getConsumableById(ac.consumableId);
+              if (!consumable) return null;
+
+              return (
+                <View key={`${ac.consumableId}-${index}`} style={styles.consumableItem}>
+                  <Text style={styles.consumableName}>{consumable.name.toLowerCase()}</Text>
+                  <Text style={styles.consumableDesc}>{consumable.description}</Text>
+                  <Text style={styles.consumableDuration}>
+                    {ac.remainingDuration} session{ac.remainingDuration !== 1 ? 's' : ''} remaining
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        ) : (
+          <Text style={styles.emptyText}>no active effects_</Text>
+        )}
+      </View>
+
+      {/* Loot Boxes section - shows unopened boxes */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>loot_</Text>
+        {totalBoxCount > 0 ? (
+          <Pressable
+            style={styles.lootBoxLink}
+            onPress={() => router.push('/collection')}
+          >
+            <Text style={styles.lootBoxCount}>{totalBoxCount}</Text>
+            <View style={styles.lootBoxDetails}>
+              <Text style={styles.lootBoxLabel}>
+                box{totalBoxCount !== 1 ? 'es' : ''} to open
+              </Text>
+              {v3Boxes.length > 0 && (
+                <Text style={styles.lootBoxBreakdown}>
+                  {goldCount > 0 && <Text style={styles.goldText}>{goldCount} gold </Text>}
+                  {silverCount > 0 && <Text style={styles.silverText}>{silverCount} silver </Text>}
+                  {woodCount > 0 && <Text style={styles.woodText}>{woodCount} wood</Text>}
+                  {v2BoxCount > 0 && <Text> +{v2BoxCount} classic</Text>}
+                </Text>
+              )}
+            </View>
+            <Text style={styles.lootBoxArrow}>[open]</Text>
+          </Pressable>
+        ) : (
+          <Text style={styles.emptyText}>no loot boxes - keep reading!_</Text>
+        )}
+      </View>
+
+      {/* Genre Levels section - collapsible */}
+      <View style={styles.section}>
+        <Pressable
+          style={styles.genreHeader}
+          onPress={() => setGenresExpanded(!genresExpanded)}
+        >
+          <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>genre levels_</Text>
+          <Text style={styles.expandIcon}>{genresExpanded ? '[-]' : '[+]'}</Text>
+        </Pressable>
+
+        {/* Always show top genre */}
+        {topGenre && (
+          <View style={styles.genreItem}>
+            <Text style={styles.genreLevel}>{topGenre.level}</Text>
+            <Text style={styles.genreName}>{GENRE_DISPLAY_NAMES[topGenre.genre].toLowerCase()}</Text>
+          </View>
+        )}
+
+        {/* Show remaining genres when expanded */}
+        {genresExpanded && (
+          <View style={styles.genreGrid}>
+            {remainingGenres.map(({ genre, level: genreLevel }) => (
+              <View key={genre} style={styles.genreItem}>
+                <Text style={styles.genreLevel}>{genreLevel}</Text>
+                <Text style={styles.genreName}>{GENRE_DISPLAY_NAMES[genre].toLowerCase()}</Text>
+              </View>
+            ))}
+          </View>
         )}
       </View>
 
@@ -221,31 +271,6 @@ export default function ProfileScreen() {
           )}
         </View>
       )}
-
-      {/* Active Consumables section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>active effects_</Text>
-        {progress?.activeConsumables && progress.activeConsumables.length > 0 ? (
-          <View style={styles.consumablesList}>
-            {progress.activeConsumables.map((ac, index) => {
-              const consumable = getConsumableById(ac.consumableId);
-              if (!consumable) return null;
-
-              return (
-                <View key={`${ac.consumableId}-${index}`} style={styles.consumableItem}>
-                  <Text style={styles.consumableName}>{consumable.name.toLowerCase()}</Text>
-                  <Text style={styles.consumableDesc}>{consumable.description}</Text>
-                  <Text style={styles.consumableDuration}>
-                    {ac.remainingDuration} session{ac.remainingDuration !== 1 ? 's' : ''} remaining
-                  </Text>
-                </View>
-              );
-            })}
-          </View>
-        ) : (
-          <Text style={styles.emptyText}>no active effects_</Text>
-        )}
-      </View>
     </ScrollView>
   );
 }
@@ -320,51 +345,48 @@ function createStyles(colors: any, spacing: (n: number) => number, fontSize: (si
       letterSpacing: letterSpacing('tight'),
       marginTop: spacing(1),
     },
-    lootGrid: {
+    // Loot box styles
+    lootBoxLink: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: spacing(2),
-    },
-    lootItem: {
-      padding: spacing(2),
+      alignItems: 'center',
       borderWidth: 1,
       borderColor: colors.border,
-      alignItems: 'center',
-      minWidth: 60,
-    },
-    lootIcon: {
-      fontSize: 20,
-      marginBottom: spacing(1),
-    },
-    lootName: {
-      color: colors.textSecondary,
-      fontFamily: FONTS.mono,
-      fontSize: fontSize('micro'),
-      letterSpacing: letterSpacing('tight'),
-    },
-    rarity_common: { borderColor: colors.rarityCommon },
-    rarity_rare: { borderColor: colors.rarityRare },
-    rarity_epic: { borderColor: colors.rarityEpic },
-    rarity_legendary: { borderColor: colors.rarityLegendary },
-    companionGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      padding: spacing(3),
       gap: spacing(3),
     },
-    companionCard: {
-      alignItems: 'center',
+    lootBoxCount: {
+      color: colors.text,
+      fontFamily: FONTS.mono,
+      fontWeight: FONTS.monoBold,
+      fontSize: fontSize('title'),
     },
-    companionImage: {
-      width: 64,
-      height: 64,
-      backgroundColor: colors.backgroundCard,
-      marginBottom: spacing(1),
+    lootBoxDetails: {
+      flex: 1,
     },
-    companionName: {
+    lootBoxLabel: {
       color: colors.textSecondary,
       fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+    },
+    lootBoxBreakdown: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
       fontSize: fontSize('micro'),
-      letterSpacing: letterSpacing('tight'),
+      marginTop: spacing(1),
+    },
+    goldText: {
+      color: '#FFD700',
+    },
+    silverText: {
+      color: '#C0C0C0',
+    },
+    woodText: {
+      color: '#8B4513',
+    },
+    lootBoxArrow: {
+      color: colors.textSecondary,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
     },
     emptyText: {
       color: colors.textMuted,
@@ -384,10 +406,22 @@ function createStyles(colors: any, spacing: (n: number) => number, fontSize: (si
       fontSize: fontSize('small'),
     },
     // Genre levels styles
+    genreHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing(2),
+    },
+    expandIcon: {
+      color: colors.textSecondary,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+    },
     genreGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: spacing(2),
+      marginTop: spacing(2),
     },
     genreItem: {
       width: '30%',

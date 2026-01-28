@@ -136,11 +136,24 @@ export function rollBonusDrop(dropRateBoost: number): boolean {
  * 1. Roll box tier (with luck boost)
  * 2. Roll category
  * 3. Roll specific item (consumable or companion rarity)
+ *
+ * NOTE: Use rollLootForTier() when opening a box with a known tier.
+ * This function is for earning NEW boxes where the tier needs to be determined.
  */
 export function rollLoot(luckBoost: number = 0): LootResult {
   // Layer 1: Box tier
   const boxTier = rollBoxTier(luckBoost);
 
+  return rollLootForTier(boxTier);
+}
+
+/**
+ * Roll loot contents for a box with a known tier.
+ * Use this when opening a box that already has a tier assigned.
+ *
+ * @param boxTier - The tier of the box being opened
+ */
+export function rollLootForTier(boxTier: LootBoxTier): LootResult {
   // Layer 2: Category
   const category = rollCategory(boxTier);
 
