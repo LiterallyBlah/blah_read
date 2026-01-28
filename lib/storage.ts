@@ -28,6 +28,36 @@ const defaultProgress: UserProgress = {
   booksFinished: 0,
   booksAdded: 0,
   totalHoursRead: 0,
+  genreLevels: {
+    'fantasy': 0,
+    'sci-fi': 0,
+    'mystery-thriller': 0,
+    'horror': 0,
+    'romance': 0,
+    'literary-fiction': 0,
+    'history': 0,
+    'biography-memoir': 0,
+    'science-nature': 0,
+    'self-improvement': 0,
+    'business-finance': 0,
+    'philosophy-religion': 0,
+  },
+  loadout: {
+    slots: [null, null, null],
+    unlockedSlots: 1,
+  },
+  slotProgress: {
+    slot2Points: 0,
+    slot3Points: 0,
+    booksFinished: 0,
+    hoursLogged: 0,
+    companionsCollected: 0,
+    sessionsCompleted: 0,
+    genreLevelTens: [],
+    genresRead: [],
+  },
+  activeConsumables: [],
+  lootBoxesV3: [],
 };
 
 // Track if migration has run this session
