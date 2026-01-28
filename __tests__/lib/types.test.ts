@@ -1,4 +1,4 @@
-import { Book, ReadingSession, UserProgress, BookStatus, Companion } from '@/lib/types';
+import { Book, ReadingSession, UserProgress, BookStatus, Companion, LootBoxV3 } from '@/lib/types';
 
 describe('types', () => {
   it('Book type has required fields', () => {
@@ -87,5 +87,29 @@ describe('Companion type', () => {
     };
     expect(companion.physicalDescription).toBe('new field');
     expect(companion.visualDescription).toBe('old field');
+  });
+});
+
+describe('LootBoxV3 blank boxes', () => {
+  it('should allow tier to be undefined for blank boxes', () => {
+    const blankBox: LootBoxV3 = {
+      id: 'test-box',
+      earnedAt: Date.now(),
+      source: 'level_up',
+      bookId: 'book-1',
+      // tier intentionally omitted
+    };
+    expect(blankBox.tier).toBeUndefined();
+  });
+
+  it('should still allow tier to be set for legacy boxes', () => {
+    const legacyBox: LootBoxV3 = {
+      id: 'test-box',
+      earnedAt: Date.now(),
+      source: 'level_up',
+      bookId: 'book-1',
+      tier: 'gold',
+    };
+    expect(legacyBox.tier).toBe('gold');
   });
 });

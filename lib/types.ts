@@ -141,7 +141,7 @@ export type LootBoxTier = 'wood' | 'silver' | 'gold';
 // Enhanced loot box for V3
 export interface LootBoxV3 {
   id: string;
-  tier: LootBoxTier;
+  tier?: LootBoxTier; // Optional: undefined = blank box, roll at open time
   earnedAt: number;
   source: 'level_up' | 'bonus_drop' | 'completion';
   bookId?: string;
