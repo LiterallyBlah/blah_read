@@ -93,7 +93,9 @@ export function getAvailableEffectTypes(rarity: CompanionRarity): EffectType[] {
 
 export interface ActiveEffects {
   xpBoost: number;
-  luckBoost: number;
+  luck: number;           // was luckBoost - reduces wood chance
+  rareLuck: number;       // NEW - increases silver share
+  legendaryLuck: number;  // NEW - increases gold share
   dropRateBoost: number;
   completionBonus: number;
 }
@@ -104,7 +106,9 @@ export function calculateActiveEffects(
 ): ActiveEffects {
   const effects: ActiveEffects = {
     xpBoost: 0,
-    luckBoost: 0,
+    luck: 0,
+    rareLuck: 0,
+    legendaryLuck: 0,
     dropRateBoost: 0,
     completionBonus: 0,
   };
@@ -131,7 +135,13 @@ export function calculateActiveEffects(
           effects.xpBoost += effect.magnitude;
           break;
         case 'luck':
-          effects.luckBoost += effect.magnitude;
+          effects.luck += effect.magnitude;
+          break;
+        case 'rare_luck':
+          effects.rareLuck += effect.magnitude;
+          break;
+        case 'legendary_luck':
+          effects.legendaryLuck += effect.magnitude;
           break;
         case 'drop_rate_boost':
           effects.dropRateBoost += effect.magnitude;
@@ -139,7 +149,6 @@ export function calculateActiveEffects(
         case 'completion_bonus':
           effects.completionBonus += effect.magnitude;
           break;
-        // rare_luck and legendary_luck will be handled in Task 5
       }
     }
   }

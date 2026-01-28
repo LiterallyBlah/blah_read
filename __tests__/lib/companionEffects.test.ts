@@ -6,10 +6,27 @@ import {
   calculateActiveEffects,
   CompanionEffect,
   canEquipCompanion,
+  ActiveEffects,
 } from '../../lib/companionEffects';
 import { Companion } from '../../lib/types';
 
 describe('companionEffects', () => {
+  describe('ActiveEffects interface', () => {
+    it('should have luck, rareLuck, legendaryLuck fields', () => {
+      const effects: ActiveEffects = {
+        xpBoost: 0,
+        luck: 0.1,
+        rareLuck: 0.05,
+        legendaryLuck: 0.15,
+        dropRateBoost: 0,
+        completionBonus: 0,
+      };
+      expect(effects.luck).toBe(0.1);
+      expect(effects.rareLuck).toBe(0.05);
+      expect(effects.legendaryLuck).toBe(0.15);
+    });
+  });
+
   describe('new luck effect types', () => {
     it('should include luck, rare_luck, legendary_luck in EFFECT_TYPES', () => {
       expect(EFFECT_TYPES).toContain('luck');
@@ -122,13 +139,15 @@ describe('companionEffects', () => {
       ];
       const effects = calculateActiveEffects(companions, ['fantasy']);
       expect(effects.xpBoost).toBeCloseTo(0.10);
-      expect(effects.luckBoost).toBeCloseTo(0.05);
+      expect(effects.luck).toBeCloseTo(0.05);
     });
 
     it('should return zero for all effects when no companions', () => {
       const effects = calculateActiveEffects([], ['fantasy']);
       expect(effects.xpBoost).toBe(0);
-      expect(effects.luckBoost).toBe(0);
+      expect(effects.luck).toBe(0);
+      expect(effects.rareLuck).toBe(0);
+      expect(effects.legendaryLuck).toBe(0);
       expect(effects.dropRateBoost).toBe(0);
       expect(effects.completionBonus).toBe(0);
     });
@@ -151,7 +170,9 @@ describe('companionEffects', () => {
       };
       const effects = calculateActiveEffects([companionNoEffects], ['fantasy']);
       expect(effects.xpBoost).toBe(0);
-      expect(effects.luckBoost).toBe(0);
+      expect(effects.luck).toBe(0);
+      expect(effects.rareLuck).toBe(0);
+      expect(effects.legendaryLuck).toBe(0);
       expect(effects.dropRateBoost).toBe(0);
       expect(effects.completionBonus).toBe(0);
     });
