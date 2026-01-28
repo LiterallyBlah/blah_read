@@ -23,6 +23,59 @@ const EFFECT_MAGNITUDES: Record<CompanionRarity, { min: number; max: number }> =
   legendary: { min: 0.25, max: 0.35 },
 };
 
+const GENRE_LEVEL_REQUIREMENTS: Record<CompanionRarity, number> = {
+  common: 0,
+  rare: 10,
+  legendary: 20,
+};
+
+const BOOK_LEVEL_REQUIREMENTS: Record<CompanionRarity, number> = {
+  common: 0,
+  rare: 5,
+  legendary: 10,
+};
+
+export interface EquipRequirements {
+  canEquip: boolean;
+  missingGenreLevel?: number;
+  missingBookLevel?: number;
+  requiredGenreLevel: number;
+  requiredBookLevel: number;
+}
+
+export function canEquipCompanion(
+  rarity: CompanionRarity,
+  targetGenre: Genre | undefined,
+  currentGenreLevel: number,
+  currentBookLevel: number
+): EquipRequirements {
+  const requiredGenreLevel = GENRE_LEVEL_REQUIREMENTS[rarity];
+  const requiredBookLevel = BOOK_LEVEL_REQUIREMENTS[rarity];
+
+  let missingGenreLevel: number | undefined;
+  let missingBookLevel: number | undefined;
+
+  // For genre-targeted companions, check genre level requirement
+  if (targetGenre !== undefined && currentGenreLevel < requiredGenreLevel) {
+    missingGenreLevel = requiredGenreLevel - currentGenreLevel;
+  }
+
+  // Always check book level requirement
+  if (currentBookLevel < requiredBookLevel) {
+    missingBookLevel = requiredBookLevel - currentBookLevel;
+  }
+
+  const canEquip = missingGenreLevel === undefined && missingBookLevel === undefined;
+
+  return {
+    canEquip,
+    missingGenreLevel,
+    missingBookLevel,
+    requiredGenreLevel,
+    requiredBookLevel,
+  };
+}
+
 export function calculateEffectMagnitude(rarity: CompanionRarity): number {
   const range = EFFECT_MAGNITUDES[rarity];
   return range.min + Math.random() * (range.max - range.min);

@@ -5,6 +5,7 @@ import {
   getAvailableEffectTypes,
   calculateActiveEffects,
   CompanionEffect,
+  canEquipCompanion,
 } from '../../lib/companionEffects';
 import { Companion } from '../../lib/types';
 
@@ -172,6 +173,55 @@ describe('companionEffects', () => {
       ];
       const effects = calculateActiveEffects(companions, ['fantasy', 'sci-fi']);
       expect(effects.xpBoost).toBeCloseTo(0.20);
+    });
+  });
+
+  describe('canEquipCompanion', () => {
+    it('should allow common companions with no requirements', () => {
+      const result = canEquipCompanion('common', 'fantasy', 0, 0);
+      expect(result.canEquip).toBe(true);
+      expect(result.requiredGenreLevel).toBe(0);
+      expect(result.requiredBookLevel).toBe(0);
+    });
+
+    it('should require genre level 10 and book level 5 for rare', () => {
+      const result1 = canEquipCompanion('rare', 'fantasy', 9, 5);
+      expect(result1.canEquip).toBe(false);
+      expect(result1.missingGenreLevel).toBe(1);
+
+      const result2 = canEquipCompanion('rare', 'fantasy', 10, 4);
+      expect(result2.canEquip).toBe(false);
+      expect(result2.missingBookLevel).toBe(1);
+
+      const result3 = canEquipCompanion('rare', 'fantasy', 10, 5);
+      expect(result3.canEquip).toBe(true);
+    });
+
+    it('should require genre level 20 and book level 10 for legendary', () => {
+      const result = canEquipCompanion('legendary', 'fantasy', 20, 10);
+      expect(result.canEquip).toBe(true);
+
+      const result2 = canEquipCompanion('legendary', 'fantasy', 19, 10);
+      expect(result2.canEquip).toBe(false);
+      expect(result2.missingGenreLevel).toBe(1);
+    });
+
+    it('should only check book level for global companions (no targetGenre)', () => {
+      // Global rare companion - only needs book level 5, no genre requirement
+      const result1 = canEquipCompanion('rare', undefined, 0, 5);
+      expect(result1.canEquip).toBe(true);
+
+      const result2 = canEquipCompanion('rare', undefined, 0, 4);
+      expect(result2.canEquip).toBe(false);
+      expect(result2.missingBookLevel).toBe(1);
+      expect(result2.missingGenreLevel).toBeUndefined();
+    });
+
+    it('should return both missing levels when both requirements not met', () => {
+      const result = canEquipCompanion('legendary', 'fantasy', 15, 5);
+      expect(result.canEquip).toBe(false);
+      expect(result.missingGenreLevel).toBe(5);
+      expect(result.missingBookLevel).toBe(5);
     });
   });
 });
