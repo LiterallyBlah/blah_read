@@ -56,7 +56,9 @@ describe('getActiveEffects', () => {
   it('should return zero effects for empty active list', () => {
     const effects = getActiveEffects([]);
     expect(effects.xpBoost).toBe(0);
-    expect(effects.luckBoost).toBe(0);
+    expect(effects.luck).toBe(0);
+    expect(effects.rareLuck).toBe(0);
+    expect(effects.legendaryLuck).toBe(0);
     expect(effects.dropRateBoost).toBe(0);
     expect(effects.streakShieldDays).toBe(0);
     expect(effects.boxUpgrade).toBe(false);
@@ -78,7 +80,7 @@ describe('getActiveEffects', () => {
       { consumableId: 'med_luck_1', remainingDuration: 3, appliedAt: Date.now() },
     ];
     const effects = getActiveEffects(active);
-    expect(effects.luckBoost).toBeCloseTo(0.20); // 0.05 + 0.15
+    expect(effects.luck).toBeCloseTo(0.15); // 0.05 + 0.10 (med_luck_1 is now 0.10)
   });
 
   it('should sum drop rate boosts', () => {
@@ -244,5 +246,20 @@ describe('removeUsedConsumable', () => {
     ];
     const result = removeUsedConsumable(active, 'nonexistent_effect');
     expect(result.length).toBe(1);
+  });
+});
+
+describe('getActiveEffects with new luck types', () => {
+  it('should sum all three luck types separately', () => {
+    const active: ActiveConsumable[] = [
+      { consumableId: 'weak_luck_1', remainingDuration: 60, appliedAt: Date.now() },
+      { consumableId: 'med_rare_luck_1', remainingDuration: 60, appliedAt: Date.now() },
+      { consumableId: 'strong_legendary_luck_1', remainingDuration: 60, appliedAt: Date.now() },
+    ];
+
+    const effects = getActiveEffects(active);
+    expect(effects.luck).toBe(0.05);
+    expect(effects.rareLuck).toBe(0.10);
+    expect(effects.legendaryLuck).toBe(0.15);
   });
 });

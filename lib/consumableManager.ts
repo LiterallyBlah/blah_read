@@ -3,7 +3,9 @@ import { ConsumableDefinition, getConsumableById } from './consumables';
 
 export interface ConsumableEffects {
   xpBoost: number;
-  luckBoost: number;
+  luck: number;           // was luckBoost
+  rareLuck: number;       // NEW
+  legendaryLuck: number;  // NEW
   dropRateBoost: number;
   streakShieldDays: number;
   boxUpgrade: boolean;
@@ -38,7 +40,9 @@ export function addActiveConsumable(
 export function getActiveEffects(active: ActiveConsumable[]): ConsumableEffects {
   const effects: ConsumableEffects = {
     xpBoost: 0,
-    luckBoost: 0,
+    luck: 0,
+    rareLuck: 0,
+    legendaryLuck: 0,
     dropRateBoost: 0,
     streakShieldDays: 0,
     boxUpgrade: false,
@@ -55,8 +59,14 @@ export function getActiveEffects(active: ActiveConsumable[]): ConsumableEffects 
       case 'xp_boost':
         effects.xpBoost += consumable.magnitude;
         break;
-      case 'luck_boost':
-        effects.luckBoost += consumable.magnitude;
+      case 'luck':
+        effects.luck += consumable.magnitude;
+        break;
+      case 'rare_luck':
+        effects.rareLuck += consumable.magnitude;
+        break;
+      case 'legendary_luck':
+        effects.legendaryLuck += consumable.magnitude;
         break;
       case 'drop_rate_boost':
         effects.dropRateBoost += consumable.magnitude;
