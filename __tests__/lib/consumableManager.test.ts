@@ -195,6 +195,15 @@ describe('tickConsumables with minutes', () => {
     const result = tickConsumables(active, 45);
     expect(result[0].remainingDuration).toBe(135);
   });
+
+  it('should not decrement consumables for 0 minute session', () => {
+    const active: ActiveConsumable[] = [
+      { consumableId: 'weak_xp_1', remainingDuration: 60, appliedAt: Date.now() },
+    ];
+    const result = tickConsumables(active, 0);
+    expect(result.length).toBe(1);
+    expect(result[0].remainingDuration).toBe(60);
+  });
 });
 
 describe('removeUsedConsumable', () => {

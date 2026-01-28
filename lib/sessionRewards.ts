@@ -98,6 +98,10 @@ export function processSessionEnd(
   isCompletion: boolean = false
 ): SessionRewardResult {
   const now = Date.now();
+
+  // Guard against invalid input
+  const validSessionSeconds = Math.max(0, sessionSeconds);
+
   const bookGenres = book.normalizedGenres || [];
 
   // Step 1: Calculate companion effects
@@ -118,7 +122,7 @@ export function processSessionEnd(
     levelUps: [],
   };
 
-  const levelResult = processReadingTime(currentProgression.totalSeconds, sessionSeconds);
+  const levelResult = processReadingTime(currentProgression.totalSeconds, validSessionSeconds);
   let levelsGained = levelResult.levelsGained;
   let newLevel = levelResult.newLevel;
 
@@ -126,14 +130,14 @@ export function processSessionEnd(
   let completionBonusLevels = 0;
   if (isCompletion) {
     // Calculate based on the new total seconds
-    const totalSecondsAfterSession = currentProgression.totalSeconds + sessionSeconds;
+    const totalSecondsAfterSession = currentProgression.totalSeconds + validSessionSeconds;
     completionBonusLevels = calculateCompletionBonus(totalSecondsAfterSession, book.pageCount ?? null);
     levelsGained += completionBonusLevels;
     newLevel += completionBonusLevels;
   }
 
   // Step 6: Calculate XP (BASE_XP_PER_MINUTE=10, apply boost and streak)
-  const minutes = sessionSeconds / 60;
+  const minutes = validSessionSeconds / 60;
   const streakMultiplier = getStreakMultiplier(progress.currentStreak);
   const baseXp = Math.round(minutes * BASE_XP_PER_MINUTE * streakMultiplier);
   const xpGained = Math.round(baseXp * (1 + totalXpBoost));
@@ -186,7 +190,7 @@ export function processSessionEnd(
   }
 
   // Step 10: Update book progression
-  const newTotalSeconds = currentProgression.totalSeconds + sessionSeconds;
+  const newTotalSeconds = currentProgression.totalSeconds + validSessionSeconds;
   const newLevelUps = [...currentProgression.levelUps];
 
   // Record timestamps for level ups
@@ -196,7 +200,7 @@ export function processSessionEnd(
 
   const updatedBook: Book = {
     ...book,
-    totalReadingTime: book.totalReadingTime + sessionSeconds,
+    totalReadingTime: book.totalReadingTime + validSessionSeconds,
     progression: {
       level: newLevel,
       totalSeconds: newTotalSeconds,
@@ -211,7 +215,7 @@ export function processSessionEnd(
   }
 
   // Step 11b: Tick consumables (pass session minutes)
-  const sessionMinutes = sessionSeconds / 60;
+  const sessionMinutes = Math.floor(validSessionSeconds / 60);
   const tickedConsumables = tickConsumables(activeConsumables, sessionMinutes);
 
   const existingLootBoxesV3 = progress.lootBoxesV3 || [];
