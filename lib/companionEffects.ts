@@ -83,6 +83,19 @@ export function calculateEffectMagnitude(rarity: CompanionRarity): number {
   return range.min + Math.random() * (range.max - range.min);
 }
 
+const LUCK_TYPES = ['luck', 'rare_luck', 'legendary_luck'] as const;
+type LuckType = typeof LUCK_TYPES[number];
+
+const LUCK_AVAILABILITY: Record<CompanionRarity, LuckType[]> = {
+  common: ['luck'],
+  rare: ['luck', 'rare_luck'],
+  legendary: ['luck', 'rare_luck', 'legendary_luck'],
+};
+
+export function getAvailableLuckTypes(rarity: CompanionRarity): LuckType[] {
+  return LUCK_AVAILABILITY[rarity];
+}
+
 // Completion bonus is legendary-only
 export function getAvailableEffectTypes(rarity: CompanionRarity): EffectType[] {
   if (rarity === 'legendary') {

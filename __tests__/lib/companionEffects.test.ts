@@ -3,6 +3,7 @@ import {
   EFFECT_TYPES,
   calculateEffectMagnitude,
   getAvailableEffectTypes,
+  getAvailableLuckTypes,
   calculateActiveEffects,
   CompanionEffect,
   canEquipCompanion,
@@ -318,6 +319,20 @@ describe('companionEffects', () => {
       expect(result.luck).toBeCloseTo(0.10);
       expect(result.rareLuck).toBeCloseTo(0.08);
       expect(result.legendaryLuck).toBeCloseTo(0.30);
+    });
+  });
+
+  describe('getAvailableLuckTypes', () => {
+    it('should return only luck for common', () => {
+      expect(getAvailableLuckTypes('common')).toEqual(['luck']);
+    });
+
+    it('should return luck and rare_luck for rare', () => {
+      expect(getAvailableLuckTypes('rare')).toEqual(['luck', 'rare_luck']);
+    });
+
+    it('should return all luck types for legendary', () => {
+      expect(getAvailableLuckTypes('legendary')).toEqual(['luck', 'rare_luck', 'legendary_luck']);
     });
   });
 
