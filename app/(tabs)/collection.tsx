@@ -7,7 +7,7 @@ import { FONTS } from '@/lib/theme';
 import { storage } from '@/lib/storage';
 import { settings } from '@/lib/settings';
 import { debug, setDebugEnabled } from '@/lib/debug';
-import { maybeGenerateImages } from '@/lib/companionImageQueue';
+import { maybeGenerateImages, shouldGenerateMoreImages } from '@/lib/companionImageQueue';
 import { generateImageForCompanion } from '@/lib/imageGen';
 import type { Book, Companion, LootBoxState, CompanionLoadout, UserProgress, LootBoxV3 } from '@/lib/types';
 import type { Settings } from '@/lib/settings';
@@ -76,6 +76,33 @@ export default function CollectionScreen() {
           poolQueue: book.companions.poolQueue.companions.length,
           poolWithImages,
         });
+      }
+    }
+
+    // Proactively refill image buffers if depleted (requires API key)
+    if (config.apiKey) {
+      for (const book of loadedBooks) {
+        if (book.companions && shouldGenerateMoreImages(book.companions)) {
+          debug.log('collection', `Buffer depleted for "${book.title}", triggering image generation`);
+          const generateImage = async (c: Companion) => {
+            try {
+              const url = await generateImageForCompanion(c, config.apiKey!, {
+                model: config.imageModel,
+                llmModel: config.llmModel,
+              });
+              debug.log('collection', `Image generated for "${c.name}"`);
+              return url;
+            } catch (error) {
+              debug.error('collection', `Image generation failed for "${c.name}"`, error);
+              return null;
+            }
+          };
+          // Fire and forget - don't await, let it happen in background
+          maybeGenerateImages(book, generateImage).then(async finalBook => {
+            await storage.saveBook(finalBook);
+            debug.log('collection', `Buffer refill complete for "${book.title}"`);
+          });
+        }
       }
     }
 

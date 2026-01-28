@@ -50,7 +50,11 @@
       "Bash(git -C /mnt/c/Users/micha/Projects/blah_read diff app/\\\\\\(tabs\\\\\\)/collection.tsx)",
       "Bash(git -C /mnt/c/Users/micha/Projects/blah_read add \"app/\\(tabs\\)/collection.tsx\")",
       "Bash(git -C /mnt/c/Users/micha/Projects/blah_read commit -m \"$\\(cat <<''EOF''\nfeat\\(rewards-v3\\): add equip functionality to collection screen\n\nAdd loadout management to collection screen with full equip/unequip support:\n- Load user''s loadout and genre levels from storage\n- Add \"Equip\" button on companion cards with slot selector\n- Show equipped indicator with slot number\n- Display companion effects with formatted percentages\n- Show gating requirements \\(book level, genre level\\) when not met\n- Integrate with canEquipCompanion for requirement validation\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
-      "WebFetch(domain:docs.bfl.ai)"
+      "WebFetch(domain:docs.bfl.ai)",
+      "Bash(git -C /mnt/c/Users/micha/Projects/blah_read status __tests__/lib/companionEffects.test.ts)",
+      "Bash(git -C /mnt/c/Users/micha/Projects/blah_read diff __tests__/lib/companionEffects.test.ts)",
+      "Bash(git -C /mnt/c/Users/micha/Projects/blah_read add:*)",
+      "Bash(git -C /mnt/c/Users/micha/Projects/blah_read commit -m \"$\\(cat <<''EOF''\ntest\\(loot\\): add tests for calculateActiveEffects with new luck types\n\nVerify that calculateActiveEffects properly sums luck, rare_luck, and\nlegendary_luck effects from equipped companions. Tests cover:\n- Multiple companions with different luck types\n- Multiple companions with same luck type \\(summing\\)\n- Single companion with all three luck types\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }

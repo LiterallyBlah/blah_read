@@ -10,6 +10,10 @@ import { LootBoxReveal } from '@/components/LootBoxReveal';
 import type { Companion, LootBoxV3, LootBoxTier } from '@/lib/types';
 import { ConsumableDefinition } from '@/lib/consumables';
 import { addActiveConsumable } from '@/lib/consumableManager';
+import { maybeGenerateImages } from '@/lib/companionImageQueue';
+import { generateImageForCompanion } from '@/lib/imageGen';
+import { settings } from '@/lib/settings';
+import { debug } from '@/lib/debug';
 
 // Box tier visual styling
 const TIER_STYLES: Record<LootBoxTier, { label: string; emoji: string }> = {
@@ -69,13 +73,26 @@ export default function LootBoxScreen() {
     if (v3Boxes.length > 0) {
       const boxToOpen = v3Boxes[0];
 
+      // Check pool availability to avoid companion roll when pool is empty
+      const pool = getPoolCompanions(books);
+
       // Open using new system with tier rolling and pity
       const { rolledTier, lootResult, updatedProgress } = openLootBoxV3(
         boxToOpen,
         progress,
         equippedCompanions,
-        bookGenres
+        bookGenres,
+        { companionPoolSize: pool.length }
       );
+
+      debug.log('lootBox', 'V3 box opened', {
+        poolSize: pool.length,
+        rolledTier,
+        category: lootResult.category,
+        companionRarity: lootResult.companionRarity,
+        consumable: lootResult.consumable?.name,
+        pityCounter: updatedProgress.goldPityCounter,
+      });
 
       // Remove the opened box
       updatedProgress.lootBoxesV3 = v3Boxes.slice(1);
@@ -94,9 +111,18 @@ export default function LootBoxScreen() {
       } else if (lootResult.category === 'companion' && lootResult.companionRarity) {
         // Handle companion drop - get from pool
         const pool = getPoolCompanions(books);
+        debug.log('lootBox', 'Companion drop - checking pool', {
+          poolSize: pool.length,
+          poolCompanions: pool.map(c => ({ name: c.name, bookId: c.bookId })),
+        });
         const { companion } = openLootBox(pool, currentBook?.id || null);
 
         if (companion) {
+          debug.log('lootBox', 'Companion selected from pool', {
+            name: companion.name,
+            rarity: companion.rarity,
+            bookId: companion.bookId,
+          });
           // Update book's companion state
           const book = books.find(b => b.id === companion.bookId);
           if (book?.companions) {
@@ -107,6 +133,27 @@ export default function LootBoxScreen() {
               book.companions.poolQueue.companions[poolIndex] = companion;
               book.companions.unlockedCompanions.push(companion);
               await storage.saveBook(book);
+              debug.log('lootBox', 'Companion unlocked, triggering image generation');
+
+              // Trigger background image generation to refill pool buffer
+              const config = await settings.get();
+              if (config.apiKey) {
+                const generateImage = async (c: Companion) => {
+                  try {
+                    return await generateImageForCompanion(c, config.apiKey!, {
+                      model: config.imageModel,
+                    });
+                  } catch {
+                    return null;
+                  }
+                };
+                maybeGenerateImages(book, generateImage).then(async finalBook => {
+                  debug.log('lootBox', 'Image generation complete, saving book');
+                  await storage.saveBook(finalBook);
+                });
+              } else {
+                debug.log('lootBox', 'No API key, skipping image generation');
+              }
             }
           }
 
@@ -115,6 +162,7 @@ export default function LootBoxScreen() {
           setRevealedTier(rolledTier);
           setRevealedConsumable(null);
         } else {
+          debug.log('lootBox', 'Pool empty - giving fallback consumable');
           // No companion available - give a fallback consumable
           const fallbackConsumable = {
             id: 'weak_xp_1',
@@ -166,6 +214,23 @@ export default function LootBoxScreen() {
           book.companions.poolQueue.companions[poolIndex] = companion;
           book.companions.unlockedCompanions.push(companion);
           await storage.saveBook(book);
+
+          // Trigger background image generation to refill pool buffer
+          const config = await settings.get();
+          if (config.apiKey) {
+            const generateImage = async (c: Companion) => {
+              try {
+                return await generateImageForCompanion(c, config.apiKey!, {
+                  model: config.imageModel,
+                });
+              } catch {
+                return null;
+              }
+            };
+            maybeGenerateImages(book, generateImage).then(async finalBook => {
+              await storage.saveBook(finalBook);
+            });
+          }
         }
       }
 

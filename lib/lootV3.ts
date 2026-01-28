@@ -147,15 +147,26 @@ export function rollLoot(luckBoost: number = 0): LootResult {
   return rollLootForTier(boxTier);
 }
 
+export interface RollLootOptions {
+  /** If false, forces consumable instead of companion (for empty pools) */
+  companionPoolAvailable?: boolean;
+}
+
 /**
  * Roll loot contents for a box with a known tier.
  * Use this when opening a box that already has a tier assigned.
  *
  * @param boxTier - The tier of the box being opened
+ * @param options - Optional settings like pool availability
  */
-export function rollLootForTier(boxTier: LootBoxTier): LootResult {
-  // Layer 2: Category
-  const category = rollCategory(boxTier);
+export function rollLootForTier(boxTier: LootBoxTier, options?: RollLootOptions): LootResult {
+  const companionPoolAvailable = options?.companionPoolAvailable ?? true;
+
+  // Layer 2: Category (force consumable if no companions available)
+  let category = rollCategory(boxTier);
+  if (category === 'companion' && !companionPoolAvailable) {
+    category = 'consumable';
+  }
 
   // Layer 3: Specific item
   if (category === 'consumable') {

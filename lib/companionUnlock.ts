@@ -122,9 +122,16 @@ export function processReadingSession(
   const unlockedCompanions: Companion[] = [];
 
   for (const milestoneIndex of crossedMilestones) {
-    const companionIndex = readingQueue.companions.findIndex(
-      c => c.unlockMethod === null
+    // Prioritize companions WITH images, fall back to any unlocked companion
+    let companionIndex = readingQueue.companions.findIndex(
+      c => c.unlockMethod === null && c.imageUrl
     );
+    if (companionIndex === -1) {
+      // No companion with image available, fall back to any unlocked
+      companionIndex = readingQueue.companions.findIndex(
+        c => c.unlockMethod === null
+      );
+    }
 
     if (companionIndex !== -1) {
       const companion = { ...readingQueue.companions[companionIndex] };

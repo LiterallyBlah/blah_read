@@ -10,16 +10,25 @@ export interface OpenLootBoxResult {
   updatedProgress: UserProgress;
 }
 
+export interface OpenLootBoxOptions {
+  /** Number of companions available in the pool (0 = force consumable) */
+  companionPoolSize?: number;
+}
+
 /**
  * Open a V3 loot box, rolling tier at open time if blank.
  * Applies luck stats and pity system.
+ *
+ * @param options.companionPoolSize - Pass 0 to force consumable drops when pool is empty
  */
 export function openLootBoxV3(
   box: LootBoxV3,
   progress: UserProgress,
   equippedCompanions: Companion[],
-  bookGenres: Genre[]
+  bookGenres: Genre[],
+  options?: OpenLootBoxOptions
 ): OpenLootBoxResult {
+  const companionPoolAvailable = (options?.companionPoolSize ?? 1) > 0;
   let rolledTier: LootBoxTier;
   let newPityCounter: number;
 
@@ -54,8 +63,8 @@ export function openLootBoxV3(
     newPityCounter = tierResult.newPityCounter;
   }
 
-  // Roll loot contents based on tier
-  const lootResult = rollLootForTier(rolledTier);
+  // Roll loot contents based on tier (force consumable if pool empty)
+  const lootResult = rollLootForTier(rolledTier, { companionPoolAvailable });
 
   // Create updated progress with new pity counter
   const updatedProgress: UserProgress = {

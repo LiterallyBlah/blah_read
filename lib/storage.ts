@@ -102,6 +102,7 @@ export const storage = {
           rtWithImages: (book.companions.readingTimeQueue?.companions || []).filter((c: any) => c.imageUrl).length,
           poolCount: book.companions.poolQueue?.companions?.length || 0,
           poolWithImages: (book.companions.poolQueue?.companions || []).filter((c: any) => c.imageUrl).length,
+          poolAvailable: (book.companions.poolQueue?.companions || []).filter((c: any) => c.imageUrl && c.unlockMethod === null).length,
         });
       }
     }
@@ -141,6 +142,7 @@ export const storage = {
         rtWithImages: book.companions.readingTimeQueue.companions.filter(c => c.imageUrl).length,
         poolQueueCount: book.companions.poolQueue.companions.length,
         poolWithImages: book.companions.poolQueue.companions.filter(c => c.imageUrl).length,
+        poolAvailable: book.companions.poolQueue.companions.filter(c => c.imageUrl && c.unlockMethod === null).length,
       });
     }
 
