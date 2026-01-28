@@ -10,8 +10,17 @@ import {
 import { Companion } from '../../lib/types';
 
 describe('companionEffects', () => {
-  it('should have 4 effect types', () => {
-    expect(EFFECT_TYPES.length).toBe(4);
+  describe('new luck effect types', () => {
+    it('should include luck, rare_luck, legendary_luck in EFFECT_TYPES', () => {
+      expect(EFFECT_TYPES).toContain('luck');
+      expect(EFFECT_TYPES).toContain('rare_luck');
+      expect(EFFECT_TYPES).toContain('legendary_luck');
+      expect(EFFECT_TYPES).not.toContain('luck_boost'); // Old name removed
+    });
+  });
+
+  it('should have 6 effect types', () => {
+    expect(EFFECT_TYPES.length).toBe(6);
   });
 
   it('should calculate magnitude within rarity range', () => {
@@ -33,29 +42,35 @@ describe('companionEffects', () => {
   });
 
   describe('getAvailableEffectTypes', () => {
-    it('should return all 4 effect types for legendary', () => {
+    it('should return all 6 effect types for legendary', () => {
       const effects = getAvailableEffectTypes('legendary');
-      expect(effects.length).toBe(4);
+      expect(effects.length).toBe(6);
       expect(effects).toContain('xp_boost');
-      expect(effects).toContain('luck_boost');
+      expect(effects).toContain('luck');
+      expect(effects).toContain('rare_luck');
+      expect(effects).toContain('legendary_luck');
       expect(effects).toContain('drop_rate_boost');
       expect(effects).toContain('completion_bonus');
     });
 
-    it('should return only 3 effect types for common (excluding completion_bonus)', () => {
+    it('should return only 5 effect types for common (excluding completion_bonus)', () => {
       const effects = getAvailableEffectTypes('common');
-      expect(effects.length).toBe(3);
+      expect(effects.length).toBe(5);
       expect(effects).toContain('xp_boost');
-      expect(effects).toContain('luck_boost');
+      expect(effects).toContain('luck');
+      expect(effects).toContain('rare_luck');
+      expect(effects).toContain('legendary_luck');
       expect(effects).toContain('drop_rate_boost');
       expect(effects).not.toContain('completion_bonus');
     });
 
-    it('should return only 3 effect types for rare (excluding completion_bonus)', () => {
+    it('should return only 5 effect types for rare (excluding completion_bonus)', () => {
       const effects = getAvailableEffectTypes('rare');
-      expect(effects.length).toBe(3);
+      expect(effects.length).toBe(5);
       expect(effects).toContain('xp_boost');
-      expect(effects).toContain('luck_boost');
+      expect(effects).toContain('luck');
+      expect(effects).toContain('rare_luck');
+      expect(effects).toContain('legendary_luck');
       expect(effects).toContain('drop_rate_boost');
       expect(effects).not.toContain('completion_bonus');
     });
@@ -102,7 +117,7 @@ describe('companionEffects', () => {
       const companions = [
         mockCompanion([
           { type: 'xp_boost', magnitude: 0.10 },
-          { type: 'luck_boost', magnitude: 0.05 },
+          { type: 'luck', magnitude: 0.05 },
         ]),
       ];
       const effects = calculateActiveEffects(companions, ['fantasy']);

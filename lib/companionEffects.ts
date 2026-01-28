@@ -4,7 +4,9 @@ import { Genre } from './genres';
 
 export const EFFECT_TYPES = [
   'xp_boost',
-  'luck_boost',
+  'luck',           // was luck_boost - reduces wood chance
+  'rare_luck',      // NEW - increases silver share of non-wood
+  'legendary_luck', // NEW - increases gold share of non-wood
   'drop_rate_boost',
   'completion_bonus',
 ] as const;
@@ -128,7 +130,7 @@ export function calculateActiveEffects(
         case 'xp_boost':
           effects.xpBoost += effect.magnitude;
           break;
-        case 'luck_boost':
+        case 'luck':
           effects.luckBoost += effect.magnitude;
           break;
         case 'drop_rate_boost':
@@ -137,6 +139,7 @@ export function calculateActiveEffects(
         case 'completion_bonus':
           effects.completionBonus += effect.magnitude;
           break;
+        // rare_luck and legendary_luck will be handled in Task 5
       }
     }
   }
