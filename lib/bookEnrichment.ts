@@ -1,6 +1,7 @@
 import { searchGoogleBooks, searchGoogleBooksByIsbn } from './googleBooks';
 import { searchOpenLibrary, buildOpenLibraryCoverUrl } from './openLibrary';
 import { asinToIsbn13 } from './isbn';
+import { mapToCanonicalGenres, Genre } from './genres';
 
 /**
  * Clean up book title for better search results
@@ -26,6 +27,7 @@ export interface EnrichmentResult {
   synopsis: string | null;
   pageCount: number | null;
   genres: string[];
+  normalizedGenres: Genre[];
   publisher: string | null;
   publishedDate: string | null;
   source: 'google' | 'openlibrary' | 'none';
@@ -88,11 +90,13 @@ export async function enrichBookData(
 
   if (googleResult?.coverUrl) {
     console.log('[enrichBookData] Returning Google Books result');
+    const normalizedGenres = mapToCanonicalGenres(googleResult.categories || []);
     return {
       coverUrl: googleResult.coverUrl,
       synopsis: googleResult.description,
       pageCount: googleResult.pageCount || null,
       genres: googleResult.categories || [],
+      normalizedGenres,
       publisher: googleResult.publisher || null,
       publishedDate: googleResult.publishedDate || null,
       source: 'google',
@@ -111,11 +115,13 @@ export async function enrichBookData(
 
   if (openLibResult) {
     console.log('[enrichBookData] Returning OpenLibrary result');
+    const normalizedGenres = mapToCanonicalGenres(openLibResult.genres);
     return {
       coverUrl: buildOpenLibraryCoverUrl(openLibResult.coverId, 'L'),
       synopsis: null,
       pageCount: openLibResult.pageCount,
       genres: openLibResult.genres,
+      normalizedGenres,
       publisher: openLibResult.publisher,
       publishedDate: openLibResult.publishedYear?.toString() || null,
       source: 'openlibrary',
@@ -129,6 +135,7 @@ export async function enrichBookData(
     synopsis: null,
     pageCount: null,
     genres: [],
+    normalizedGenres: [],
     publisher: null,
     publishedDate: null,
     source: 'none',
