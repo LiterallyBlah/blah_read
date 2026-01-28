@@ -25,8 +25,8 @@ export interface Settings {
 
 export const defaultSettings: Settings = {
   apiKey: null,
-  llmModel: 'google/gemini-2.5-flash-preview-05-20',
-  imageModel: 'bytedance-seed/seedream-4.5',
+  llmModel: 'google/gemini-flash-1.5',
+  imageModel: 'google/gemini-2.5-flash-image',
   imageSize: '1K',
   googleBooksApiKey: null,
   dailyTarget: 30,
@@ -83,9 +83,11 @@ export interface DeleteOptions {
 }
 
 export async function selectiveDelete(options: DeleteOptions): Promise<void> {
+  console.log('[settings] selectiveDelete called with options:', options);
   const keysToRemove: string[] = [];
 
   if (options.books) {
+    console.log('[settings] selectiveDelete: books=true, will clear all images');
     keysToRemove.push('blahread:books');
     // Also delete all companion images
     await clearAllImages();
@@ -125,6 +127,7 @@ export async function selectiveDelete(options: DeleteOptions): Promise<void> {
 }
 
 export async function resetApp(): Promise<void> {
+  console.log('[settings] resetApp called - FULL APP RESET');
   // Clear all companion images from file system
   await clearAllImages();
 

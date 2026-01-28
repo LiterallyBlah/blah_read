@@ -1,26 +1,15 @@
-import { settings } from './settings';
+// Note: We don't import settings here to avoid circular dependency
+// (settings -> storage -> debug -> settings)
+// Instead, callers should use setDebugEnabled() to set the debug state
 
 let debugEnabled: boolean | null = null;
-let debugCheckPromise: Promise<boolean> | null = null;
 
 /**
- * Check if debug mode is enabled (cached for performance)
+ * Check if debug mode is enabled (synchronous, uses cached value)
+ * Returns false if not yet set - callers should call setDebugEnabled() first
  */
-export async function isDebugEnabled(): Promise<boolean> {
-  if (debugEnabled !== null) {
-    return debugEnabled;
-  }
-
-  if (debugCheckPromise) {
-    return debugCheckPromise;
-  }
-
-  debugCheckPromise = settings.get().then(config => {
-    debugEnabled = config.debugMode;
-    return debugEnabled;
-  });
-
-  return debugCheckPromise;
+export function isDebugEnabled(): boolean {
+  return debugEnabled ?? false;
 }
 
 /**
@@ -28,14 +17,6 @@ export async function isDebugEnabled(): Promise<boolean> {
  */
 export function resetDebugCache(): void {
   debugEnabled = null;
-  debugCheckPromise = null;
-}
-
-/**
- * Synchronous debug check - uses cached value, defaults to false if not yet loaded
- */
-export function isDebugEnabledSync(): boolean {
-  return debugEnabled ?? false;
 }
 
 /**

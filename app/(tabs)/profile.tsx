@@ -33,7 +33,7 @@ export default function ProfileScreen() {
 
   const level = progress ? calculateLevel(progress.totalXp) : 1;
   const xp = progress ? xpProgress(progress.totalXp) : { current: 0, needed: 1000 };
-  const companions = books.filter(b => b.companion).map(b => b.companion as Companion);
+  const companions = books.flatMap(b => b.companions?.unlockedCompanions || []);
   const totalTime = books.reduce((sum, b) => sum + b.totalReadingTime, 0);
   const hours = Math.floor(totalTime / 3600);
 

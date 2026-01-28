@@ -5,7 +5,14 @@ import { generateImagePrompt } from './imagePromptBuilder';
 
 // OpenRouter API configuration
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const DEFAULT_MODEL = 'bytedance-seed/seedream-4.5';
+const DEFAULT_MODEL = 'google/gemini-2.5-flash-image';
+
+// Image size presets (must be multiples of 16 for FLUX)
+const IMAGE_SIZE_MAP = {
+  '1K': { width: 1024, height: 1024 },
+  '2K': { width: 2048, height: 2048 },
+  '4K': { width: 4096, height: 4096 },
+} as const;
 
 export interface ImageGenConfig {
   model?: string;
@@ -136,14 +143,23 @@ export async function generateImageForCompanion(
   });
   debug.log('imageGen', 'Prompt:', prompt);
 
+  // For FLUX models, add aspect ratio to prompt as backup
+  let finalPrompt = prompt;
+  if (model.includes('flux')) {
+    // Prepend square format instruction as fallback if params aren't forwarded
+    finalPrompt = `Square format, 1:1 aspect ratio. ${prompt}`;
+    debug.log('imageGen', 'Added square format instruction for FLUX model');
+  }
+
   const body: Record<string, unknown> = {
     model,
-    messages: [{ role: 'user', content: prompt }],
+    messages: [{ role: 'user', content: finalPrompt }],
     modalities,
   };
 
-  // Add Gemini-specific image config
+  // Add model-specific image config
   if (model.includes('gemini')) {
+    // Gemini uses image_config with aspect_ratio and output_size
     body.image_config = {
       aspect_ratio: config.aspectRatio || '1:1',
     };
@@ -151,6 +167,7 @@ export async function generateImageForCompanion(
       (body.image_config as Record<string, unknown>).output_size = config.imageSize;
     }
   }
+  // FLUX: OpenRouter rejects width/height params - rely on prompt text only
 
   debug.log('imageGen', 'Sending request to OpenRouter...', { url: OPENROUTER_API_URL, modalities });
   debug.time('imageGen', `image-${companion.id}`);

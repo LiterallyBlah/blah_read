@@ -1,9 +1,11 @@
 import { CompanionLoadout } from './types';
+import { debug } from './debug';
 
 /**
  * Creates a default loadout with 3 empty slots and 1 unlocked slot.
  */
 export function createDefaultLoadout(): CompanionLoadout {
+  debug.log('loadout', 'Creating default loadout');
   return { slots: [null, null, null], unlockedSlots: 1 };
 }
 
@@ -17,14 +19,32 @@ export function equipCompanion(
   companionId: string,
   slotIndex: number
 ): CompanionLoadout {
+  debug.log('loadout', 'equipCompanion called', {
+    companionId,
+    slotIndex,
+    currentSlots: loadout.slots,
+    unlockedSlots: loadout.unlockedSlots,
+  });
+
   if (slotIndex < 0 || slotIndex >= 3) {
+    debug.error('loadout', `Invalid slot index: ${slotIndex}`);
     throw new Error(`Invalid slot index: ${slotIndex}`);
   }
   if (slotIndex >= loadout.unlockedSlots) {
+    debug.error('loadout', `Slot ${slotIndex + 1} is locked`);
     throw new Error(`Slot ${slotIndex + 1} is locked`);
   }
   const newSlots = [...loadout.slots];
+  const previousOccupant = newSlots[slotIndex];
   newSlots[slotIndex] = companionId;
+
+  debug.log('loadout', 'Companion equipped successfully', {
+    slot: slotIndex + 1,
+    companionId,
+    previousOccupant,
+    newSlots,
+  });
+
   return { ...loadout, slots: newSlots as [string | null, string | null, string | null] };
 }
 
@@ -36,11 +56,25 @@ export function unequipCompanion(
   loadout: CompanionLoadout,
   slotIndex: number
 ): CompanionLoadout {
+  debug.log('loadout', 'unequipCompanion called', {
+    slotIndex,
+    currentSlots: loadout.slots,
+  });
+
   if (slotIndex < 0 || slotIndex >= 3) {
+    debug.error('loadout', `Invalid slot index: ${slotIndex}`);
     throw new Error(`Invalid slot index: ${slotIndex}`);
   }
   const newSlots = [...loadout.slots];
+  const removedCompanion = newSlots[slotIndex];
   newSlots[slotIndex] = null;
+
+  debug.log('loadout', 'Companion unequipped successfully', {
+    slot: slotIndex + 1,
+    removedCompanion,
+    newSlots,
+  });
+
   return { ...loadout, slots: newSlots as [string | null, string | null, string | null] };
 }
 

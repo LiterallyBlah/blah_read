@@ -8,7 +8,8 @@ import type { BookCompanions, Companion } from '@/lib/types';
 
 const createCompanion = (
   id: string,
-  imageUrl: string | null
+  imageUrl: string | null,
+  unlockedAt: number | null = null
 ): Companion => ({
   id,
   bookId: 'book-1',
@@ -21,7 +22,7 @@ const createCompanion = (
   imageUrl,
   source: 'discovered',
   unlockMethod: null,
-  unlockedAt: null,
+  unlockedAt,
 });
 
 describe('companionImageQueue', () => {
@@ -79,6 +80,40 @@ describe('companionImageQueue', () => {
       const result = getCompanionsNeedingImages(companions);
       expect(result.readingTime.length).toBe(1);
       expect(result.readingTime[0].id).toBe('2');
+    });
+
+    it('skips unlocked companions when calculating buffer needs', () => {
+      // Scenario: 2 companions with images but both are unlocked
+      // Buffer should see 0 images and request new ones
+      const companions: BookCompanions = {
+        researchComplete: true,
+        researchConfidence: 'high',
+        readingTimeQueue: {
+          companions: [
+            createCompanion('1', 'http://example.com/1.png', Date.now()), // unlocked
+            createCompanion('2', 'http://example.com/2.png', Date.now()), // unlocked
+            createCompanion('3', null), // locked, no image
+            createCompanion('4', null), // locked, no image
+          ],
+          nextGenerateIndex: 2,
+        },
+        poolQueue: {
+          companions: [
+            createCompanion('5', 'http://example.com/5.png', Date.now()), // unlocked
+            createCompanion('6', null), // locked, no image
+          ],
+          nextGenerateIndex: 1,
+        },
+        unlockedCompanions: [],
+      };
+
+      const result = getCompanionsNeedingImages(companions);
+      // Should request images for locked companions without images
+      expect(result.readingTime.length).toBe(READING_TIME_BUFFER);
+      expect(result.readingTime[0].id).toBe('3');
+      expect(result.readingTime[1].id).toBe('4');
+      expect(result.pool.length).toBe(1); // Only 1 locked companion without image
+      expect(result.pool[0].id).toBe('6');
     });
   });
 

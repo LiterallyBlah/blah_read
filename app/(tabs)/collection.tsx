@@ -6,7 +6,11 @@ import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
 import { storage } from '@/lib/storage';
 import { settings } from '@/lib/settings';
-import type { Book, Companion, LootBoxState, CompanionLoadout, UserProgress } from '@/lib/types';
+import { debug, setDebugEnabled } from '@/lib/debug';
+import { maybeGenerateImages } from '@/lib/companionImageQueue';
+import { generateImageForCompanion } from '@/lib/imageGen';
+import type { Book, Companion, LootBoxState, CompanionLoadout, UserProgress, LootBoxV3 } from '@/lib/types';
+import type { Settings } from '@/lib/settings';
 import { equipCompanion, unequipCompanion, getEquippedCompanionIds, isSlotUnlocked } from '@/lib/loadout';
 import { canEquipCompanion, EFFECT_TYPES, EquipRequirements, CompanionEffect } from '@/lib/companionEffects';
 import { GENRE_DISPLAY_NAMES, Genre } from '@/lib/genres';
@@ -26,11 +30,13 @@ export default function CollectionScreen() {
   const insets = useSafeAreaInsets();
   const [books, setBooks] = useState<Book[]>([]);
   const [lootBoxes, setLootBoxes] = useState<LootBoxState | null>(null);
+  const [lootBoxesV3, setLootBoxesV3] = useState<LootBoxV3[]>([]);
   const [typeFilter, setTypeFilter] = useState<FilterType>('all');
   const [rarityFilter, setRarityFilter] = useState<RarityFilter>('all');
   const [debugMode, setDebugMode] = useState(false);
   const [loadout, setLoadout] = useState<CompanionLoadout | null>(null);
   const [genreLevels, setGenreLevels] = useState<Record<Genre, number> | null>(null);
+  const [config, setConfig] = useState<Settings | null>(null);
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
   useFocusEffect(
@@ -40,16 +46,47 @@ export default function CollectionScreen() {
   );
 
   async function loadData() {
+    debug.log('collection', 'loadData starting');
     const [loadedBooks, progress, config] = await Promise.all([
       storage.getBooks(),
       storage.getProgress(),
       settings.get(),
     ]);
+
+    setDebugEnabled(config.debugMode);
+
+    debug.log('collection', 'Data loaded', {
+      bookCount: loadedBooks.length,
+      debugMode: config.debugMode,
+      loadout: progress.loadout,
+      booksWithCompanions: loadedBooks.filter(b => b.companions).length,
+    });
+
+    // Log companion counts for debugging
+    for (const book of loadedBooks) {
+      if (book.companions) {
+        const unlockedWithImages = book.companions.unlockedCompanions.filter(c => c.imageUrl).length;
+        const rtWithImages = book.companions.readingTimeQueue.companions.filter(c => c.imageUrl).length;
+        const poolWithImages = book.companions.poolQueue.companions.filter(c => c.imageUrl).length;
+        debug.log('collection', `Book "${book.title}" companions`, {
+          unlocked: book.companions.unlockedCompanions.length,
+          unlockedWithImages,
+          readingTimeQueue: book.companions.readingTimeQueue.companions.length,
+          rtWithImages,
+          poolQueue: book.companions.poolQueue.companions.length,
+          poolWithImages,
+        });
+      }
+    }
+
     setBooks(loadedBooks);
     setLootBoxes(progress.lootBoxes);
+    setLootBoxesV3(progress.lootBoxesV3 || []);
     setDebugMode(config.debugMode);
     setLoadout(progress.loadout || { slots: [null, null, null], unlockedSlots: 1 });
     setGenreLevels(progress.genreLevels || null);
+    setConfig(config);
+    debug.log('collection', 'loadData complete');
   }
 
   // Get equipped companion IDs
@@ -139,14 +176,30 @@ export default function CollectionScreen() {
 
   // Actually equip to a slot
   async function equipToSlot(companionId: string, slotIndex: number) {
-    if (!loadout) return;
+    debug.log('collection', 'equipToSlot called', { companionId, slotIndex });
+    if (!loadout) {
+      debug.warn('collection', 'equipToSlot: no loadout state');
+      return;
+    }
 
     try {
+      debug.log('collection', 'Calling equipCompanion', {
+        currentLoadout: loadout,
+        companionId,
+        slotIndex,
+      });
       const newLoadout = equipCompanion(loadout, companionId, slotIndex);
+      debug.log('collection', 'equipCompanion returned', { newLoadout });
+
       const progress = await storage.getProgress();
+      debug.log('collection', 'Saving progress with new loadout');
       await storage.saveProgress({ ...progress, loadout: newLoadout });
+      debug.log('collection', 'Progress saved successfully');
+
       setLoadout(newLoadout);
+      debug.log('collection', 'equipToSlot complete');
     } catch (error) {
+      debug.error('collection', 'equipToSlot failed', error);
       Alert.alert('Error', error instanceof Error ? error.message : 'Failed to equip companion');
     }
   }
@@ -230,8 +283,18 @@ export default function CollectionScreen() {
 
   // Debug: unlock a companion manually
   async function handleDebugUnlock(companion: DisplayCompanion) {
+    debug.log('collection', 'handleDebugUnlock called', {
+      companionId: companion.id,
+      companionName: companion.name,
+      bookId: companion.bookId,
+      hasImage: !!companion.imageUrl,
+    });
+
     const book = books.find(b => b.id === companion.bookId);
-    if (!book?.companions) return;
+    if (!book?.companions) {
+      debug.warn('collection', 'handleDebugUnlock: book not found or no companions');
+      return;
+    }
 
     Alert.alert(
       'Debug Unlock',
@@ -241,11 +304,20 @@ export default function CollectionScreen() {
         {
           text: 'Unlock',
           onPress: async () => {
+            debug.log('collection', 'Debug unlock confirmed', { companionId: companion.id });
+
             const unlockedCompanion: Companion = {
               ...companion,
               unlockMethod: 'reading_time',
               unlockedAt: Date.now(),
             };
+
+            debug.log('collection', 'Created unlocked companion', {
+              id: unlockedCompanion.id,
+              name: unlockedCompanion.name,
+              hasImage: !!unlockedCompanion.imageUrl,
+              imageUrl: unlockedCompanion.imageUrl?.substring(0, 60),
+            });
 
             // Remove from queue and add to unlocked
             const updatedBook = { ...book };
@@ -253,6 +325,7 @@ export default function CollectionScreen() {
 
             // Check reading time queue
             const rtIndex = updatedBook.companions.readingTimeQueue.companions.findIndex(c => c.id === companion.id);
+            debug.log('collection', 'Checking readingTimeQueue', { rtIndex });
             if (rtIndex !== -1) {
               updatedBook.companions.readingTimeQueue = {
                 ...updatedBook.companions.readingTimeQueue,
@@ -264,6 +337,7 @@ export default function CollectionScreen() {
 
             // Check pool queue
             const poolIndex = updatedBook.companions.poolQueue.companions.findIndex(c => c.id === companion.id);
+            debug.log('collection', 'Checking poolQueue', { poolIndex });
             if (poolIndex !== -1) {
               updatedBook.companions.poolQueue = {
                 ...updatedBook.companions.poolQueue,
@@ -279,8 +353,41 @@ export default function CollectionScreen() {
               unlockedCompanion,
             ];
 
+            debug.log('collection', 'Saving updated book', {
+              bookId: updatedBook.id,
+              unlockedCount: updatedBook.companions.unlockedCompanions.length,
+              unlockedWithImages: updatedBook.companions.unlockedCompanions.filter(c => c.imageUrl).length,
+            });
+
             await storage.saveBook(updatedBook);
+            debug.log('collection', 'Book saved, reloading data');
+
+            // Trigger background image generation for next companions in buffer
+            if (config?.apiKey && updatedBook.companions) {
+              debug.log('collection', 'Starting background image generation after debug unlock');
+              const generateImage = async (c: Companion) => {
+                debug.log('collection', `Generating image for "${c.name}"...`);
+                try {
+                  const url = await generateImageForCompanion(c, config.apiKey!, {
+                    model: config.imageModel,
+                    llmModel: config.llmModel,
+                  });
+                  debug.log('collection', `Image generated for "${c.name}"`);
+                  return url;
+                } catch (error) {
+                  debug.error('collection', `Image generation failed for "${c.name}"`, error);
+                  return null;
+                }
+              };
+              maybeGenerateImages(updatedBook, generateImage).then(async finalBook => {
+                await storage.saveBook(finalBook);
+                debug.log('collection', 'Background image generation complete');
+                await loadData(); // Refresh to show new images
+              });
+            }
+
             await loadData();
+            debug.log('collection', 'handleDebugUnlock complete');
           },
         },
       ]
@@ -299,7 +406,7 @@ export default function CollectionScreen() {
   const unlockedCount = allCompanions.filter(c => !c.isLocked).length;
   const lockedCount = allCompanions.filter(c => c.isLocked).length;
 
-  const boxCount = lootBoxes?.availableBoxes.length || 0;
+  const boxCount = (lootBoxes?.availableBoxes.length || 0) + lootBoxesV3.length;
 
   return (
     <ScrollView style={styles.container}>

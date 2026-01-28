@@ -2,7 +2,7 @@ import type { Companion, CompanionRarity } from './types';
 import { debug } from './debug';
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const DEFAULT_MODEL = 'google/gemini-2.5-flash-preview-05-20';
+const DEFAULT_MODEL = 'google/gemini-flash-1.5';
 
 export interface ImagePromptConfig {
   model?: string;

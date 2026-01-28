@@ -1,4 +1,5 @@
 import type { Book, BookCompanions, Companion } from './types';
+import { debug } from './debug';
 
 /**
  * Buffer sizes for pre-generated images
@@ -7,7 +8,9 @@ export const READING_TIME_BUFFER = 2;
 export const POOL_BUFFER = 3;
 
 /**
- * Get companions that need image generation to maintain buffers
+ * Get companions that need image generation to maintain buffers.
+ * Only counts LOCKED companions (those without unlockedAt) for buffer calculation.
+ * Unlocked companions have already been "consumed" from the queue.
  */
 export function getCompanionsNeedingImages(companions: BookCompanions): {
   readingTime: Companion[];
@@ -16,9 +19,13 @@ export function getCompanionsNeedingImages(companions: BookCompanions): {
   const readingTime: Companion[] = [];
   const pool: Companion[] = [];
 
-  // Check reading time queue - count images and collect needed
+  // Check reading time queue - only count LOCKED companions with images
   let readingTimeWithImages = 0;
   for (const companion of companions.readingTimeQueue.companions) {
+    // Skip unlocked companions - they've been "consumed" from the buffer
+    if (companion.unlockedAt) {
+      continue;
+    }
     if (companion.imageUrl) {
       readingTimeWithImages++;
     } else if (readingTimeWithImages < READING_TIME_BUFFER && readingTime.length < READING_TIME_BUFFER) {
@@ -26,15 +33,26 @@ export function getCompanionsNeedingImages(companions: BookCompanions): {
     }
   }
 
-  // Check pool queue - count images and collect needed
+  // Check pool queue - only count LOCKED companions with images
   let poolWithImages = 0;
   for (const companion of companions.poolQueue.companions) {
+    // Skip unlocked companions - they've been "consumed" from the buffer
+    if (companion.unlockedAt) {
+      continue;
+    }
     if (companion.imageUrl) {
       poolWithImages++;
     } else if (poolWithImages < POOL_BUFFER && pool.length < POOL_BUFFER) {
       pool.push(companion);
     }
   }
+
+  debug.log('imageQueue', 'getCompanionsNeedingImages result', {
+    readingTimeWithImages,
+    readingTimeNeeded: readingTime.map(c => c.name),
+    poolWithImages,
+    poolNeeded: pool.map(c => c.name),
+  });
 
   return { readingTime, pool };
 }
@@ -60,12 +78,23 @@ export async function generateBufferedImages(
   generateImage: (companion: Companion) => Promise<string | null>,
   onProgress?: (completed: number, total: number) => void
 ): Promise<BookCompanions> {
+  debug.log('imageQueue', 'generateBufferedImages starting', {
+    readingTimeCount: companions.readingTimeQueue.companions.length,
+    poolCount: companions.poolQueue.companions.length,
+    unlockedCount: companions.unlockedCompanions.length,
+  });
+
   const needed = getCompanionsNeedingImages(companions);
   const allNeeded = [...needed.readingTime, ...needed.pool];
 
   if (allNeeded.length === 0) {
+    debug.log('imageQueue', 'No companions need images, returning unchanged');
     return companions;
   }
+
+  debug.log('imageQueue', `Starting image generation for ${allNeeded.length} companions`, {
+    companions: allNeeded.map(c => ({ id: c.id, name: c.name, rarity: c.rarity })),
+  });
 
   const updated = { ...companions };
   updated.readingTimeQueue = { ...updated.readingTimeQueue };
@@ -76,15 +105,21 @@ export async function generateBufferedImages(
   let completed = 0;
 
   for (const companion of allNeeded) {
+    debug.log('imageQueue', `Generating image ${completed + 1}/${allNeeded.length}: "${companion.name}"`);
     try {
       const imageUrl = await generateImage(companion);
 
       if (imageUrl) {
+        debug.log('imageQueue', `Image generated for "${companion.name}"`, {
+          urlPreview: imageUrl.substring(0, 60) + '...',
+        });
+
         // Find and update the companion in the appropriate queue
         const readingIndex = updated.readingTimeQueue.companions.findIndex(
           c => c.id === companion.id
         );
         if (readingIndex !== -1) {
+          debug.log('imageQueue', `Updating readingTimeQueue[${readingIndex}] with image`);
           updated.readingTimeQueue.companions[readingIndex] = {
             ...updated.readingTimeQueue.companions[readingIndex],
             imageUrl,
@@ -99,6 +134,7 @@ export async function generateBufferedImages(
           c => c.id === companion.id
         );
         if (poolIndex !== -1) {
+          debug.log('imageQueue', `Updating poolQueue[${poolIndex}] with image`);
           updated.poolQueue.companions[poolIndex] = {
             ...updated.poolQueue.companions[poolIndex],
             imageUrl,
@@ -108,17 +144,25 @@ export async function generateBufferedImages(
             poolIndex + 1
           );
         }
+      } else {
+        debug.warn('imageQueue', `No image URL returned for "${companion.name}"`);
       }
 
       completed++;
       onProgress?.(completed, allNeeded.length);
     } catch (error) {
-      console.error(`Failed to generate image for ${companion.name}:`, error);
+      debug.error('imageQueue', `Failed to generate image for "${companion.name}"`, error);
       // Continue with other companions
       completed++;
       onProgress?.(completed, allNeeded.length);
     }
   }
+
+  debug.log('imageQueue', 'generateBufferedImages complete', {
+    generated: completed,
+    readingTimeWithImages: updated.readingTimeQueue.companions.filter(c => c.imageUrl).length,
+    poolWithImages: updated.poolQueue.companions.filter(c => c.imageUrl).length,
+  });
 
   return updated;
 }

@@ -41,7 +41,16 @@
       "Bash(do git show --stat \"$hash\")",
       "Bash(done)",
       "Bash(node:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(wc:*)",
+      "Bash(git -C /mnt/c/Users/micha/Projects/blah_read diff lib/companionEffects.ts __tests__/lib/companionEffects.test.ts)",
+      "Bash(git -C /mnt/c/Users/micha/Projects/blah_read add lib/companionEffects.ts __tests__/lib/companionEffects.test.ts)",
+      "Bash(git -C /mnt/c/Users/micha/Projects/blah_read commit -m \"$\\(cat <<''EOF''\nfeat\\(rewards-v3\\): add active effect calculation with genre targeting\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(npx ts-node:*)",
+      "Bash(git -C /mnt/c/Users/micha/Projects/blah_read diff app/\\\\\\(tabs\\\\\\)/collection.tsx)",
+      "Bash(git -C /mnt/c/Users/micha/Projects/blah_read add \"app/\\(tabs\\)/collection.tsx\")",
+      "Bash(git -C /mnt/c/Users/micha/Projects/blah_read commit -m \"$\\(cat <<''EOF''\nfeat\\(rewards-v3\\): add equip functionality to collection screen\n\nAdd loadout management to collection screen with full equip/unequip support:\n- Load user''s loadout and genre levels from storage\n- Add \"Equip\" button on companion cards with slot selector\n- Show equipped indicator with slot number\n- Display companion effects with formatted percentages\n- Show gating requirements \\(book level, genre level\\) when not met\n- Integrate with canEquipCompanion for requirement validation\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "WebFetch(domain:docs.bfl.ai)"
     ]
   }
 }

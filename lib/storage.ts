@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Book, ReadingSession, UserProgress } from './types';
 import { migrateData, CURRENT_VERSION } from './migrations';
+import { debug } from './debug';
 
 export interface DuplicateQuery {
   asin?: string;
@@ -74,11 +75,14 @@ function isRowTooBigError(error: unknown): boolean {
 
 export const storage = {
   async getBooks(): Promise<Book[]> {
+    debug.log('storage', 'getBooks called');
     let data: string | null;
     try {
       data = await AsyncStorage.getItem(KEYS.BOOKS);
+      debug.log('storage', `Raw data loaded: ${data ? data.length : 0} bytes`);
     } catch (error) {
       if (isRowTooBigError(error)) {
+        debug.error('storage', 'Books data corrupted (too large). Clearing...');
         console.error('[storage] Books data corrupted (too large). Clearing...');
         await AsyncStorage.removeItem(KEYS.BOOKS);
         return [];
@@ -86,12 +90,29 @@ export const storage = {
       throw error;
     }
     const books = data ? JSON.parse(data) : [];
+    debug.log('storage', `Parsed ${books.length} books`);
+
+    // Log companion counts for each book
+    for (const book of books) {
+      if (book.companions) {
+        debug.log('storage', `Book "${book.title}" companions`, {
+          unlockedCount: book.companions.unlockedCompanions?.length || 0,
+          unlockedWithImages: (book.companions.unlockedCompanions || []).filter((c: any) => c.imageUrl).length,
+          rtCount: book.companions.readingTimeQueue?.companions?.length || 0,
+          rtWithImages: (book.companions.readingTimeQueue?.companions || []).filter((c: any) => c.imageUrl).length,
+          poolCount: book.companions.poolQueue?.companions?.length || 0,
+          poolWithImages: (book.companions.poolQueue?.companions || []).filter((c: any) => c.imageUrl).length,
+        });
+      }
+    }
 
     if (!migrationComplete) {
+      debug.log('storage', 'Checking for migration...');
       const progressData = await AsyncStorage.getItem(KEYS.PROGRESS);
       const parsedProgress = progressData ? JSON.parse(progressData) : defaultProgress;
 
       if (!parsedProgress.version || parsedProgress.version < CURRENT_VERSION) {
+        debug.log('storage', `Migration needed: ${parsedProgress.version || 'none'} -> ${CURRENT_VERSION}`);
         const migrated = await migrateData(books, parsedProgress);
         await AsyncStorage.setItem(KEYS.BOOKS, JSON.stringify(migrated.books));
         await AsyncStorage.setItem(KEYS.PROGRESS, JSON.stringify(migrated.progress));
@@ -106,14 +127,37 @@ export const storage = {
   },
 
   async saveBook(book: Book): Promise<void> {
+    debug.log('storage', 'saveBook called', {
+      bookId: book.id,
+      title: book.title,
+      hasCompanions: !!book.companions,
+    });
+
+    if (book.companions) {
+      debug.log('storage', 'Book companions state', {
+        unlockedCount: book.companions.unlockedCompanions.length,
+        unlockedWithImages: book.companions.unlockedCompanions.filter(c => c.imageUrl).length,
+        readingTimeQueueCount: book.companions.readingTimeQueue.companions.length,
+        rtWithImages: book.companions.readingTimeQueue.companions.filter(c => c.imageUrl).length,
+        poolQueueCount: book.companions.poolQueue.companions.length,
+        poolWithImages: book.companions.poolQueue.companions.filter(c => c.imageUrl).length,
+      });
+    }
+
     const books = await this.getBooks();
     const index = books.findIndex(b => b.id === book.id);
     if (index >= 0) {
+      debug.log('storage', `Updating existing book at index ${index}`);
       books[index] = book;
     } else {
+      debug.log('storage', 'Adding new book');
       books.push(book);
     }
-    await AsyncStorage.setItem(KEYS.BOOKS, JSON.stringify(books));
+
+    const json = JSON.stringify(books);
+    debug.log('storage', `Saving ${books.length} books (${json.length} bytes)`);
+    await AsyncStorage.setItem(KEYS.BOOKS, json);
+    debug.log('storage', 'saveBook complete');
   },
 
   async deleteBook(id: string): Promise<void> {

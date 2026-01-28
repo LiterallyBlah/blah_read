@@ -8,7 +8,10 @@ import { useTheme } from '@/lib/ThemeContext';
 import { settings, Settings, exportAllData, resetApp, selectiveDelete, DeleteOptions } from '@/lib/settings';
 import { resetDebugCache } from '@/lib/debug';
 import { validateApiKey, validateImageModel } from '@/lib/openrouter';
+import { getImageStorageDiagnostics } from '@/lib/imageStorage';
+import { storage } from '@/lib/storage';
 import { FONTS } from '@/lib/theme';
+import type { LootBoxV3, LootBoxTier } from '@/lib/types';
 
 type ApiStatus = 'not set' | 'testing' | 'connected' | 'invalid';
 
@@ -28,8 +31,67 @@ export default function ConfigScreen() {
   const [imageModelValid, setImageModelValid] = useState<boolean | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>('api');
   const [deleteOptions, setDeleteOptions] = useState<DeleteOptions>(defaultDeleteOptions);
+  const [imageDiagnostics, setImageDiagnostics] = useState<{
+    directoryExists: boolean;
+    fileCount: number;
+    files: string[];
+    totalSize: number;
+  } | null>(null);
+  const [companionCounts, setCompanionCounts] = useState<{
+    total: number;
+    withImages: number;
+    books: { title: string; unlocked: number; withImages: number }[];
+  } | null>(null);
 
   useEffect(() => { loadConfig(); }, []);
+
+  async function addTestLootBox(tier: LootBoxTier) {
+    const progress = await storage.getProgress();
+    const newBox: LootBoxV3 = {
+      id: `debug-${tier}-${Date.now()}`,
+      tier,
+      earnedAt: Date.now(),
+      source: 'bonus_drop',
+    };
+    const updatedBoxes = [...(progress.lootBoxesV3 || []), newBox];
+    await storage.saveProgress({ ...progress, lootBoxesV3: updatedBoxes });
+    Alert.alert('Added', `Added 1 ${tier} loot box`);
+  }
+
+  async function loadDiagnostics() {
+    const diag = await getImageStorageDiagnostics();
+    setImageDiagnostics(diag);
+
+    // Also load companion counts
+    const books = await storage.getBooks();
+    let total = 0;
+    let withImages = 0;
+    const bookStats: { title: string; unlocked: number; withImages: number }[] = [];
+
+    for (const book of books) {
+      if (book.companions) {
+        const unlocked = book.companions.unlockedCompanions.length;
+        const rtCount = book.companions.readingTimeQueue.companions.length;
+        const poolCount = book.companions.poolQueue.companions.length;
+        const bookTotal = unlocked + rtCount + poolCount;
+        const bookWithImages = [
+          ...book.companions.unlockedCompanions,
+          ...book.companions.readingTimeQueue.companions,
+          ...book.companions.poolQueue.companions,
+        ].filter(c => c.imageUrl).length;
+
+        total += bookTotal;
+        withImages += bookWithImages;
+        bookStats.push({
+          title: book.title.substring(0, 25),
+          unlocked,
+          withImages: bookWithImages,
+        });
+      }
+    }
+
+    setCompanionCounts({ total, withImages, books: bookStats });
+  }
 
   async function loadConfig() {
     const c = await settings.get();
@@ -178,7 +240,7 @@ export default function ConfigScreen() {
             value={config.imageModel}
             onChangeText={v => { updateConfig({ imageModel: v }); setImageModelValid(null); }}
             onBlur={checkImageModel}
-            placeholder="bytedance-seed/seedream-4.5"
+            placeholder="google/gemini-2.5-flash-image"
             placeholderTextColor={colors.textMuted}
           />
           {imageModelValid === true && <Text style={[styles.hint, { color: colors.success }]}>✓ supports image output</Text>}
@@ -437,6 +499,68 @@ export default function ConfigScreen() {
           <Text style={styles.hint}>shows all companions (locked + unlocked) in collection</Text>
           <Text style={styles.hint}>allows manual unlock by tapping locked companions</Text>
           <Text style={styles.hint}>enables detailed console logging (expo run)</Text>
+
+          {config.debugMode && (
+            <>
+              <View style={styles.divider} />
+
+              <Text style={[styles.label, { color: '#f59e0b' }]}>storage diagnostics_</Text>
+              <Pressable
+                style={[styles.actionButton, { borderColor: '#f59e0b' }]}
+                onPress={loadDiagnostics}
+              >
+                <Text style={[styles.actionButtonText, { color: '#f59e0b' }]}>[refresh diagnostics]</Text>
+              </Pressable>
+
+              {imageDiagnostics && (
+                <View style={{ marginTop: spacing(3), padding: spacing(3), borderWidth: 1, borderColor: '#f59e0b', borderStyle: 'dashed' }}>
+                  <Text style={[styles.hint, { color: '#f59e0b' }]}>image storage:</Text>
+                  <Text style={styles.hint}>  directory exists: {imageDiagnostics.directoryExists ? 'yes' : 'no'}</Text>
+                  <Text style={styles.hint}>  file count: {imageDiagnostics.fileCount}</Text>
+                  <Text style={styles.hint}>  total size: {(imageDiagnostics.totalSize / 1024).toFixed(1)} KB</Text>
+                  {imageDiagnostics.files.length > 0 && (
+                    <Text style={[styles.hint, { fontSize: 9 }]}>  files: {imageDiagnostics.files.slice(0, 5).join(', ')}{imageDiagnostics.files.length > 5 ? '...' : ''}</Text>
+                  )}
+                </View>
+              )}
+
+              {companionCounts && (
+                <View style={{ marginTop: spacing(3), padding: spacing(3), borderWidth: 1, borderColor: '#f59e0b', borderStyle: 'dashed' }}>
+                  <Text style={[styles.hint, { color: '#f59e0b' }]}>companion data:</Text>
+                  <Text style={styles.hint}>  total companions: {companionCounts.total}</Text>
+                  <Text style={styles.hint}>  with images: {companionCounts.withImages}</Text>
+                  {companionCounts.books.map((book, i) => (
+                    <Text key={i} style={[styles.hint, { fontSize: 9 }]}>  {book.title}: {book.unlocked} unlocked, {book.withImages} with images</Text>
+                  ))}
+                </View>
+              )}
+
+              <View style={styles.divider} />
+
+              <Text style={[styles.label, { color: '#f59e0b' }]}>add test loot boxes_</Text>
+              <View style={[styles.row, { marginTop: spacing(2) }]}>
+                <Pressable
+                  style={[styles.actionButton, { borderColor: '#8B4513', flex: 1 }]}
+                  onPress={() => addTestLootBox('wood')}
+                >
+                  <Text style={[styles.actionButtonText, { color: '#8B4513' }]}>[+ wood]</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.actionButton, { borderColor: '#C0C0C0', flex: 1 }]}
+                  onPress={() => addTestLootBox('silver')}
+                >
+                  <Text style={[styles.actionButtonText, { color: '#C0C0C0' }]}>[+ silver]</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.actionButton, { borderColor: '#FFD700', flex: 1 }]}
+                  onPress={() => addTestLootBox('gold')}
+                >
+                  <Text style={[styles.actionButtonText, { color: '#FFD700' }]}>[+ gold]</Text>
+                </Pressable>
+              </View>
+              <Text style={styles.hint}>adds loot boxes for testing rewards</Text>
+            </>
+          )}
         </View>
       )}
     </ScrollView>
