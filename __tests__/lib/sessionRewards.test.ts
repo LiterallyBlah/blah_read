@@ -674,6 +674,115 @@ describe('sessionRewards', () => {
       });
     });
 
+    describe('combineEffects with new luck types', () => {
+      it('should combine all three luck types from companions and consumables', () => {
+        const mockBook = createMockBook({ normalizedGenres: ['fantasy'] });
+        const mockProgress = createMockProgress({
+          activeConsumables: [
+            { consumableId: 'weak_luck_1', remainingDuration: 60, appliedAt: Date.now() }, // +5% luck
+          ],
+        });
+
+        // Companion with legendary_luck effect
+        const companion: Companion = {
+          id: 'c1',
+          bookId: 'book-1',
+          name: 'Lucky Dragon',
+          type: 'creature',
+          rarity: 'legendary',
+          description: 'A dragon that brings legendary luck',
+          traits: 'lucky',
+          visualDescription: 'A golden dragon',
+          imageUrl: null,
+          source: 'discovered',
+          unlockMethod: 'reading_time',
+          unlockedAt: Date.now(),
+          effects: [{ type: 'legendary_luck', magnitude: 0.25 }],
+        };
+
+        const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
+
+        // weak_luck_1 consumable provides +5% luck
+        expect(result.activeEffects.luck).toBeCloseTo(0.05);
+        // Companion provides +25% legendary luck
+        expect(result.activeEffects.legendaryLuck).toBeCloseTo(0.25);
+      });
+
+      it('should combine rare_luck from companion with other luck types', () => {
+        const mockBook = createMockBook({ normalizedGenres: ['fantasy'] });
+        const mockProgress = createMockProgress({
+          activeConsumables: [
+            { consumableId: 'weak_luck_1', remainingDuration: 60, appliedAt: Date.now() }, // +5% luck
+          ],
+        });
+
+        // Companion with rare_luck effect
+        const companion: Companion = {
+          id: 'c2',
+          bookId: 'book-1',
+          name: 'Silver Fox',
+          type: 'creature',
+          rarity: 'rare',
+          description: 'A fox that brings rare luck',
+          traits: 'cunning',
+          visualDescription: 'A silver fox',
+          imageUrl: null,
+          source: 'discovered',
+          unlockMethod: 'reading_time',
+          unlockedAt: Date.now(),
+          effects: [{ type: 'rare_luck', magnitude: 0.15 }],
+        };
+
+        const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
+
+        expect(result.activeEffects.luck).toBeCloseTo(0.05); // from consumable
+        expect(result.activeEffects.rareLuck).toBeCloseTo(0.15); // from companion
+        expect(result.activeEffects.legendaryLuck).toBe(0); // none present
+      });
+
+      it('should stack luck effects from multiple companions', () => {
+        const mockBook = createMockBook({ normalizedGenres: ['fantasy'] });
+        const mockProgress = createMockProgress();
+
+        const companion1 = createMockCompanion('comp-1', [
+          { type: 'luck', magnitude: 0.10 },
+        ]);
+        const companion2 = createMockCompanion('comp-2', [
+          { type: 'rare_luck', magnitude: 0.15 },
+        ]);
+        const companion3 = createMockCompanion('comp-3', [
+          { type: 'legendary_luck', magnitude: 0.20 },
+        ]);
+
+        const result = processSessionEnd(
+          mockBook,
+          mockProgress,
+          [companion1, companion2, companion3],
+          3600
+        );
+
+        expect(result.activeEffects.luck).toBeCloseTo(0.10);
+        expect(result.activeEffects.rareLuck).toBeCloseTo(0.15);
+        expect(result.activeEffects.legendaryLuck).toBeCloseTo(0.20);
+      });
+
+      it('should return zero for all luck types when no luck effects present', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+
+        // Companion with only XP boost, no luck
+        const companion = createMockCompanion('comp-1', [
+          { type: 'xp_boost', magnitude: 0.20, targetGenre: 'fantasy' },
+        ]);
+
+        const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
+
+        expect(result.activeEffects.luck).toBe(0);
+        expect(result.activeEffects.rareLuck).toBe(0);
+        expect(result.activeEffects.legendaryLuck).toBe(0);
+      });
+    });
+
     describe('edge cases', () => {
       it('should handle book with no genres', () => {
         const mockBook = createMockBook({ normalizedGenres: [] });
