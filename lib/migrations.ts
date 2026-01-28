@@ -1,6 +1,29 @@
-import type { Book, UserProgress, Companion } from './types';
+import type { Book, UserProgress, Companion, GenreLevels, CompanionLoadout, SlotUnlockProgress } from './types';
+import { GENRES, Genre, mapToCanonicalGenres } from './genres';
 
-export const CURRENT_VERSION = 2;
+export const CURRENT_VERSION = 3;
+
+// Default values for V3 fields
+const DEFAULT_GENRE_LEVELS: GenreLevels = GENRES.reduce((acc, genre) => {
+  acc[genre] = 0;
+  return acc;
+}, {} as GenreLevels);
+
+const DEFAULT_LOADOUT: CompanionLoadout = {
+  slots: [null, null, null],
+  unlockedSlots: 1,
+};
+
+const DEFAULT_SLOT_PROGRESS: SlotUnlockProgress = {
+  slot2Points: 0,
+  slot3Points: 0,
+  booksFinished: 0,
+  hoursLogged: 0,
+  companionsCollected: 0,
+  sessionsCompleted: 0,
+  genreLevelTens: [],
+  genresRead: [],
+};
 
 export async function migrateData(
   books: Book[],
@@ -57,6 +80,100 @@ export async function migrateData(
     };
 
     version = 2;
+  }
+
+  // Migration v2 -> v3: Add Reward System V3 fields
+  if (version < 3) {
+    // Migrate books: add normalizedGenres and progression
+    migratedBooks = migratedBooks.map(book => {
+      const updates: Partial<Book> = {};
+
+      // Add normalized genres from existing genres field
+      if (!book.normalizedGenres && book.genres && book.genres.length > 0) {
+        updates.normalizedGenres = mapToCanonicalGenres(book.genres);
+      } else if (!book.normalizedGenres) {
+        updates.normalizedGenres = [];
+      }
+
+      // Add book progression based on existing reading time
+      if (!book.progression) {
+        const totalSeconds = book.totalReadingTime || 0;
+        const level = Math.floor(totalSeconds / 3600); // 1 level per hour
+        updates.progression = {
+          level,
+          totalSeconds,
+          levelUps: [], // Historical level ups not tracked
+        };
+      }
+
+      return { ...book, ...updates };
+    });
+
+    // Calculate initial genre levels from book reading time
+    const genreLevels: GenreLevels = { ...DEFAULT_GENRE_LEVELS };
+    for (const book of migratedBooks) {
+      if (book.normalizedGenres && book.progression) {
+        for (const genre of book.normalizedGenres) {
+          // Add book's level to genre level
+          genreLevels[genre] = (genreLevels[genre] || 0) + book.progression.level;
+        }
+      }
+    }
+
+    // Calculate slot progress from existing data
+    const slotProgress: SlotUnlockProgress = {
+      ...DEFAULT_SLOT_PROGRESS,
+      booksFinished: migratedProgress.booksFinished || 0,
+      hoursLogged: Math.floor((migratedProgress.totalHoursRead || 0)),
+      companionsCollected: migratedBooks.reduce((count, book) => {
+        return count + (book.companions?.unlockedCompanions?.length || 0);
+      }, 0),
+      sessionsCompleted: 0, // Not tracked in v2
+      genreLevelTens: Object.entries(genreLevels)
+        .filter(([_, level]) => level >= 10)
+        .map(([genre]) => genre),
+      genresRead: [...new Set(migratedBooks.flatMap(book => book.normalizedGenres || []))],
+    };
+
+    // Determine how many slots should be unlocked based on progress
+    let unlockedSlots = 1;
+    const slot2Points =
+      Math.min(slotProgress.booksFinished, 1) * 50 + // First book finished
+      slotProgress.hoursLogged * 15 + // Hours logged
+      slotProgress.companionsCollected * 20 + // Companions collected
+      slotProgress.sessionsCompleted * 10; // Sessions completed
+
+    const slot3Points =
+      slotProgress.booksFinished * 40 +
+      slotProgress.hoursLogged * 10 +
+      slotProgress.companionsCollected * 15 +
+      slotProgress.genreLevelTens.length * 50 +
+      slotProgress.genresRead.length * 30;
+
+    if (slot2Points >= 100) {
+      unlockedSlots = 2;
+    }
+    if (slot3Points >= 300 && unlockedSlots >= 2) {
+      unlockedSlots = 3;
+    }
+
+    slotProgress.slot2Points = slot2Points;
+    slotProgress.slot3Points = slot3Points;
+
+    // Migrate progress: add V3 fields
+    migratedProgress = {
+      ...migratedProgress,
+      genreLevels: migratedProgress.genreLevels || genreLevels,
+      loadout: migratedProgress.loadout || {
+        ...DEFAULT_LOADOUT,
+        unlockedSlots,
+      },
+      slotProgress: migratedProgress.slotProgress || slotProgress,
+      activeConsumables: migratedProgress.activeConsumables || [],
+      lootBoxesV3: migratedProgress.lootBoxesV3 || [],
+    };
+
+    version = 3;
   }
 
   return {
