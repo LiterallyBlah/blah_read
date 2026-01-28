@@ -154,6 +154,11 @@ export default function BookDetailScreen() {
         .map(id => allCompanions.find(c => c.id === id))
         .filter((c): c is Companion => c !== undefined);
 
+      // Log warning if any equipped companion wasn't found (e.g., book was deleted)
+      if (equippedCompanions.length < equippedIds.length) {
+        console.warn(`[book completion] ${equippedIds.length - equippedCompanions.length} equipped companion(s) not found in library`);
+      }
+
       // Process V3 completion rewards (0 additional seconds, isCompletion=true)
       const sessionResult = processSessionEnd(
         book,
@@ -197,7 +202,7 @@ export default function BookDetailScreen() {
         }
       }
 
-      // Update booksFinished and check legacy loot box rewards
+      // Update booksFinished (sessionRewards doesn't track this) and check legacy loot box rewards
       const previousProgress = { ...progress };
       updatedProgress.booksFinished = (updatedProgress.booksFinished || 0) + 1;
 
