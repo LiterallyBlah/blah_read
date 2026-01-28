@@ -49,6 +49,25 @@ describe('types', () => {
   });
 });
 
+describe('UserProgress V4 fields', () => {
+  it('should support goldPityCounter field', () => {
+    const progress: UserProgress = {
+      totalXp: 0,
+      level: 1,
+      currentStreak: 0,
+      longestStreak: 0,
+      lastReadDate: null,
+      lootItems: [],
+      lootBoxes: { availableBoxes: [], openHistory: [] },
+      booksFinished: 0,
+      booksAdded: 0,
+      totalHoursRead: 0,
+      goldPityCounter: 5,
+    };
+    expect(progress.goldPityCounter).toBe(5);
+  });
+});
+
 describe('Companion type', () => {
   it('supports both visualDescription and physicalDescription', () => {
     const companion: Companion = {

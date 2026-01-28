@@ -165,6 +165,7 @@ export interface UserProgress {
   slotProgress?: SlotUnlockProgress; // Slot unlock tracking
   activeConsumables?: ActiveConsumable[]; // Active consumable effects
   lootBoxesV3?: LootBoxV3[]; // Tiered loot boxes
+  goldPityCounter?: number; // Pity counter for gold boxes, resets on gold
 }
 
 export interface LootItem {
