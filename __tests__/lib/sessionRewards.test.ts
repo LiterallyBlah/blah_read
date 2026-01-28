@@ -541,6 +541,50 @@ describe('sessionRewards', () => {
       });
     });
 
+    describe('streak multiplier', () => {
+      it('should apply 1.2x streak multiplier at 3-day streak', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress({ currentStreak: 3 });
+
+        // 60 minutes = 600 base XP * 1.2 streak = 720 XP
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(result.xpGained).toBe(720);
+      });
+
+      it('should apply 1.5x streak multiplier at 7-day streak', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress({ currentStreak: 7 });
+
+        // 60 minutes = 600 base XP * 1.5 streak = 900 XP
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(result.xpGained).toBe(900);
+      });
+
+      it('should stack streak multiplier with XP boost', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress({ currentStreak: 3 });
+        const companion = createMockCompanion('comp-1', [
+          { type: 'xp_boost', magnitude: 0.20, targetGenre: 'fantasy' },
+        ]);
+
+        // 600 base * 1.2 streak * (1 + 0.20 boost) = 864 XP
+        const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
+
+        expect(result.xpGained).toBe(864);
+      });
+
+      it('should apply no multiplier for streak under 3', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress({ currentStreak: 2 });
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(result.xpGained).toBe(600);
+      });
+    });
+
     describe('edge cases', () => {
       it('should handle book with no genres', () => {
         const mockBook = createMockBook({ normalizedGenres: [] });

@@ -11,6 +11,7 @@ import { processReadingTime, calculateCompletionBonus } from './bookLeveling';
 import { calculateActiveEffects, ActiveEffects } from './companionEffects';
 import { getActiveEffects as getConsumableEffects, tickConsumables } from './consumableManager';
 import { rollBoxTier, rollBonusDrop } from './lootV3';
+import { getStreakMultiplier } from './xp';
 
 // Constants
 export const BASE_XP_PER_MINUTE = 10;
@@ -131,9 +132,10 @@ export function processSessionEnd(
     newLevel += completionBonusLevels;
   }
 
-  // Step 6: Calculate XP (BASE_XP_PER_MINUTE=10, apply boost)
+  // Step 6: Calculate XP (BASE_XP_PER_MINUTE=10, apply boost and streak)
   const minutes = sessionSeconds / 60;
-  const baseXp = Math.round(minutes * BASE_XP_PER_MINUTE);
+  const streakMultiplier = getStreakMultiplier(progress.currentStreak);
+  const baseXp = Math.round(minutes * BASE_XP_PER_MINUTE * streakMultiplier);
   const xpGained = Math.round(baseXp * (1 + totalXpBoost));
 
   // Step 7: Calculate genre level increases (1 per book level for each book genre)
