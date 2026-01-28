@@ -6,6 +6,7 @@ import { storage } from '@/lib/storage';
 import { enrichBookData } from '@/lib/bookEnrichment';
 import { getNextMilestone } from '@/lib/companionUnlock';
 import { checkLootBoxRewards } from '@/lib/lootBox';
+import { processSessionEnd } from '@/lib/sessionRewards';
 import { generateBufferedImages } from '@/lib/companionImageQueue';
 import { generateImageForCompanion } from '@/lib/imageGen';
 import { Book, BookStatus, CompanionRarity } from '@/lib/types';
@@ -136,9 +137,40 @@ export default function BookDetailScreen() {
     if (status === 'finished') {
       updatedBook.finishedAt = Date.now();
 
-      // Handle legendary unlock for book completion
+      // Load progress and equipped companions for V3 rewards
+      const progress = await storage.getProgress();
+      const loadout = progress.loadout || { slots: [null, null, null], unlockedSlots: 1 };
+
+      // Get equipped companions
+      const books = await storage.getBooks();
+      const allCompanions: Companion[] = [];
+      for (const b of books) {
+        if (b.companions?.unlockedCompanions) {
+          allCompanions.push(...b.companions.unlockedCompanions);
+        }
+      }
+      const equippedIds = loadout.slots.filter((id): id is string => id !== null);
+      const equippedCompanions = equippedIds
+        .map(id => allCompanions.find(c => c.id === id))
+        .filter((c): c is Companion => c !== undefined);
+
+      // Process V3 completion rewards (0 additional seconds, isCompletion=true)
+      const sessionResult = processSessionEnd(
+        book,
+        progress,
+        equippedCompanions,
+        0,
+        true // isCompletion
+      );
+
+      // Use updated book from session processor (has new progression)
+      Object.assign(updatedBook, sessionResult.updatedBook);
+
+      // Merge V3 progress updates
+      let updatedProgress = sessionResult.updatedProgress;
+
+      // Handle legendary unlock for book completion (existing logic)
       if (book.companions) {
-        // Find an unlocked legendary in the pool queue
         const legendaryIndex = book.companions.poolQueue.companions.findIndex(
           c => c.rarity === 'legendary' && !c.unlockedAt
         );
@@ -161,23 +193,41 @@ export default function BookDetailScreen() {
             unlockedCompanions: [...book.companions.unlockedCompanions, legendary],
           };
 
-          // Show celebration!
           setCompletionLegendary(legendary);
         }
       }
 
-      // Update progress for loot box rewards
-      const progress = await storage.getProgress();
+      // Update booksFinished and check legacy loot box rewards
       const previousProgress = { ...progress };
-      progress.booksFinished = (progress.booksFinished || 0) + 1;
+      updatedProgress.booksFinished = (updatedProgress.booksFinished || 0) + 1;
 
-      // Check for loot box rewards from finishing book
-      const newBoxes = checkLootBoxRewards(previousProgress, progress);
+      const newBoxes = checkLootBoxRewards(previousProgress, updatedProgress);
       if (newBoxes.length > 0) {
-        progress.lootBoxes.availableBoxes.push(...newBoxes);
+        updatedProgress.lootBoxes.availableBoxes.push(...newBoxes);
       }
 
-      await storage.saveProgress(progress);
+      await storage.saveProgress(updatedProgress);
+
+      // Show completion notification with V3 rewards
+      if (sessionResult.bookLevelsGained > 0 || sessionResult.lootBoxes.length > 0) {
+        const notifications: string[] = [];
+
+        if (sessionResult.bookLevelsGained > 0) {
+          notifications.push(`+${sessionResult.bookLevelsGained} completion bonus levels!`);
+        }
+        if (sessionResult.xpGained > 0) {
+          notifications.push(`+${sessionResult.xpGained} XP`);
+        }
+        if (sessionResult.lootBoxes.length > 0) {
+          notifications.push(`${sessionResult.lootBoxes.length} loot box${sessionResult.lootBoxes.length > 1 ? 'es' : ''}`);
+        }
+
+        Alert.alert(
+          'Book Complete!',
+          notifications.join('\n'),
+          [{ text: 'OK' }]
+        );
+      }
     }
 
     await storage.saveBook(updatedBook);
