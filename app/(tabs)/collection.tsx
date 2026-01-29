@@ -14,6 +14,7 @@ import type { Settings } from '@/lib/settings';
 import { equipCompanion, unequipCompanion, getEquippedCompanionIds, isSlotUnlocked } from '@/lib/loadout';
 import { canEquipCompanion, EFFECT_TYPES, EquipRequirements, CompanionEffect } from '@/lib/companionEffects';
 import { GENRE_DISPLAY_NAMES, Genre } from '@/lib/genres';
+import { PixelSprite } from '@/components/dungeon';
 
 type FilterType = 'all' | 'character' | 'creature' | 'object';
 type RarityFilter = 'all' | 'common' | 'rare' | 'legendary';
@@ -461,8 +462,9 @@ export default function CollectionScreen() {
           style={styles.lootBoxBanner}
           onPress={() => router.push('/loot-box')}
         >
+          <PixelSprite tile="chest_wood_closed" scale={2} />
           <Text style={styles.lootBoxText}>
-            [ {boxCount} box{boxCount !== 1 ? 'es' : ''} to open ]
+            {boxCount} box{boxCount !== 1 ? 'es' : ''} to open
           </Text>
         </Pressable>
       )}
@@ -846,12 +848,14 @@ function createStyles(
       color: colors.textSecondary,
     },
     lootBoxBanner: {
+      flexDirection: 'row',
       marginHorizontal: spacing(6),
       marginBottom: spacing(4),
       padding: spacing(4),
       borderWidth: 1,
       borderColor: colors.border,
       alignItems: 'center',
+      gap: spacing(3),
     },
     lootBoxText: {
       fontFamily: FONTS.mono,
