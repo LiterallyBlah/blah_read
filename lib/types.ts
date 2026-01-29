@@ -175,3 +175,12 @@ export interface LootItem {
   rarity: 'common' | 'rare' | 'epic' | 'legendary';
   earnedAt: number;
 }
+
+// Timer recovery data for interrupted sessions
+export interface TimerRecoveryData {
+  bookId: string;
+  bookTitle: string;
+  elapsedAtInterruption: number; // seconds
+  totalElapsedIfContinued: number; // seconds (from startTimestamp to now)
+  interruptedAt: number; // timestamp
+}
