@@ -3,7 +3,9 @@ import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
 import type { Companion, LootBoxTier } from '@/lib/types';
-import type { ConsumableDefinition } from '@/lib/consumables';
+import { formatDuration, type ConsumableDefinition } from '@/lib/consumables';
+import { ChestReveal } from './dungeon/ChestReveal';
+import { ConsumableIcon } from './dungeon/ConsumableIcon';
 
 interface Props {
   companion: Companion | null;
@@ -28,8 +30,27 @@ const CONSUMABLE_TIER_COLORS = {
   strong: 'rarityLegendary',
 } as const;
 
+
 export function LootBoxReveal({ companion, consumable, boxTier, onDismiss, hasMoreBoxes, onOpenAnother }: Props) {
-  const { colors, spacing, fontSize } = useTheme();
+  const { colors, spacing, fontSize, themeName } = useTheme();
+
+  // Use ChestReveal for dungeon theme
+  if (themeName === 'dungeon' && boxTier) {
+    const category = consumable ? 'consumable' : 'companion';
+    return (
+      <ChestReveal
+        tier={boxTier}
+        category={category}
+        companion={companion}
+        consumable={consumable}
+        onComplete={onDismiss}
+        hasMoreBoxes={hasMoreBoxes}
+        onOpenAnother={onOpenAnother}
+      />
+    );
+  }
+
+  // Fallback to original reveal for other themes
   const styles = createStyles(colors, spacing, fontSize);
 
   const rarityColors: Record<string, string> = {
@@ -61,9 +82,7 @@ export function LootBoxReveal({ companion, consumable, boxTier, onDismiss, hasMo
         <View style={[styles.card, { borderColor: consumableTierColor }]}>
           {/* Consumable icon */}
           <View style={[styles.imagePlaceholder, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.consumableIcon, { color: consumableTierColor }]}>
-              {consumable.tier === 'strong' ? '' : consumable.tier === 'medium' ? '' : ''}
-            </Text>
+            <ConsumableIcon effectType={consumable.effectType} tier={consumable.tier} />
           </View>
 
           <Text style={[styles.name, { color: colors.text }]}>
@@ -84,7 +103,7 @@ export function LootBoxReveal({ companion, consumable, boxTier, onDismiss, hasMo
 
           {consumable.duration > 0 && (
             <Text style={[styles.source, { color: colors.textMuted }]}>
-              {consumable.duration} session{consumable.duration !== 1 ? 's' : ''}
+              {formatDuration(consumable.duration)}
             </Text>
           )}
           {consumable.duration === 0 && (
