@@ -135,7 +135,7 @@ export default function TimerScreen() {
       bookLevelsGained: sessionResult.bookLevelsGained,
       newBookLevel: sessionResult.newBookLevel,
       lootBoxesEarned: sessionResult.lootBoxes.length,
-      bonusDrop: sessionResult.bonusDropTriggered,
+      bonusDrop: sessionResult.bonusDropCount,
     });
 
     // Use the updated book and progress from session processor

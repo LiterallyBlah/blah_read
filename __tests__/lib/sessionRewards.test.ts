@@ -118,8 +118,8 @@ describe('sessionRewards', () => {
         const mockBook = createMockBook();
         const mockProgress = createMockProgress();
 
-        // 30 minutes = no level
-        const result = processSessionEnd(mockBook, mockProgress, [], 1800);
+        // 4 minutes = no level, under checkpoint minimum
+        const result = processSessionEnd(mockBook, mockProgress, [], 240);
 
         expect(result.bookLevelsGained).toBe(0);
         expect(result.newBookLevel).toBe(0);
