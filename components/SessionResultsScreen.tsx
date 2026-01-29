@@ -21,6 +21,7 @@ import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
 import { SessionResultsData } from '@/lib/sessionResultsData';
 import { HeroEvent } from '@/lib/heroEvents';
+import { DungeonBar, PixelSprite } from '@/components/dungeon';
 
 interface Props {
   data: SessionResultsData;
@@ -52,6 +53,7 @@ export function SessionResultsScreen({ data, bookTitle, onContinue }: Props) {
           <View style={styles.rewardsRow}>
             {data.lootBoxBreakdown.total > 0 && (
               <View style={styles.rewardItem}>
+                <PixelSprite tile="chest_wood_closed" scale={3} />
                 <Text style={styles.rewardValue}>{data.lootBoxBreakdown.total}</Text>
                 <Text style={styles.rewardLabel}>
                   loot box{data.lootBoxBreakdown.total !== 1 ? 'es' : ''}
@@ -277,16 +279,12 @@ function MilestoneRow({
           {remaining}
         </Text>
       </View>
-      <View style={{ height: 8, backgroundColor: colors.border, borderRadius: 4 }}>
-        <View
-          style={{
-            height: 8,
-            width: `${progressPercent}%`,
-            backgroundColor: colors.primary,
-            borderRadius: 4,
-          }}
-        />
-      </View>
+      <DungeonBar
+        value={progressPercent}
+        max={100}
+        color="amber"
+        height={8}
+      />
     </View>
   );
 }
