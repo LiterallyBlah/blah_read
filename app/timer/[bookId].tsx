@@ -1,6 +1,6 @@
 // Clean OLED-black focus screen per spec - monochrome typewriter aesthetic
 import { useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Image, Alert } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useTimer } from '@/hooks/useTimer';
@@ -20,6 +20,7 @@ import { processSessionEnd } from '@/lib/sessionRewards';
 import { getEquippedCompanionIds } from '@/lib/loadout';
 import { calculateActiveEffects, ActiveEffects } from '@/lib/companionEffects';
 import { getActiveEffects as getConsumableEffects } from '@/lib/consumableManager';
+import { buildSessionResultsData } from '@/lib/sessionResultsData';
 
 export default function TimerScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();
@@ -102,6 +103,7 @@ export default function TimerScreen() {
 
     const progress = await storage.getProgress();
     const previousTime = book.totalReadingTime;
+    const previousStreak = progress.currentStreak;
 
     // Update streak
     const today = getDateString();
@@ -217,61 +219,8 @@ export default function TimerScreen() {
       level: updatedProgress.level,
     });
 
-    // Show notifications for V3 rewards
-    const notifications: string[] = [];
-
-    if (sessionResult.bookLevelsGained > 0) {
-      notifications.push(`book level ${sessionResult.newBookLevel}!`);
-    }
-
-    if (sessionResult.lootBoxes.length > 0) {
-      const boxCount = sessionResult.lootBoxes.length;
-      notifications.push(`${boxCount} loot box${boxCount > 1 ? 'es' : ''} earned`);
-    }
-
-    if (sessionResult.bonusDropTriggered) {
-      notifications.push('bonus drop!');
-    }
-
-    if (notifications.length > 0) {
-      Alert.alert(
-        'Session Complete',
-        `+${sessionResult.xpGained} XP\n${notifications.join('\n')}`,
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
-    } else {
-      // Trigger background image generation for next unlocks
-      if (updatedBook.companions) {
-        if (config.apiKey) {
-          debug.log('timer', 'Starting background image generation...');
-          const generateImage = async (companion: Companion) => {
-            debug.log('timer', `Generating image for "${companion.name}"...`);
-            try {
-              const url = await generateImageForCompanion(companion, config.apiKey!, {
-                model: config.imageModel,
-              });
-              debug.log('timer', `Image generated for "${companion.name}"`);
-              return url;
-            } catch (error) {
-              debug.error('timer', `Failed to generate image for ${companion.name}`, error);
-              return null;
-            }
-          };
-          maybeGenerateImages(updatedBook, generateImage).then(async finalBook => {
-            await storage.saveBook(finalBook);
-            debug.log('timer', 'Background image generation complete');
-          });
-        } else {
-          debug.warn('timer', 'Skipping image generation - no API key');
-        }
-      }
-
-      debug.log('timer', 'Session end complete, navigating back');
-      router.back();
-    }
-
-    // Start background image generation even when showing notifications
-    if (notifications.length > 0 && updatedBook.companions && config.apiKey) {
+    // Trigger background image generation for next unlocks
+    if (updatedBook.companions && config.apiKey) {
       debug.log('timer', 'Starting background image generation...');
       const generateImage = async (companion: Companion) => {
         debug.log('timer', `Generating image for "${companion.name}"...`);
@@ -291,6 +240,24 @@ export default function TimerScreen() {
         debug.log('timer', 'Background image generation complete');
       });
     }
+
+    // Build session results data and navigate to results screen
+    const resultsData = buildSessionResultsData(
+      sessionResult,
+      elapsed,
+      unlockedCompanions,
+      previousStreak,
+      updatedProgress.currentStreak
+    );
+
+    debug.log('timer', 'Session end complete, navigating to results screen');
+    router.push({
+      pathname: '/session-results',
+      params: {
+        data: JSON.stringify(resultsData),
+        bookTitle: book.title,
+      },
+    });
   }
 
   // Format active effects for display
