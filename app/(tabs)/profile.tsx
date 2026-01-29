@@ -8,8 +8,9 @@ import { Book, UserProgress, Companion } from '@/lib/types';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 import { GENRES, GENRE_DISPLAY_NAMES, Genre } from '@/lib/genres';
-import { getConsumableById } from '@/lib/consumables';
+import { getConsumableById, formatDuration } from '@/lib/consumables';
 import { calculateSlot2Progress, calculateSlot3Progress, SLOT_2_POINTS, SLOT_3_POINTS } from '@/lib/slotProgress';
+import { DungeonBar, DungeonCard, ConsumableIcon } from '@/components/dungeon';
 
 export default function ProfileScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();
@@ -84,10 +85,13 @@ export default function ProfileScreen() {
 
         {/* XP progress */}
         <View style={styles.xpSection}>
-          <View style={styles.xpBar}>
-            <View style={[styles.xpFill, { width: `${(xp.current / xp.needed) * 100}%` }]} />
-          </View>
-          <Text style={styles.xpText}>{xp.current} / {xp.needed} xp to next level</Text>
+          <DungeonBar
+            value={xp.current}
+            max={xp.needed}
+            color="amber"
+            showText
+          />
+          <Text style={styles.xpText}>xp to next level</Text>
         </View>
       </View>
 
@@ -150,13 +154,24 @@ export default function ProfileScreen() {
               if (!consumable) return null;
 
               return (
-                <View key={`${ac.consumableId}-${index}`} style={styles.consumableItem}>
-                  <Text style={styles.consumableName}>{consumable.name.toLowerCase()}</Text>
-                  <Text style={styles.consumableDesc}>{consumable.description}</Text>
-                  <Text style={styles.consumableDuration}>
-                    {ac.remainingDuration} session{ac.remainingDuration !== 1 ? 's' : ''} remaining
-                  </Text>
-                </View>
+                <DungeonCard key={`${ac.consumableId}-${index}`} variant="default" style={styles.consumableItem}>
+                  <View style={styles.consumableRow}>
+                    <ConsumableIcon effectType={consumable.effectType} tier={consumable.tier} />
+                    <View style={styles.consumableInfo}>
+                      <Text style={styles.consumableName}>{consumable.name.toLowerCase()}</Text>
+                      <Text style={styles.consumableDesc}>{consumable.description}</Text>
+                      <DungeonBar
+                        value={ac.remainingDuration}
+                        max={consumable.duration}
+                        color="green"
+                        height={4}
+                      />
+                      <Text style={styles.consumableDuration}>
+                        {formatDuration(ac.remainingDuration)} remaining
+                      </Text>
+                    </View>
+                  </View>
+                </DungeonCard>
               );
             })}
           </View>
@@ -523,6 +538,14 @@ function createStyles(colors: any, spacing: (n: number) => number, fontSize: (si
       borderWidth: 1,
       borderColor: colors.border,
       padding: spacing(3),
+    },
+    consumableRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing(3),
+    },
+    consumableInfo: {
+      flex: 1,
     },
     consumableName: {
       color: colors.text,
