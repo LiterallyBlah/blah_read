@@ -15,6 +15,8 @@ import { settings } from '@/lib/settings';
 import { debug, setDebugEnabled } from '@/lib/debug';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
+import { timerPersistence } from '@/lib/timerPersistence';
+import { backgroundService } from '@/lib/backgroundService';
 // V3 Reward System imports
 import { processSessionEnd } from '@/lib/sessionRewards';
 import { getEquippedCompanionIds } from '@/lib/loadout';
@@ -29,7 +31,7 @@ export default function TimerScreen() {
   const [book, setBook] = useState<Book | null>(null);
   const [equippedCompanions, setEquippedCompanions] = useState<Companion[]>([]);
   const [activeEffects, setActiveEffects] = useState<ActiveEffects | null>(null);
-  const { elapsed, isRunning, start, pause, reset } = useTimer();
+  const { elapsed, isRunning, start, pause, reset } = useTimer({ bookId });
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
   useEffect(() => {
@@ -91,6 +93,10 @@ export default function TimerScreen() {
 
   async function handleEnd() {
     if (!book || elapsed === 0) return;
+
+    // Clear timer persistence and stop background service
+    await timerPersistence.clear();
+    await backgroundService.stop();
 
     // Initialize debug mode
     const config = await settings.get();
