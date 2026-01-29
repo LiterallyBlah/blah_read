@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as Linking from 'expo-linking';
+import * as Notifications from 'expo-notifications';
 import { ThemeProvider, useTheme } from '@/lib/ThemeContext';
 import { isKindleShareText } from '@/lib/kindleParser';
 import { checkForInterruptedSession } from '@/lib/sessionRecovery';
@@ -34,7 +35,23 @@ function RootLayoutInner() {
       }
     });
 
-    return () => subscription.remove();
+    // Handle notification taps
+    const notificationSubscription = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        const bookId = response.notification.request.content.data?.bookId;
+        if (bookId) {
+          router.push({
+            pathname: '/timer/[bookId]',
+            params: { bookId: bookId as string },
+          });
+        }
+      }
+    );
+
+    return () => {
+      subscription.remove();
+      notificationSubscription.remove();
+    };
   }, []);
 
   function handleIncomingUrl(url: string | null) {
