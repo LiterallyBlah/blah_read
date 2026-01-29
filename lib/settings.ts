@@ -17,7 +17,7 @@ export interface Settings {
   reminderEnabled: boolean;
   reminderTime: string;
   // Display
-  theme: 'auto' | 'dark' | 'light';
+  theme: 'auto' | 'dark' | 'light' | 'dungeon';
   fontScale: 0.85 | 1 | 1.2;
   // Debug
   debugMode: boolean;
@@ -32,7 +32,7 @@ export const defaultSettings: Settings = {
   dailyTarget: 30,
   reminderEnabled: false,
   reminderTime: '20:00',
-  theme: 'auto',
+  theme: 'dungeon',
   fontScale: 1,
   debugMode: false,
 };

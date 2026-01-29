@@ -1,4 +1,4 @@
-import { COLORS, COLORS_LIGHT, FONTS, spacing, fontSize, letterSpacing } from '@/lib/theme';
+import { COLORS, COLORS_LIGHT, COLORS_DUNGEON, FONTS, spacing, fontSize, letterSpacing } from '@/lib/theme';
 
 describe('theme', () => {
   it('exports COLORS matching design system', () => {
@@ -36,5 +36,11 @@ describe('theme', () => {
   it('letterSpacing returns design system values', () => {
     expect(letterSpacing('tight')).toBe(1);
     expect(letterSpacing('hero')).toBe(4);
+  });
+
+  it('exports COLORS_DUNGEON with dungeon palette', () => {
+    expect(COLORS_DUNGEON.background).toBe('#1a1a1a');
+    expect(COLORS_DUNGEON.text).toBe('#f5deb3');
+    expect(COLORS_DUNGEON.accent).toBe('#ffb347');
   });
 });

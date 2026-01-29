@@ -76,6 +76,8 @@ export const COLORS_LIGHT = {
   prestigeDiamond: '#B9F2FF',
 } as const;
 
+export { COLORS_DUNGEON } from './themes/dungeon';
+
 export const FONTS = {
   mono: 'Courier',
   monoWeight: '400' as const,
