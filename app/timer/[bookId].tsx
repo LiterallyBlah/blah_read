@@ -21,6 +21,7 @@ import { getEquippedCompanionIds } from '@/lib/loadout';
 import { calculateActiveEffects, ActiveEffects } from '@/lib/companionEffects';
 import { getActiveEffects as getConsumableEffects } from '@/lib/consumableManager';
 import { buildSessionResultsData } from '@/lib/sessionResultsData';
+import { shouldUnlockSlot2, shouldUnlockSlot3 } from '@/lib/slotProgress';
 
 export default function TimerScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();
@@ -150,14 +151,47 @@ export default function TimerScreen() {
       lastReadDate: progress.lastReadDate,
     };
 
-    // Update slot progress for session completed milestone
+    // Update slot progress - track cumulative hours instead of sessions
     if (updatedProgress.slotProgress) {
+      // Calculate total hours from all books (will be updated after saveBook)
+      const allBooks = await storage.getBooks();
+      const totalSeconds = allBooks.reduce((sum, b) => {
+        // Use updated book's time if it's the current book
+        if (b.id === updatedBook.id) {
+          return sum + updatedBook.totalReadingTime;
+        }
+        return sum + b.totalReadingTime;
+      }, 0);
+      const totalHours = Math.floor(totalSeconds / 3600);
+
       updatedProgress.slotProgress = {
         ...updatedProgress.slotProgress,
-        sessionsCompleted: (updatedProgress.slotProgress.sessionsCompleted || 0) + 1,
+        hoursLogged: totalHours,
       };
+
+      // Check if slots should be unlocked
+      const currentUnlocked = updatedProgress.loadout?.unlockedSlots || 1;
+      let newUnlocked = currentUnlocked;
+
+      if (currentUnlocked < 2 && shouldUnlockSlot2(updatedProgress.slotProgress)) {
+        newUnlocked = 2;
+        debug.log('timer', 'Slot 2 unlocked!');
+      }
+      if (newUnlocked >= 2 && currentUnlocked < 3 && shouldUnlockSlot3(updatedProgress.slotProgress)) {
+        newUnlocked = 3;
+        debug.log('timer', 'Slot 3 unlocked!');
+      }
+
+      if (newUnlocked > currentUnlocked && updatedProgress.loadout) {
+        updatedProgress.loadout = {
+          ...updatedProgress.loadout,
+          unlockedSlots: newUnlocked,
+        };
+      }
+
       debug.log('timer', 'Slot progress updated', {
-        sessionsCompleted: updatedProgress.slotProgress.sessionsCompleted,
+        hoursLogged: updatedProgress.slotProgress.hoursLogged,
+        unlockedSlots: updatedProgress.loadout?.unlockedSlots,
       });
     }
 

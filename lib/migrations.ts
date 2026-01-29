@@ -140,8 +140,8 @@ export async function migrateData(
     const slot2Points =
       Math.min(slotProgress.booksFinished, 1) * 50 + // First book finished
       slotProgress.hoursLogged * 15 + // Hours logged
-      slotProgress.companionsCollected * 20 + // Companions collected
-      slotProgress.sessionsCompleted * 10; // Sessions completed
+      slotProgress.companionsCollected * 20; // Companions collected
+      // Sessions removed from slot 2 - use cumulative hours instead
 
     const slot3Points =
       slotProgress.booksFinished * 40 +

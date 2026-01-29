@@ -50,22 +50,22 @@ describe('calculateSlot2Progress', () => {
     expect(points).toBe(60);
   });
 
-  it('should award 10 points per session completed', () => {
+  it('should NOT award points for sessions completed (removed milestone)', () => {
     const progress = createDefaultSlotProgress();
     const points = calculateSlot2Progress({ ...progress, sessionsCompleted: 4 });
-    expect(points).toBe(40);
+    expect(points).toBe(0); // Sessions no longer contribute to slot 2
   });
 
-  it('should sum all milestone points', () => {
+  it('should sum all milestone points (excluding sessions)', () => {
     const progress = {
       ...createDefaultSlotProgress(),
       booksFinished: 1,       // 50
       hoursLogged: 2,         // 30
       companionsCollected: 2, // 40
-      sessionsCompleted: 1,   // 10
+      sessionsCompleted: 10,  // 0 (no longer counts)
     };
     const points = calculateSlot2Progress(progress);
-    expect(points).toBe(130);
+    expect(points).toBe(120); // 50 + 30 + 40 = 120
   });
 
   it('should return 0 for empty progress', () => {

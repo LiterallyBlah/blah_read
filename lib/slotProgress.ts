@@ -8,7 +8,7 @@ export const SLOT_3_POINTS = 300;
 const SLOT_2_BOOK_FINISHED = 50;
 const SLOT_2_HOUR_LOGGED = 15;
 const SLOT_2_COMPANION_COLLECTED = 20;
-const SLOT_2_SESSION_COMPLETED = 10;
+// Sessions removed from slot 2 - use cumulative hours instead
 
 // Slot 3 point values
 const SLOT_3_BOOK_FINISHED = 40;
@@ -42,9 +42,9 @@ export function calculateSlot2Progress(progress: SlotUnlockProgress): number {
   const booksPoints = Math.min(progress.booksFinished, 1) * SLOT_2_BOOK_FINISHED;
   const hoursPoints = progress.hoursLogged * SLOT_2_HOUR_LOGGED;
   const companionsPoints = progress.companionsCollected * SLOT_2_COMPANION_COLLECTED;
-  const sessionsPoints = progress.sessionsCompleted * SLOT_2_SESSION_COMPLETED;
+  // Sessions removed - use cumulative hours instead
 
-  return booksPoints + hoursPoints + companionsPoints + sessionsPoints;
+  return booksPoints + hoursPoints + companionsPoints;
 }
 
 /**
