@@ -2,6 +2,7 @@ import {
   HeroEvent,
   detectHeroEvents,
   HERO_EVENT_PRIORITY,
+  SlotUnlockState,
 } from '@/lib/heroEvents';
 import { SessionRewardResult } from '@/lib/sessionRewards';
 import { Genre } from '@/lib/genres';
@@ -185,6 +186,39 @@ describe('heroEvents', () => {
       expect(events[0].type).toBe('companion_unlocked');
       expect(events[1].type).toBe('bonus_drop');
       expect(events[2].type).toBe('book_level_up');
+    });
+
+    it('should detect slot 2 unlock', () => {
+      const result = createMockSessionResult();
+      const events = detectHeroEvents(result, [], 0, 0, { previousSlot2: false, currentSlot2: true });
+
+      expect(events).toContainEqual(
+        expect.objectContaining({
+          type: 'slot_unlocked',
+          data: { slot: 2 },
+        })
+      );
+    });
+
+    it('should detect slot 3 unlock', () => {
+      const result = createMockSessionResult();
+      const events = detectHeroEvents(result, [], 0, 0, { previousSlot3: false, currentSlot3: true });
+
+      expect(events).toContainEqual(
+        expect.objectContaining({
+          type: 'slot_unlocked',
+          data: { slot: 3 },
+        })
+      );
+    });
+
+    it('should not detect slot unlock when already unlocked', () => {
+      const result = createMockSessionResult();
+      const events = detectHeroEvents(result, [], 0, 0, { previousSlot2: true, currentSlot2: true });
+
+      expect(events).not.toContainEqual(
+        expect.objectContaining({ type: 'slot_unlocked' })
+      );
     });
   });
 });

@@ -25,6 +25,13 @@ export interface HeroEvent {
   data: Record<string, unknown>;
 }
 
+export interface SlotUnlockState {
+  previousSlot2?: boolean;
+  currentSlot2?: boolean;
+  previousSlot3?: boolean;
+  currentSlot3?: boolean;
+}
+
 /**
  * Priority order for hero events (lower = more important)
  * 1. Companion unlocked - rarest, most exciting
@@ -70,7 +77,8 @@ export function detectHeroEvents(
   result: SessionRewardResult,
   unlockedCompanions: Companion[],
   previousStreak: number,
-  newStreak: number
+  newStreak: number,
+  slotState?: SlotUnlockState
 ): HeroEvent[] {
   const events: HeroEvent[] = [];
 
@@ -81,6 +89,24 @@ export function detectHeroEvents(
       priority: HERO_EVENT_PRIORITY.companion_unlocked,
       data: { companion },
     });
+  }
+
+  // Check slot unlocks (priority 2)
+  if (slotState) {
+    if (!slotState.previousSlot2 && slotState.currentSlot2) {
+      events.push({
+        type: 'slot_unlocked',
+        priority: HERO_EVENT_PRIORITY.slot_unlocked,
+        data: { slot: 2 },
+      });
+    }
+    if (!slotState.previousSlot3 && slotState.currentSlot3) {
+      events.push({
+        type: 'slot_unlocked',
+        priority: HERO_EVENT_PRIORITY.slot_unlocked,
+        data: { slot: 3 },
+      });
+    }
   }
 
   // Check bonus drop (priority 3)
