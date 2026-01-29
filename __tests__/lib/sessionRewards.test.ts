@@ -111,7 +111,9 @@ describe('sessionRewards', () => {
 
         expect(result.bookLevelsGained).toBe(1);
         expect(result.newBookLevel).toBe(1);
-        expect(result.lootBoxes.length).toBe(1);
+        // Filter for level_up boxes only (checkpoint bonus drops may also occur)
+        const levelUpBoxes = result.lootBoxes.filter(b => b.source === 'level_up');
+        expect(levelUpBoxes.length).toBe(1);
       });
 
       it('should award no levels for short sessions', () => {
@@ -135,7 +137,9 @@ describe('sessionRewards', () => {
 
         expect(result.bookLevelsGained).toBe(3);
         expect(result.newBookLevel).toBe(3);
-        expect(result.lootBoxes.length).toBe(3);
+        // Filter for level_up boxes only (checkpoint bonus drops may also occur)
+        const levelUpBoxes = result.lootBoxes.filter(b => b.source === 'level_up');
+        expect(levelUpBoxes.length).toBe(3);
       });
 
       it('should return bonusDropCount as number', () => {
