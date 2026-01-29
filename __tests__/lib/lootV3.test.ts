@@ -7,6 +7,7 @@ import {
   rollLoot,
   rollLootForTier,
   rollBonusDrop,
+  rollCheckpointDrops,
   rollBoxTierWithPity,
   PityState,
   PITY_BONUS_PER_MISS,
@@ -345,6 +346,80 @@ describe('lootV3', () => {
       }
       expect(bonusCount).toBeGreaterThan(0);
       expect(bonusCount).toBeLessThan(100);
+    });
+  });
+
+  describe('rollCheckpointDrops', () => {
+    it('should return 0 for sessions under minimum', () => {
+      // 4 minutes is under the 5 minute minimum
+      expect(rollCheckpointDrops(4, 0)).toBe(0);
+      expect(rollCheckpointDrops(4, 0.5)).toBe(0);
+      expect(rollCheckpointDrops(0, 0.5)).toBe(0);
+    });
+
+    it('should return 0 for exactly minimum session with no boost', () => {
+      // 5 minutes gets a partial checkpoint (5/10 = 0.5 multiplier)
+      // With 1% base and 0 boost, very unlikely to get a drop
+      let drops = 0;
+      for (let i = 0; i < 100; i++) {
+        drops += rollCheckpointDrops(5, 0);
+      }
+      // With 0.5% chance (1% * 0.5), expect ~0-1 drops in 100 trials
+      expect(drops).toBeLessThan(5);
+    });
+
+    it('should sometimes award drops with high boost', () => {
+      // 10 minutes = 1 full checkpoint
+      // With 50% boost, total chance is 51%
+      let drops = 0;
+      for (let i = 0; i < 100; i++) {
+        drops += rollCheckpointDrops(10, 0.5);
+      }
+      // With 51% chance, expect 30-70 drops
+      expect(drops).toBeGreaterThan(20);
+      expect(drops).toBeLessThan(80);
+    });
+
+    it('should calculate correct number of checkpoints', () => {
+      // 25 minutes = 2 full checkpoints + partial (5/10)
+      // With 100% chance (99% boost + 1% base), should get ~2-3 drops
+      let totalDrops = 0;
+      for (let i = 0; i < 100; i++) {
+        totalDrops += rollCheckpointDrops(25, 0.99);
+      }
+      // Average should be close to 2.5 * 100 = 250
+      expect(totalDrops).toBeGreaterThan(200);
+      expect(totalDrops).toBeLessThan(300);
+    });
+
+    it('should handle exact checkpoint boundaries', () => {
+      // 20 minutes = exactly 2 checkpoints, no partial
+      // With 100% chance, should always get exactly 2
+      for (let i = 0; i < 10; i++) {
+        expect(rollCheckpointDrops(20, 0.99)).toBe(2);
+      }
+    });
+
+    it('should apply proportional chance to partial checkpoints', () => {
+      // 15 minutes = 1 full + 0.5 partial
+      // With 100% boost: full gets 1, partial gets ~0.5
+      let totalDrops = 0;
+      for (let i = 0; i < 100; i++) {
+        totalDrops += rollCheckpointDrops(15, 0.99);
+      }
+      // Average should be 1.5 * 100 = 150 (allow variance)
+      expect(totalDrops).toBeGreaterThan(120);
+      expect(totalDrops).toBeLessThan(180);
+    });
+
+    it('should handle negative boost as 0', () => {
+      // Negative boost should be treated as 0, leaving just base chance
+      let drops = 0;
+      for (let i = 0; i < 100; i++) {
+        drops += rollCheckpointDrops(60, -0.5);
+      }
+      // 6 checkpoints at 1% = 6% total, expect ~6 drops in 100 trials
+      expect(drops).toBeLessThan(20);
     });
   });
 

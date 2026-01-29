@@ -132,6 +132,50 @@ export function rollBonusDrop(dropRateBoost: number): boolean {
 }
 
 /**
+ * Roll for bonus drops at checkpoints during a session.
+ * Replaces the single session-end rollBonusDrop for exploit prevention.
+ *
+ * @param sessionMinutes - Duration of the reading session in minutes
+ * @param dropRateBoost - Value between 0 and 1, added to base chance
+ * @returns Number of bonus drops earned
+ */
+export function rollCheckpointDrops(sessionMinutes: number, dropRateBoost: number): number {
+  // Enforce minimum session length
+  if (sessionMinutes < MINIMUM_SESSION_MINUTES) {
+    return 0;
+  }
+
+  // Calculate drop chance (base + boost, but boost can't go negative)
+  const effectiveBoost = Math.max(0, dropRateBoost);
+  const dropChance = BASE_CHECKPOINT_DROP_CHANCE + effectiveBoost;
+
+  // Full checkpoints
+  const fullCheckpoints = Math.floor(sessionMinutes / CHECKPOINT_INTERVAL_MINUTES);
+
+  // Partial checkpoint (remaining minutes)
+  const remainingMinutes = sessionMinutes % CHECKPOINT_INTERVAL_MINUTES;
+  const partialMultiplier = remainingMinutes / CHECKPOINT_INTERVAL_MINUTES;
+
+  let chestsEarned = 0;
+
+  // Roll full checkpoints
+  for (let i = 0; i < fullCheckpoints; i++) {
+    if (Math.random() < dropChance) {
+      chestsEarned++;
+    }
+  }
+
+  // Roll partial checkpoint
+  if (partialMultiplier > 0) {
+    if (Math.random() < dropChance * partialMultiplier) {
+      chestsEarned++;
+    }
+  }
+
+  return chestsEarned;
+}
+
+/**
  * Complete loot roll using the three-layer system.
  * 1. Roll box tier (with luck boost)
  * 2. Roll category
