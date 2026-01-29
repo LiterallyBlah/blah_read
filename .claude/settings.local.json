@@ -54,7 +54,10 @@
       "Bash(git -C /mnt/c/Users/micha/Projects/blah_read status __tests__/lib/companionEffects.test.ts)",
       "Bash(git -C /mnt/c/Users/micha/Projects/blah_read diff __tests__/lib/companionEffects.test.ts)",
       "Bash(git -C /mnt/c/Users/micha/Projects/blah_read add:*)",
-      "Bash(git -C /mnt/c/Users/micha/Projects/blah_read commit -m \"$\\(cat <<''EOF''\ntest\\(loot\\): add tests for calculateActiveEffects with new luck types\n\nVerify that calculateActiveEffects properly sums luck, rare_luck, and\nlegendary_luck effects from equipped companions. Tests cover:\n- Multiple companions with different luck types\n- Multiple companions with same luck type \\(summing\\)\n- Single companion with all three luck types\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git -C /mnt/c/Users/micha/Projects/blah_read commit -m \"$\\(cat <<''EOF''\ntest\\(loot\\): add tests for calculateActiveEffects with new luck types\n\nVerify that calculateActiveEffects properly sums luck, rare_luck, and\nlegendary_luck effects from equipped companions. Tests cover:\n- Multiple companions with different luck types\n- Multiple companions with same luck type \\(summing\\)\n- Single companion with all three luck types\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git stash:*)",
+      "Bash(git checkout:*)",
+      "Bash(git restore:*)"
     ]
   }
 }
