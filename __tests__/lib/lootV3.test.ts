@@ -11,6 +11,9 @@ import {
   PityState,
   PITY_BONUS_PER_MISS,
   PITY_HARD_CAP,
+  BASE_CHECKPOINT_DROP_CHANCE,
+  CHECKPOINT_INTERVAL_MINUTES,
+  MINIMUM_SESSION_MINUTES,
   BOX_TIER_ODDS,
   CATEGORY_ODDS,
   CONSUMABLE_TIER_ODDS,
@@ -349,6 +352,14 @@ describe('lootV3', () => {
     it('should export pity constants', () => {
       expect(PITY_BONUS_PER_MISS).toBe(0.03);
       expect(PITY_HARD_CAP).toBe(25);
+    });
+
+    describe('checkpoint drop constants', () => {
+      it('should export checkpoint constants', () => {
+        expect(BASE_CHECKPOINT_DROP_CHANCE).toBe(0.01);
+        expect(CHECKPOINT_INTERVAL_MINUTES).toBe(10);
+        expect(MINIMUM_SESSION_MINUTES).toBe(5);
+      });
     });
 
     it('should return gold at hard cap', () => {

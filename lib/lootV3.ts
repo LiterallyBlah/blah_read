@@ -190,6 +190,11 @@ export function rollLootForTier(boxTier: LootBoxTier, options?: RollLootOptions)
 export const PITY_BONUS_PER_MISS = 0.03; // +3% gold chance per non-gold box
 export const PITY_HARD_CAP = 25; // Guaranteed gold after 25 non-gold boxes
 
+// Checkpoint drop constants
+export const BASE_CHECKPOINT_DROP_CHANCE = 0.01; // 1% base chance per checkpoint
+export const CHECKPOINT_INTERVAL_MINUTES = 10;   // Roll every 10 minutes
+export const MINIMUM_SESSION_MINUTES = 5;        // Must read at least 5 min
+
 export interface PityState {
   goldPityCounter: number;
 }
