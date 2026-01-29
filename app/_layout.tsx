@@ -1,12 +1,21 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as Linking from 'expo-linking';
 import { ThemeProvider, useTheme } from '@/lib/ThemeContext';
 import { isKindleShareText } from '@/lib/kindleParser';
+import { checkForInterruptedSession } from '@/lib/sessionRecovery';
+import { timerPersistence } from '@/lib/timerPersistence';
+import { backgroundService } from '@/lib/backgroundService';
+import { storage } from '@/lib/storage';
+import { processSessionEnd } from '@/lib/sessionRewards';
+import { SessionRecoveryModal } from '@/components/SessionRecoveryModal';
+import { TimerRecoveryData } from '@/lib/types';
 
 function RootLayoutInner() {
   const { isDark } = useTheme();
+  const [recoveryData, setRecoveryData] = useState<TimerRecoveryData | null>(null);
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
 
   useEffect(() => {
     // Handle initial URL (app opened via share)
@@ -15,6 +24,14 @@ function RootLayoutInner() {
     // Handle URL while app is running
     const subscription = Linking.addEventListener('url', (event) => {
       handleIncomingUrl(event.url);
+    });
+
+    // Check for interrupted session
+    checkForInterruptedSession().then((data) => {
+      if (data) {
+        setRecoveryData(data);
+        setShowRecoveryModal(true);
+      }
     });
 
     return () => subscription.remove();
@@ -39,10 +56,72 @@ function RootLayoutInner() {
     }
   }
 
+  async function handleContinue() {
+    if (!recoveryData) return;
+
+    // Navigate to timer with session continuing
+    setShowRecoveryModal(false);
+    router.push({
+      pathname: '/timer/[bookId]',
+      params: { bookId: recoveryData.bookId },
+    });
+  }
+
+  async function handleSaveAtInterruption() {
+    if (!recoveryData) return;
+
+    // End the session with the interrupted duration
+    const books = await storage.getBooks();
+    const book = books.find(b => b.id === recoveryData.bookId);
+    if (!book) {
+      await handleDiscard();
+      return;
+    }
+
+    const progress = await storage.getProgress();
+
+    // Process session with interrupted duration
+    const sessionResult = processSessionEnd(
+      book,
+      progress,
+      [], // No equipped companions for recovery
+      recoveryData.elapsedAtInterruption,
+      false
+    );
+
+    await storage.saveBook(sessionResult.updatedBook);
+    await storage.saveProgress(sessionResult.updatedProgress);
+
+    // Clean up
+    await timerPersistence.clear();
+    await backgroundService.stop();
+
+    setShowRecoveryModal(false);
+    setRecoveryData(null);
+  }
+
+  async function handleDiscard() {
+    // Just clear the timer state
+    await timerPersistence.clear();
+    await backgroundService.stop();
+
+    setShowRecoveryModal(false);
+    setRecoveryData(null);
+  }
+
   return (
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false }} />
+      {recoveryData && (
+        <SessionRecoveryModal
+          visible={showRecoveryModal}
+          recoveryData={recoveryData}
+          onContinue={handleContinue}
+          onSaveAtInterruption={handleSaveAtInterruption}
+          onDiscard={handleDiscard}
+        />
+      )}
     </>
   );
 }
