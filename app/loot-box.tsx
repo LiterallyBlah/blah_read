@@ -14,6 +14,7 @@ import { maybeGenerateImages } from '@/lib/companionImageQueue';
 import { generateImageForCompanion } from '@/lib/imageGen';
 import { settings } from '@/lib/settings';
 import { debug } from '@/lib/debug';
+import { PixelSprite } from '@/components/dungeon/PixelSprite';
 
 // Box tier visual styling
 const TIER_STYLES: Record<LootBoxTier, { label: string; emoji: string }> = {
@@ -167,7 +168,7 @@ export default function LootBoxScreen() {
           const fallbackConsumable = {
             id: 'weak_xp_1',
             name: 'Minor XP Scroll',
-            description: '+10% XP for 60 min',
+            description: '+10% XP boost',
             tier: 'weak' as const,
             effectType: 'xp_boost' as const,
             magnitude: 0.10,
@@ -313,9 +314,12 @@ export default function LootBoxScreen() {
 
       {boxCount > 0 ? (
         <>
-          <Text style={[styles.countText, { color: colors.textSecondary }]}>
-            {boxCount} box{boxCount !== 1 ? 'es' : ''} available
-          </Text>
+          <View style={styles.boxCountRow}>
+            <PixelSprite tile="chest_wood_closed" scale={2} />
+            <Text style={[styles.countText, { color: colors.textSecondary }]}>
+              {boxCount} box{boxCount !== 1 ? 'es' : ''} available
+            </Text>
+          </View>
 
           {/* Show tier breakdown if there are V3 boxes */}
           {boxesV3.length > 0 && (
@@ -383,6 +387,11 @@ const createStyles = (
   countText: {
     fontFamily: FONTS.mono,
     fontSize: fontSize('body'),
+  },
+  boxCountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing(3),
     marginBottom: spacing(4),
   },
   tierBreakdown: {
