@@ -7,6 +7,7 @@ import { calculateLevel, xpProgress } from '@/lib/xp';
 import { Book, UserProgress } from '@/lib/types';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
+import { DungeonBar } from '@/components/dungeon';
 
 export default function HomeScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();
@@ -59,10 +60,13 @@ export default function HomeScreen() {
       </View>
 
       {/* XP progress bar */}
-      <View style={styles.xpBar}>
-        <View style={[styles.xpFill, { width: `${(xp.current / xp.needed) * 100}%` }]} />
-      </View>
-      <Text style={styles.xpText}>{xp.current} / {xp.needed} xp</Text>
+      <DungeonBar
+        value={xp.current}
+        max={xp.needed}
+        color="amber"
+        showText
+        style={styles.xpBar}
+      />
 
       {/* Current book card */}
       {currentBook ? (
@@ -131,22 +135,7 @@ function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: a
       letterSpacing: letterSpacing('tight'),
     },
     xpBar: {
-      height: 4, // Progress track height from design system
-      backgroundColor: colors.backgroundCard,
-      borderWidth: 1,
-      borderColor: colors.border,
-      marginBottom: spacing(2),
-    },
-    xpFill: {
-      height: '100%',
-      backgroundColor: colors.success,
-    },
-    xpText: {
-      color: colors.success,
-      fontFamily: FONTS.mono,
-      fontSize: fontSize('small'), // 12px
-      letterSpacing: letterSpacing('tight'),
-      marginBottom: spacing(10), // 40px - section separation
+      marginBottom: spacing(10),
     },
     currentBook: {
       flex: 1,
