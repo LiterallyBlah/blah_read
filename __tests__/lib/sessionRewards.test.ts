@@ -783,6 +783,64 @@ describe('sessionRewards', () => {
       });
     });
 
+    describe('previous state tracking', () => {
+      it('should include previousBookLevel in result', () => {
+        const mockBook = createMockBook({
+          progression: { level: 3, totalSeconds: 10800, levelUps: [] },
+        });
+        const mockProgress = createMockProgress();
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(result.previousBookLevel).toBe(3);
+        expect(result.newBookLevel).toBe(4);
+      });
+
+      it('should include previousPlayerLevel in result', () => {
+        const mockProgress = createMockProgress({ totalXp: 950 });
+        const mockBook = createMockBook();
+
+        // 10 min = 100 XP, pushes from level 1 to level 2
+        const result = processSessionEnd(mockBook, mockProgress, [], 600);
+
+        expect(result.previousPlayerLevel).toBe(1);
+      });
+
+      it('should include previousGenreLevels in result', () => {
+        const mockBook = createMockBook({ normalizedGenres: ['fantasy'] as Genre[] });
+        const mockProgress = createMockProgress({
+          genreLevels: { fantasy: 5 } as Record<Genre, number>,
+        });
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(result.previousGenreLevels.fantasy).toBe(5);
+      });
+
+      it('should include streakMultiplier in result', () => {
+        const mockProgress = createMockProgress({ currentStreak: 7 });
+        const mockBook = createMockBook();
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 600);
+
+        expect(result.streakMultiplier).toBe(1.5);
+      });
+
+      it('should include baseXpBeforeBoosts in result', () => {
+        const mockProgress = createMockProgress({ currentStreak: 0 });
+        const mockBook = createMockBook();
+        const companion = createMockCompanion('c1', [
+          { type: 'xp_boost', magnitude: 0.5 },
+        ]);
+
+        // 10 min = 100 base XP, with 50% boost = 150 XP
+        const result = processSessionEnd(mockBook, mockProgress, [companion], 600);
+
+        expect(result.baseXpBeforeBoosts).toBe(100);
+        expect(result.xpGained).toBe(150);
+      });
+    });
+
     describe('edge cases', () => {
       it('should handle book with no genres', () => {
         const mockBook = createMockBook({ normalizedGenres: [] });

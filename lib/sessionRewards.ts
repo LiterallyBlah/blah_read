@@ -11,7 +11,7 @@ import { processReadingTime, calculateCompletionBonus } from './bookLeveling';
 import { calculateActiveEffects, ActiveEffects } from './companionEffects';
 import { getActiveEffects as getConsumableEffects, tickConsumables } from './consumableManager';
 import { rollBonusDrop } from './lootV3';
-import { getStreakMultiplier } from './xp';
+import { getStreakMultiplier, calculateLevel } from './xp';
 
 // Constants
 export const BASE_XP_PER_MINUTE = 10;
@@ -29,6 +29,12 @@ export interface SessionRewardResult {
   activeEffects: ActiveEffects;
   updatedBook: Book;
   updatedProgress: UserProgress;
+  // New fields for results screen
+  previousBookLevel: number;
+  previousPlayerLevel: number;
+  previousGenreLevels: Record<Genre, number>;
+  baseXpBeforeBoosts: number;
+  streakMultiplier: number;
 }
 
 /**
@@ -110,6 +116,11 @@ export function processSessionEnd(
   // Guard against invalid input
   const validSessionSeconds = Math.max(0, sessionSeconds);
 
+  // Capture previous state BEFORE any calculations
+  const previousBookLevel = book.progression?.level ?? 0;
+  const previousPlayerLevel = calculateLevel(progress.totalXp);
+  const previousGenreLevels = { ...(progress.genreLevels || createEmptyGenreLevelIncreases()) };
+
   const bookGenres = book.normalizedGenres || [];
 
   // Step 1: Calculate companion effects
@@ -147,8 +158,8 @@ export function processSessionEnd(
   // Step 6: Calculate XP (BASE_XP_PER_MINUTE=10, apply boost and streak)
   const minutes = validSessionSeconds / 60;
   const streakMultiplier = getStreakMultiplier(progress.currentStreak);
-  const baseXp = Math.round(minutes * BASE_XP_PER_MINUTE * streakMultiplier);
-  const xpGained = Math.round(baseXp * (1 + totalXpBoost));
+  const baseXpBeforeBoosts = Math.round(minutes * BASE_XP_PER_MINUTE * streakMultiplier);
+  const xpGained = Math.round(baseXpBeforeBoosts * (1 + totalXpBoost));
 
   // Step 7: Calculate genre level increases (distribute evenly across genres)
   const genreLevelIncreases = createEmptyGenreLevelIncreases();
@@ -253,5 +264,11 @@ export function processSessionEnd(
     activeEffects: combinedActiveEffects,
     updatedBook,
     updatedProgress,
+    // New fields for results screen
+    previousBookLevel,
+    previousPlayerLevel,
+    previousGenreLevels,
+    baseXpBeforeBoosts,
+    streakMultiplier,
   };
 }
