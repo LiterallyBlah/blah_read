@@ -18,7 +18,17 @@ function RootLayoutInner() {
   const [recoveryData, setRecoveryData] = useState<TimerRecoveryData | null>(null);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
 
+  async function requestNotificationPermissions() {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    if (existingStatus !== 'granted') {
+      await Notifications.requestPermissionsAsync();
+    }
+  }
+
   useEffect(() => {
+    // Request notification permissions
+    requestNotificationPermissions();
+
     // Handle initial URL (app opened via share)
     Linking.getInitialURL().then(handleIncomingUrl);
 
