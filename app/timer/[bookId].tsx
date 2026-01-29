@@ -251,7 +251,7 @@ export default function TimerScreen() {
     );
 
     debug.log('timer', 'Session end complete, navigating to results screen');
-    router.push({
+    router.replace({
       pathname: '/session-results',
       params: {
         data: JSON.stringify(resultsData),
