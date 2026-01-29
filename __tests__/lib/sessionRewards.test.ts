@@ -6,7 +6,6 @@ import {
 import { Book, UserProgress, Companion, LootBoxV3 } from '@/lib/types';
 import { Genre, GENRES } from '@/lib/genres';
 import { CompanionEffect, ActiveEffects } from '@/lib/companionEffects';
-import * as lootV3 from '@/lib/lootV3';
 
 // Helper to create a minimal valid book
 function createMockBook(overrides: Partial<Book> = {}): Book {
@@ -137,6 +136,16 @@ describe('sessionRewards', () => {
         expect(result.bookLevelsGained).toBe(3);
         expect(result.newBookLevel).toBe(3);
         expect(result.lootBoxes.length).toBe(3);
+      });
+
+      it('should return bonusDropCount as number', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(typeof result.bonusDropCount).toBe('number');
+        expect(result.bonusDropCount).toBeGreaterThanOrEqual(0);
       });
 
       it('should track levels on book with existing progression', () => {
@@ -306,8 +315,10 @@ describe('sessionRewards', () => {
 
         const result = processSessionEnd(mockBook, mockProgress, [], 7200); // 2 levels
 
-        expect(result.lootBoxes.length).toBe(2);
-        result.lootBoxes.forEach(box => {
+        // Filter to only level_up boxes (exclude bonus_drop boxes from checkpoints)
+        const levelUpBoxes = result.lootBoxes.filter(b => b.source === 'level_up');
+        expect(levelUpBoxes.length).toBe(2);
+        levelUpBoxes.forEach(box => {
           expect(box.source).toBe('level_up');
           expect(box.bookId).toBe('book-1');
         });
@@ -329,58 +340,75 @@ describe('sessionRewards', () => {
       });
     });
 
-    describe('bonus drop', () => {
-      it('should not trigger bonus drop with 0 drop rate boost', () => {
-        const mockBook = createMockBook();
-        const mockProgress = createMockProgress();
-
-        // Without drop rate boost, no bonus drops
-        let bonusCount = 0;
-        for (let i = 0; i < 100; i++) {
-          const result = processSessionEnd(mockBook, mockProgress, [], 3600);
-          if (result.bonusDropTriggered) bonusCount++;
-        }
-
-        expect(bonusCount).toBe(0);
-      });
-
-      it('should trigger bonus drop based on drop rate boost', () => {
+    describe('checkpoint bonus drops', () => {
+      it('should not trigger drops for sessions under 5 minutes', () => {
         const mockBook = createMockBook();
         const mockProgress = createMockProgress();
         const companion = createMockCompanion('comp-1', [
-          { type: 'drop_rate_boost', magnitude: 0.50, targetGenre: 'fantasy' },
+          { type: 'drop_rate_boost', magnitude: 0.99, targetGenre: 'fantasy' },
         ]);
 
-        // With 50% drop rate, should trigger sometimes
-        let bonusCount = 0;
-        for (let i = 0; i < 100; i++) {
-          const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
-          if (result.bonusDropTriggered) bonusCount++;
-        }
+        // 4 minutes = under minimum, no drops even with high boost
+        const result = processSessionEnd(mockBook, mockProgress, [companion], 240);
 
-        expect(bonusCount).toBeGreaterThan(20); // At least some triggers
-        expect(bonusCount).toBeLessThan(80); // Not always
+        expect(result.bonusDropCount).toBe(0);
+        expect(result.lootBoxes.filter(b => b.source === 'bonus_drop').length).toBe(0);
       });
 
-      it('should add bonus loot box when bonus drop triggers', () => {
+      it('should award drops based on checkpoints with boost', () => {
         const mockBook = createMockBook();
         const mockProgress = createMockProgress();
 
-        // Mock rollBonusDrop to always return true
-        jest.spyOn(lootV3, 'rollBonusDrop').mockReturnValue(true);
+        // Mock to always succeed
+        jest.spyOn(Math, 'random').mockReturnValue(0.001);
 
         const companion = createMockCompanion('comp-1', [
           { type: 'drop_rate_boost', magnitude: 0.50, targetGenre: 'fantasy' },
         ]);
 
-        const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
+        // 25 minutes = 2 full checkpoints + partial
+        // With mock always succeeding, should get 3 drops
+        const result = processSessionEnd(mockBook, mockProgress, [companion], 1500);
 
-        expect(result.bonusDropTriggered).toBe(true);
-        // Should have 1 level up box + 1 bonus drop box
-        const bonusBoxes = result.lootBoxes.filter(b => b.source === 'bonus_drop');
-        expect(bonusBoxes.length).toBe(1);
+        expect(result.bonusDropCount).toBe(3);
+        expect(result.lootBoxes.filter(b => b.source === 'bonus_drop').length).toBe(3);
 
         jest.restoreAllMocks();
+      });
+
+      it('should award multiple bonus boxes for long sessions', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+
+        // Mock to always succeed
+        jest.spyOn(Math, 'random').mockReturnValue(0.001);
+
+        const companion = createMockCompanion('comp-1', [
+          { type: 'drop_rate_boost', magnitude: 0.50, targetGenre: 'fantasy' },
+        ]);
+
+        // 60 minutes = 6 checkpoints
+        const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
+
+        expect(result.bonusDropCount).toBe(6);
+
+        jest.restoreAllMocks();
+      });
+
+      it('should have low chance without drop rate boost', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+
+        // No boost = 1% base per checkpoint
+        let totalDrops = 0;
+        for (let i = 0; i < 100; i++) {
+          const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+          totalDrops += result.bonusDropCount;
+        }
+
+        // 6 checkpoints at 1% = 6% per session
+        // Over 100 sessions, expect ~6 drops (allow variance)
+        expect(totalDrops).toBeLessThan(30);
       });
     });
 
@@ -657,14 +685,15 @@ describe('sessionRewards', () => {
         const mockBook = createMockBook();
         const mockProgress = createMockProgress();
 
-        // Mock rollBonusDrop to always return true
-        jest.spyOn(lootV3, 'rollBonusDrop').mockReturnValue(true);
+        // Mock to always succeed
+        jest.spyOn(Math, 'random').mockReturnValue(0.001);
 
         const companion = createMockCompanion('comp-1', [
           { type: 'drop_rate_boost', magnitude: 0.50, targetGenre: 'fantasy' },
         ]);
 
-        const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
+        // 10 minutes = 1 checkpoint
+        const result = processSessionEnd(mockBook, mockProgress, [companion], 600);
 
         const bonusBoxes = result.lootBoxes.filter(b => b.source === 'bonus_drop');
         expect(bonusBoxes.length).toBe(1);

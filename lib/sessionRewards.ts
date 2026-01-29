@@ -10,7 +10,7 @@ import { Genre, GENRES } from './genres';
 import { processReadingTime, calculateCompletionBonus } from './bookLeveling';
 import { calculateActiveEffects, ActiveEffects } from './companionEffects';
 import { getActiveEffects as getConsumableEffects, tickConsumables } from './consumableManager';
-import { rollBonusDrop } from './lootV3';
+import { rollCheckpointDrops } from './lootV3';
 import { getStreakMultiplier, calculateLevel } from './xp';
 
 // Constants
@@ -25,7 +25,7 @@ export interface SessionRewardResult {
   xpGained: number;
   genreLevelIncreases: Record<Genre, number>;
   lootBoxes: LootBoxV3[];
-  bonusDropTriggered: boolean;
+  bonusDropCount: number;
   activeEffects: ActiveEffects;
   updatedBook: Book;
   updatedProgress: UserProgress;
@@ -203,9 +203,10 @@ export function processSessionEnd(
     });
   }
 
-  // Step 9: Check bonus drop (still uses drop rate boost)
-  const bonusDropTriggered = rollBonusDrop(totalDropRateBoost);
-  if (bonusDropTriggered) {
+  // Step 9: Roll checkpoint drops (time-based to prevent exploit)
+  const sessionMinutes = Math.floor(validSessionSeconds / 60);
+  const bonusDropCount = rollCheckpointDrops(sessionMinutes, totalDropRateBoost);
+  for (let i = 0; i < bonusDropCount; i++) {
     lootBoxes.push({
       id: generateLootBoxId(),
       // tier intentionally omitted - blank box
@@ -241,7 +242,6 @@ export function processSessionEnd(
   }
 
   // Step 11b: Tick consumables (pass session minutes)
-  const sessionMinutes = Math.floor(validSessionSeconds / 60);
   const tickedConsumables = tickConsumables(activeConsumables, sessionMinutes);
 
   const existingLootBoxesV3 = progress.lootBoxesV3 || [];
@@ -260,7 +260,7 @@ export function processSessionEnd(
     xpGained,
     genreLevelIncreases,
     lootBoxes,
-    bonusDropTriggered,
+    bonusDropCount,
     activeEffects: combinedActiveEffects,
     updatedBook,
     updatedProgress,
