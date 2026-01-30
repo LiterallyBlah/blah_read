@@ -1,6 +1,6 @@
 // Clean OLED-black focus screen per spec - monochrome typewriter aesthetic
 import { useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Image, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useTimer } from '@/hooks/useTimer';
@@ -317,6 +317,22 @@ export default function TimerScreen() {
     }
   }
 
+  function handleBack() {
+    if (isRunning) {
+      pause();
+      Alert.alert(
+        'Timer paused',
+        'Return from home to resume.',
+        [
+          { text: 'Stay', style: 'cancel' },
+          { text: 'Got it', onPress: () => router.back() },
+        ]
+      );
+    } else {
+      router.back();
+    }
+  }
+
   // Format active effects for display
   function formatActiveEffects(): string[] {
     if (!activeEffects) return [];
@@ -347,6 +363,11 @@ export default function TimerScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Back button */}
+      <Pressable style={styles.backButton} onPress={handleBack}>
+        <Text style={styles.backText}>{'<'} back</Text>
+      </Pressable>
+
       {/* Book cover (optional) */}
       {book?.coverUrl && (
         <View style={{ borderWidth: 1, borderColor: tierColor, marginBottom: spacing(6) }}>
@@ -407,6 +428,16 @@ const createStyles = (
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing(6),
+  },
+  backButton: {
+    position: 'absolute',
+    top: spacing(16),
+    left: spacing(6),
+  },
+  backText: {
+    color: colors.textSecondary,
+    fontFamily: FONTS.mono,
+    fontSize: fontSize('body'),
   },
   coverImage: {
     width: 118,
