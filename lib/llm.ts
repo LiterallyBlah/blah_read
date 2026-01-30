@@ -2,7 +2,7 @@ import { RESEARCH_SCHEMA, type ResearchResponse } from './companionResearch';
 
 // OpenRouter API configuration
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const DEFAULT_MODEL = 'google/gemini-2.5-flash-preview-05-20';
+const DEFAULT_MODEL = 'google/gemini-3-flash-preview';
 
 export interface CompanionData {
   archetype: string;
