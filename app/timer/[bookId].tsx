@@ -32,6 +32,8 @@ export default function TimerScreen() {
   const [book, setBook] = useState<Book | null>(null);
   const [equippedCompanions, setEquippedCompanions] = useState<Companion[]>([]);
   const [activeEffects, setActiveEffects] = useState<ActiveEffects | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [timeAdjustment, setTimeAdjustment] = useState(0);
   const { elapsed, isRunning, start, pause, reset } = useTimer({ bookId });
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
@@ -91,6 +93,8 @@ export default function TimerScreen() {
     const s = seconds % 60;
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   }
+
+  const displayTime = Math.max(0, elapsed + timeAdjustment);
 
   async function handleEnd() {
     if (!book || elapsed === 0) return;
@@ -388,8 +392,13 @@ export default function TimerScreen() {
 
       {/* Large timer display */}
       <Text style={styles.timer} numberOfLines={1} adjustsFontSizeToFit>
-        {formatTime(elapsed)}
+        {formatTime(displayTime)}
       </Text>
+
+      {/* Edit toggle */}
+      <Pressable onPress={() => setEditMode(!editMode)}>
+        <Text style={styles.editLink}>{editMode ? 'done' : 'edit'}</Text>
+      </Pressable>
 
       {/* Control buttons */}
       <View style={styles.buttons}>
@@ -517,5 +526,11 @@ const createStyles = (
     fontSize: fontSize('small'),
     letterSpacing: letterSpacing('tight'),
     marginTop: spacing(8),
+  },
+  editLink: {
+    color: colors.textMuted,
+    fontFamily: FONTS.mono,
+    fontSize: fontSize('small'),
+    marginTop: spacing(2),
   },
 });
