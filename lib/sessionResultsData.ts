@@ -56,6 +56,23 @@ export interface SessionResultsData {
 
   // Loot box odds for detail view
   lootBoxOdds: LootBoxOdds;
+
+  // Companions unlocked this session (for reveal/recap)
+  unlockedCompanions: Array<{
+    id: string;
+    name: string;
+    rarity: 'common' | 'rare' | 'legendary';
+    type: 'character' | 'creature' | 'object';
+    description: string;
+    imageUrl: string | null;
+  }>;
+
+  // Loot boxes earned with tiers (for reveal/recap)
+  lootBoxesEarned: Array<{
+    id: string;
+    tier: 'wood' | 'silver' | 'gold';
+    source: 'level_up' | 'bonus_drop' | 'completion';
+  }>;
 }
 
 /**
@@ -138,5 +155,21 @@ export function buildSessionResultsData(
       legendaryLuck: result.activeEffects.legendaryLuck,
       pityCounter,
     },
+
+    // New fields for reveal/recap
+    unlockedCompanions: unlockedCompanions.map(c => ({
+      id: c.id,
+      name: c.name,
+      rarity: c.rarity,
+      type: c.type,
+      description: c.description,
+      imageUrl: c.imageUrl,
+    })),
+
+    lootBoxesEarned: result.lootBoxes.map(lb => ({
+      id: lb.id,
+      tier: lb.tier!, // Now always defined since we roll at earn time
+      source: lb.source,
+    })),
   };
 }
