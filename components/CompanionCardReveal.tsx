@@ -68,14 +68,19 @@ export function CompanionCardReveal({ companion, onComplete, isLast }: Props) {
   // Pulse animation for legendary
   const pulseAnim = useRef(new Animated.Value(1)).current;
   React.useEffect(() => {
+    let animation: Animated.CompositeAnimation | null = null;
     if (companion.rarity === 'legendary' && !revealed) {
-      Animated.loop(
+      animation = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, { toValue: 1.05, duration: 800, useNativeDriver: true }),
           Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
         ])
-      ).start();
+      );
+      animation.start();
     }
+    return () => {
+      animation?.stop();
+    };
   }, [companion.rarity, revealed]);
 
   return (

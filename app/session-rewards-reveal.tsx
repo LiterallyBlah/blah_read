@@ -13,8 +13,14 @@ export default function SessionRewardsRevealRoute() {
     bookTitle: string;
   }>();
 
-  const companions = JSON.parse(params.companions || '[]');
-  const lootBoxes = JSON.parse(params.lootBoxes || '[]');
+  let companions = [];
+  let lootBoxes = [];
+  try {
+    companions = JSON.parse(params.companions || '[]');
+    lootBoxes = JSON.parse(params.lootBoxes || '[]');
+  } catch (e) {
+    console.error('Failed to parse rewards data:', e);
+  }
   const resultsData = params.resultsData || '{}';
   const bookTitle = params.bookTitle || 'Unknown Book';
 

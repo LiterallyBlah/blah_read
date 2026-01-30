@@ -168,7 +168,7 @@ export function buildSessionResultsData(
 
     lootBoxesEarned: result.lootBoxes.map(lb => ({
       id: lb.id,
-      tier: lb.tier!, // Now always defined since we roll at earn time
+      tier: lb.tier ?? 'wood', // Fallback for any legacy boxes
       source: lb.source,
     })),
   };
