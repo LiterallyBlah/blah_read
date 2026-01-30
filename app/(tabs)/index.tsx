@@ -9,11 +9,13 @@ import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 import { DungeonBar } from '@/components/dungeon';
 import { getBookTier, getTierColorKey } from '@/lib/bookTier';
+import { timerPersistence, PersistedTimerState } from '@/lib/timerPersistence';
 
 export default function HomeScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();
   const [currentBook, setCurrentBook] = useState<Book | null>(null);
   const [progress, setProgress] = useState<UserProgress | null>(null);
+  const [pausedSession, setPausedSession] = useState<PersistedTimerState | null>(null);
   const cursorAnim = useRef(new Animated.Value(1)).current;
 
   // Blinking cursor animation (530ms cycle from design system)
@@ -39,6 +41,14 @@ export default function HomeScreen() {
     const reading = books.find(b => b.status === 'reading');
     setCurrentBook(reading || null);
     setProgress(await storage.getProgress());
+
+    // Check for paused timer session
+    const timerState = await timerPersistence.load();
+    if (timerState && !timerState.isRunning && timerState.pausedElapsed > 0) {
+      setPausedSession(timerState);
+    } else {
+      setPausedSession(null);
+    }
   }
 
   const level = progress ? calculateLevel(progress.totalXp) : 1;
@@ -94,7 +104,11 @@ export default function HomeScreen() {
           <View style={[styles.coverOverlay, !currentBook.coverUrl && styles.noCoverOverlay]}>
             <Text style={styles.bookLabel}>currently reading_</Text>
             <Text style={styles.bookTitle}>{currentBook.title.toLowerCase()}</Text>
-            <Text style={styles.startButton}>[ start reading ]</Text>
+            <Text style={styles.startButton}>
+              {pausedSession && currentBook && pausedSession.bookId === currentBook.id
+                ? '[ resume session ]'
+                : '[ start reading ]'}
+            </Text>
           </View>
         </Pressable>
       ) : (
