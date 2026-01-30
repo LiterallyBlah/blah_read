@@ -1,3 +1,5 @@
+import { debug } from './debug';
+
 const API_URL = 'https://www.googleapis.com/books/v1/volumes';
 
 export interface GoogleBookResult {
@@ -12,10 +14,22 @@ export interface GoogleBookResult {
 }
 
 export function parseGoogleBooksResponse(response: any): GoogleBookResult | null {
-  if (!response.items?.length) return null;
+  if (!response.items?.length) {
+    debug.log('googleBooks', 'No items in response');
+    return null;
+  }
 
   const book = response.items[0].volumeInfo;
-  return {
+
+  debug.log('googleBooks', 'Raw volumeInfo', {
+    title: book.title,
+    authors: book.authors,
+    categories: book.categories,
+    hasImageLinks: !!book.imageLinks,
+    allKeys: Object.keys(book),
+  });
+
+  const result = {
     title: book.title || 'Unknown Title',
     authors: book.authors || undefined,
     coverUrl: book.imageLinks?.thumbnail || book.imageLinks?.smallThumbnail || null,
@@ -25,6 +39,14 @@ export function parseGoogleBooksResponse(response: any): GoogleBookResult | null
     publisher: book.publisher ?? null,
     publishedDate: book.publishedDate ?? null,
   };
+
+  debug.log('googleBooks', 'Parsed result', {
+    title: result.title,
+    categories: result.categories,
+    hasCover: !!result.coverUrl,
+  });
+
+  return result;
 }
 
 export async function searchGoogleBooks(

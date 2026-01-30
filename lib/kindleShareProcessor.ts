@@ -94,6 +94,7 @@ export async function processKindleShare(
     synopsis: enrichment.synopsis,
     pageCount: enrichment.pageCount,
     genres: enrichment.genres,
+    normalizedGenres: enrichment.normalizedGenres,
     publisher: enrichment.publisher,
     publishedDate: enrichment.publishedDate,
     sourceUrl: parsed.sourceUrl,

@@ -9,6 +9,8 @@ import { Book, BookStatus } from '@/lib/types';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 import { isKindleShareText } from '@/lib/kindleParser';
+import { settings } from '@/lib/settings';
+import { setDebugEnabled } from '@/lib/debug';
 
 const FILTERS: { label: string; value: BookStatus | 'all' }[] = [
   { label: 'all', value: 'all' },
@@ -33,6 +35,8 @@ export default function LibraryScreen() {
   );
 
   async function loadBooks() {
+    const config = await settings.get();
+    setDebugEnabled(config.debugMode);
     setBooks(await storage.getBooks());
   }
 

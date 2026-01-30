@@ -22,6 +22,31 @@ function cleanTitleForSearch(title: string): string {
   return cleaned || title; // Fall back to original if cleaning removes everything
 }
 
+/**
+ * Extract series name from parentheses in title
+ * e.g., "Power (Buryoku Book 1)" -> "Buryoku"
+ */
+function extractSeriesName(title: string): string | null {
+  const match = title.match(/\(([^)]+)\)/);
+  if (match) {
+    // Remove "Book X", "Volume X", "#X" from series name
+    const seriesName = match[1]
+      .replace(/\s*(book|volume|#)\s*\d+/gi, '')
+      .trim();
+    return seriesName || null;
+  }
+  return null;
+}
+
+/**
+ * Check if a title is too generic for reliable search
+ * (single word or <= 6 characters)
+ */
+function isTitleTooGeneric(title: string): boolean {
+  const words = title.trim().split(/\s+/);
+  return words.length === 1 || title.length <= 6;
+}
+
 export interface EnrichmentResult {
   coverUrl: string | null;
   synopsis: string | null;
@@ -64,7 +89,8 @@ export async function enrichBookData(
   // Fall back to title/author search
   if (!googleResult?.coverUrl) {
     const cleanedTitle = cleanTitleForSearch(title);
-    console.log('[enrichBookData] Cleaned title:', { original: title, cleaned: cleanedTitle });
+    const seriesName = extractSeriesName(title);
+    console.log('[enrichBookData] Cleaned title:', { original: title, cleaned: cleanedTitle, seriesName });
 
     // Try with cleaned title + author first
     const query = author ? `intitle:"${cleanedTitle}" inauthor:"${author}"` : cleanedTitle;
@@ -86,16 +112,60 @@ export async function enrichBookData(
         console.log('[enrichBookData] Title-only search failed:', error);
       }
     }
+
+    // If cleaned title is too generic and we have a series name, try with series name
+    if (!googleResult?.coverUrl && seriesName && isTitleTooGeneric(cleanedTitle)) {
+      console.log('[enrichBookData] Title too generic, trying series name searches');
+
+      // Try: "Title SeriesName" (e.g., "Power Buryoku")
+      try {
+        const combinedQuery = `${cleanedTitle} ${seriesName}`;
+        console.log('[enrichBookData] Trying combined title+series search:', combinedQuery);
+        googleResult = await searchGoogleBooks(combinedQuery, options?.googleBooksApiKey);
+        console.log('[enrichBookData] Combined search result:', googleResult ? 'found' : 'not found', googleResult?.coverUrl ? 'with cover' : 'no cover');
+      } catch (error) {
+        console.log('[enrichBookData] Combined search failed:', error);
+      }
+
+      // Try: just series name (e.g., "Buryoku")
+      if (!googleResult?.coverUrl) {
+        try {
+          console.log('[enrichBookData] Trying series-only search:', seriesName);
+          googleResult = await searchGoogleBooks(seriesName, options?.googleBooksApiKey);
+          console.log('[enrichBookData] Series-only search result:', googleResult ? 'found' : 'not found', googleResult?.coverUrl ? 'with cover' : 'no cover');
+        } catch (error) {
+          console.log('[enrichBookData] Series-only search failed:', error);
+        }
+      }
+    }
   }
 
   if (googleResult?.coverUrl) {
-    console.log('[enrichBookData] Returning Google Books result');
-    const normalizedGenres = mapToCanonicalGenres(googleResult.categories || []);
+    console.log('[enrichBookData] Got Google Books result with cover');
+    console.log('[enrichBookData] Categories from API:', googleResult.categories);
+
+    // If Google has cover but no categories, try OpenLibrary just for genres
+    let genres = googleResult.categories || [];
+    if (genres.length === 0) {
+      console.log('[enrichBookData] No categories from Google, trying OpenLibrary for genres');
+      try {
+        const openLibGenreResult = await searchOpenLibrary(title, author);
+        if (openLibGenreResult?.genres?.length) {
+          genres = openLibGenreResult.genres;
+          console.log('[enrichBookData] Got genres from OpenLibrary:', genres);
+        }
+      } catch (error) {
+        console.log('[enrichBookData] OpenLibrary genre fetch failed:', error);
+      }
+    }
+
+    const normalizedGenres = mapToCanonicalGenres(genres);
+    console.log('[enrichBookData] Normalized genres:', normalizedGenres);
     return {
       coverUrl: googleResult.coverUrl,
       synopsis: googleResult.description,
       pageCount: googleResult.pageCount || null,
-      genres: googleResult.categories || [],
+      genres,
       normalizedGenres,
       publisher: googleResult.publisher || null,
       publishedDate: googleResult.publishedDate || null,

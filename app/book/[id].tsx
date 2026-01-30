@@ -16,6 +16,8 @@ import { useTheme } from '@/lib/ThemeContext';
 import { settings } from '@/lib/settings';
 import { generateCompanionsInBackground } from '@/lib/companionBackgroundGenerator';
 import { getBookTier, getTierColorKey, getTierGlow } from '@/lib/bookTier';
+import { GENRES, Genre, GENRE_DISPLAY_NAMES } from '@/lib/genres';
+import { detectBookGenres } from '@/lib/genreDetection';
 
 const STATUS_OPTIONS: { label: string; value: BookStatus }[] = [
   { label: 'to read', value: 'to_read' },
@@ -98,6 +100,10 @@ export default function BookDetailScreen() {
   const [imageGenProgress, setImageGenProgress] = useState('');
   const [isGeneratingCompanions, setIsGeneratingCompanions] = useState(false);
   const generationStartedRef = useRef(false);
+  const [genrePickerOpen, setGenrePickerOpen] = useState(false);
+  const [selectedGenres, setSelectedGenres] = useState<Genre[]>([]);
+  const [isSavingGenres, setIsSavingGenres] = useState(false);
+  const [isDetectingGenres, setIsDetectingGenres] = useState(false);
 
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
@@ -105,6 +111,13 @@ export default function BookDetailScreen() {
     loadBook();
     loadDebugMode();
   }, [id]);
+
+  // Sync selected genres when book loads
+  useEffect(() => {
+    if (book?.normalizedGenres) {
+      setSelectedGenres(book.normalizedGenres);
+    }
+  }, [book?.id]);
 
   async function loadDebugMode() {
     const config = await settings.get();
@@ -344,6 +357,57 @@ export default function BookDetailScreen() {
     }
   }
 
+  async function handleDebugDetectGenres() {
+    if (!book) return;
+
+    const config = await settings.get();
+    if (!config.apiKey) {
+      Alert.alert('No API Key', 'Please configure your OpenRouter API key in settings.');
+      return;
+    }
+
+    setIsDetectingGenres(true);
+    try {
+      console.log('[DEBUG:genres] Starting LLM genre detection for:', book.title);
+      console.log('[DEBUG:genres] Author:', book.authors?.[0]);
+      console.log('[DEBUG:genres] Synopsis:', book.synopsis ? 'present' : 'none');
+
+      const detected = await detectBookGenres(
+        {
+          title: book.title,
+          author: book.authors?.[0],
+          synopsis: book.synopsis,
+        },
+        config.apiKey,
+        config.llmModel
+      );
+
+      console.log('[DEBUG:genres] Detected genres:', detected);
+
+      if (detected.length > 0) {
+        const updatedBook: Book = {
+          ...book,
+          normalizedGenres: detected,
+        };
+        await storage.saveBook(updatedBook);
+        setBook(updatedBook);
+        setSelectedGenres(detected);
+
+        Alert.alert(
+          'Genre Detection Complete',
+          `Detected: ${detected.join(', ')}`
+        );
+      } else {
+        Alert.alert('No Genres Detected', 'LLM could not determine genres for this book.');
+      }
+    } catch (error) {
+      console.error('[DEBUG:genres] Error:', error);
+      Alert.alert('Genre Detection Failed', String(error));
+    } finally {
+      setIsDetectingGenres(false);
+    }
+  }
+
   async function handleDebugGenerateImages() {
     if (!book?.companions) return;
 
@@ -392,6 +456,35 @@ export default function BookDetailScreen() {
       Alert.alert('Generation Failed', String(error));
     } finally {
       setIsGeneratingImages(false);
+    }
+  }
+
+  function toggleGenre(genre: Genre) {
+    setSelectedGenres(prev => {
+      if (prev.includes(genre)) {
+        return prev.filter(g => g !== genre);
+      } else {
+        return [...prev, genre];
+      }
+    });
+  }
+
+  async function handleSaveGenres() {
+    if (!book) return;
+
+    setIsSavingGenres(true);
+    try {
+      const updatedBook: Book = {
+        ...book,
+        normalizedGenres: selectedGenres,
+      };
+      await storage.saveBook(updatedBook);
+      setBook(updatedBook);
+      setGenrePickerOpen(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save genres');
+    } finally {
+      setIsSavingGenres(false);
     }
   }
 
@@ -564,6 +657,61 @@ export default function BookDetailScreen() {
         </View>
       </View>
 
+      {/* Genre picker */}
+      <View style={styles.section}>
+        <Pressable onPress={() => setGenrePickerOpen(!genrePickerOpen)}>
+          <Text style={styles.sectionLabel}>
+            genres_ {genrePickerOpen ? '[-]' : '[+]'}
+          </Text>
+        </Pressable>
+
+        {/* Current genres display */}
+        {!genrePickerOpen && (
+          <View style={styles.statusRow}>
+            {book.normalizedGenres && book.normalizedGenres.length > 0 ? (
+              book.normalizedGenres.map(genre => (
+                <View key={genre} style={[styles.statusButton, styles.statusButtonActive]}>
+                  <Text style={[styles.statusText, styles.statusTextActive]}>[{genre}]</Text>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.statusText}>tap [+] to add</Text>
+            )}
+          </View>
+        )}
+
+        {/* Genre picker expanded */}
+        {genrePickerOpen && (
+          <>
+            <View style={styles.statusRow}>
+              {GENRES.map(genre => {
+                const isSelected = selectedGenres.includes(genre);
+                return (
+                  <Pressable
+                    key={genre}
+                    style={[styles.statusButton, isSelected && styles.statusButtonActive]}
+                    onPress={() => toggleGenre(genre)}
+                  >
+                    <Text style={[styles.statusText, isSelected && styles.statusTextActive]}>
+                      [{genre}]
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Pressable
+              style={[styles.saveGenresButton, isSavingGenres && { opacity: 0.5 }]}
+              onPress={handleSaveGenres}
+              disabled={isSavingGenres}
+            >
+              <Text style={styles.saveGenresText}>
+                {isSavingGenres ? 'saving...' : '[save genres]'}
+              </Text>
+            </Pressable>
+          </>
+        )}
+      </View>
+
       {/* Companion section */}
       <View style={styles.section}>
         {book.companions ? (
@@ -639,6 +787,15 @@ export default function BookDetailScreen() {
                 >
                   <Text style={styles.debugButtonText}>
                     {isSyncing ? 'enriching...' : '[enrich from API]'}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.debugButton, isDetectingGenres && { opacity: 0.5 }, { marginTop: spacing(2) }]}
+                  onPress={handleDebugDetectGenres}
+                  disabled={isDetectingGenres}
+                >
+                  <Text style={styles.debugButtonText}>
+                    {isDetectingGenres ? 'detecting genres...' : '[detect genres (LLM)]'}
                   </Text>
                 </Pressable>
               </View>
@@ -999,6 +1156,77 @@ function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: a
       gap: spacing(2),
     },
     generatingText: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+    },
+    genreHeaderRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: spacing(2),
+      marginBottom: spacing(2),
+    },
+    genreLabelPressable: {
+      paddingVertical: spacing(1),
+    },
+    genreLabel: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+    },
+    genreLabelMuted: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+      paddingVertical: spacing(1),
+    },
+    genrePickerContainer: {
+      marginTop: spacing(2),
+    },
+    genreChipRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing(2),
+      marginTop: spacing(2),
+    },
+    genreChip: {
+      paddingVertical: spacing(1),
+      paddingHorizontal: spacing(2),
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    genreChipSelected: {
+      paddingVertical: spacing(1),
+      paddingHorizontal: spacing(2),
+      borderWidth: 1,
+      borderColor: colors.text,
+      backgroundColor: colors.backgroundCard,
+    },
+    genreChipText: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+    },
+    genreChipTextSelected: {
+      color: colors.text,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+    },
+    saveGenresButton: {
+      marginTop: spacing(4),
+      borderWidth: 1,
+      borderColor: colors.textMuted,
+      paddingVertical: spacing(2),
+      paddingHorizontal: spacing(4),
+      alignSelf: 'flex-start',
+    },
+    saveGenresText: {
       color: colors.textMuted,
       fontFamily: FONTS.mono,
       fontSize: fontSize('small'),

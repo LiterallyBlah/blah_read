@@ -4,6 +4,7 @@ import { generateBufferedImages } from './companionImageQueue';
 import { generateImageForCompanion } from './imageGen';
 import { settings } from './settings';
 import { debug } from './debug';
+import { detectBookGenres } from './genreDetection';
 
 /**
  * Generate companions for a book in the background.
@@ -37,7 +38,33 @@ export async function generateCompanionsInBackground(
     });
     debug.timeEnd('background', 'companion-research');
 
-    // Step 2: Generate images
+    // Step 2: Genre detection if book has no genres
+    let detectedGenres = book.normalizedGenres || [];
+    if (detectedGenres.length === 0) {
+      debug.log('background', 'Book has no genres, running LLM detection');
+      debug.time('background', 'genre-detection');
+      try {
+        const detected = await detectBookGenres(
+          {
+            title: book.title,
+            author: book.authors?.[0],
+            synopsis: book.synopsis,
+          },
+          config.apiKey!,
+          config.llmModel
+        );
+        if (detected.length) {
+          detectedGenres = detected;
+          debug.log('background', 'LLM detected genres:', detected);
+        }
+      } catch (error) {
+        debug.warn('background', 'Genre detection failed', error);
+        // Continue without genres - non-blocking
+      }
+      debug.timeEnd('background', 'genre-detection');
+    }
+
+    // Step 3: Generate images
     debug.time('background', 'image-generation');
     const generateImage = async (companion: Companion) => {
       try {
@@ -55,11 +82,15 @@ export async function generateCompanionsInBackground(
     const companionsWithImages = await generateBufferedImages(companions, generateImage);
     debug.timeEnd('background', 'image-generation');
 
-    // Step 3: Return updated book
+    // Step 4: Return updated book with companions and detected genres
     const updatedBook: Book = {
       ...book,
       companions: companionsWithImages,
       companionsPending: false,
+      // Include detected genres if we found any (and book didn't already have them)
+      ...(detectedGenres.length > 0 && !book.normalizedGenres?.length
+        ? { normalizedGenres: detectedGenres }
+        : {}),
     };
 
     debug.log('background', `Companion generation complete for "${book.title}"`);
