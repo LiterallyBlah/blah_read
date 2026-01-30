@@ -37,10 +37,9 @@ export function BookCard({ book, onPress }: Props) {
   });
 
   return (
-    <Pressable
-      style={[
-        styles.container,
-        {
+    <Pressable style={styles.container} onPress={onPress}>
+      <View
+        style={{
           borderWidth: 1,
           borderColor: tierColor,
           shadowColor: tierColor,
@@ -48,17 +47,17 @@ export function BookCard({ book, onPress }: Props) {
           shadowOpacity: glow.shadowOpacity,
           shadowOffset: { width: 0, height: 0 },
           elevation: glow.elevation,
-        },
-      ]}
-      onPress={onPress}
-    >
-      {book.coverUrl ? (
-        <Image source={{ uri: book.coverUrl }} style={styles.cover} />
-      ) : (
-        <View style={[styles.cover, styles.placeholder]}>
-          <Text style={styles.placeholderText}>?</Text>
-        </View>
-      )}
+          marginBottom: spacing(2),
+        }}
+      >
+        {book.coverUrl ? (
+          <Image source={{ uri: book.coverUrl }} style={styles.coverImage} />
+        ) : (
+          <View style={[styles.coverImage, styles.placeholder]}>
+            <Text style={styles.placeholderText}>?</Text>
+          </View>
+        )}
+      </View>
       <Text style={styles.title} numberOfLines={2}>{book.title.toLowerCase()}</Text>
       {genreText && <Text style={styles.genre} numberOfLines={1}>{genreText}</Text>}
       <Text style={styles.time}>{hours}h {minutes}m</Text>
@@ -76,17 +75,14 @@ const createStyles = (
     width: 100,
     marginRight: spacing(3),
   },
-  cover: {
+  coverImage: {
     width: 100,
     height: 150,
     backgroundColor: colors.surface,
-    marginBottom: spacing(2),
   },
   placeholder: {
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
   },
   placeholderText: {
     color: colors.textMuted,
