@@ -72,6 +72,37 @@ export function SessionResultsScreen({ data, bookTitle, onContinue }: Props) {
           </View>
         </View>
 
+        {/* Found This Session */}
+        {(data.unlockedCompanions?.length > 0 || data.lootBoxesEarned?.length > 0) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>found this session</Text>
+
+            {/* Companions */}
+            {data.unlockedCompanions?.map((companion) => (
+              <View key={companion.id} style={styles.foundItem}>
+                <Text style={[styles.foundName, { color: colors.text }]}>
+                  {companion.name.toLowerCase()}
+                </Text>
+                <Text style={[
+                  styles.foundRarity,
+                  { color: companion.rarity === 'legendary' ? colors.rarityLegendary :
+                           companion.rarity === 'rare' ? colors.rarityRare :
+                           colors.rarityCommon }
+                ]}>
+                  [{companion.rarity}]
+                </Text>
+              </View>
+            ))}
+
+            {/* Loot boxes */}
+            {data.lootBoxesEarned?.length > 0 && (
+              <Text style={styles.progressItem}>
+                {data.lootBoxesEarned.length} loot box{data.lootBoxesEarned.length !== 1 ? 'es' : ''} in inventory
+              </Text>
+            )}
+          </View>
+        )}
+
         {/* Progress Made */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>progress made</Text>
@@ -344,6 +375,21 @@ const createStyles = (
       fontSize: fontSize('small'),
       color: colors.primary,
       marginTop: spacing(1),
+    },
+    foundItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing(1),
+      gap: spacing(2),
+    },
+    foundName: {
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('body'),
+    },
+    foundRarity: {
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      fontWeight: FONTS.monoBold,
     },
     progressItem: {
       fontFamily: FONTS.mono,
