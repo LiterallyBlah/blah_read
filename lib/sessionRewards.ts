@@ -10,7 +10,7 @@ import { Genre, GENRES } from './genres';
 import { processReadingTime, calculateCompletionBonus } from './bookLeveling';
 import { calculateActiveEffects, ActiveEffects } from './companionEffects';
 import { getActiveEffects as getConsumableEffects, tickConsumables } from './consumableManager';
-import { rollCheckpointDrops } from './lootV3';
+import { rollCheckpointDrops, rollBoxTierWithPity } from './lootV3';
 import { getStreakMultiplier, calculateLevel } from './xp';
 
 // Constants
@@ -131,7 +131,7 @@ export function processSessionEnd(
   const consumableEffects = getConsumableEffects(activeConsumables);
 
   // Step 3: Combine boosts
-  const { totalXpBoost, totalDropRateBoost, combinedActiveEffects } =
+  const { totalXpBoost, totalLuck, totalDropRateBoost, combinedActiveEffects } =
     combineEffects(companionEffects, consumableEffects);
 
   // Step 4: Process book leveling
@@ -177,15 +177,23 @@ export function processSessionEnd(
     }
   }
 
-  // Step 8: Create blank loot boxes (tier determined at open time)
+  // Step 8: Roll and create loot boxes with tiers
   const lootBoxes: LootBoxV3[] = [];
+  let currentPityCounter = progress.goldPityCounter ?? 0;
 
   // Level up boxes
   const regularLevelsGained = levelResult.levelsGained;
   for (let i = 0; i < regularLevelsGained; i++) {
+    const { tier, newPityCounter } = rollBoxTierWithPity(
+      totalLuck,
+      combinedActiveEffects.rareLuck,
+      combinedActiveEffects.legendaryLuck,
+      { goldPityCounter: currentPityCounter }
+    );
+    currentPityCounter = newPityCounter;
     lootBoxes.push({
       id: generateLootBoxId(),
-      // tier intentionally omitted - blank box
+      tier,
       earnedAt: now,
       source: 'level_up',
       bookId: book.id,
@@ -194,9 +202,16 @@ export function processSessionEnd(
 
   // Completion bonus boxes
   for (let i = 0; i < completionBonusLevels; i++) {
+    const { tier, newPityCounter } = rollBoxTierWithPity(
+      totalLuck,
+      combinedActiveEffects.rareLuck,
+      combinedActiveEffects.legendaryLuck,
+      { goldPityCounter: currentPityCounter }
+    );
+    currentPityCounter = newPityCounter;
     lootBoxes.push({
       id: generateLootBoxId(),
-      // tier intentionally omitted - blank box
+      tier,
       earnedAt: now,
       source: 'completion',
       bookId: book.id,
@@ -207,9 +222,16 @@ export function processSessionEnd(
   const sessionMinutes = Math.floor(validSessionSeconds / 60);
   const bonusDropCount = rollCheckpointDrops(sessionMinutes, totalDropRateBoost);
   for (let i = 0; i < bonusDropCount; i++) {
+    const { tier, newPityCounter } = rollBoxTierWithPity(
+      totalLuck,
+      combinedActiveEffects.rareLuck,
+      combinedActiveEffects.legendaryLuck,
+      { goldPityCounter: currentPityCounter }
+    );
+    currentPityCounter = newPityCounter;
     lootBoxes.push({
       id: generateLootBoxId(),
-      // tier intentionally omitted - blank box
+      tier,
       earnedAt: now,
       source: 'bonus_drop',
       bookId: book.id,
@@ -252,6 +274,7 @@ export function processSessionEnd(
     genreLevels: updatedGenreLevels,
     lootBoxesV3: [...existingLootBoxesV3, ...lootBoxes],
     activeConsumables: tickedConsumables,
+    goldPityCounter: currentPityCounter,
   };
 
   return {
