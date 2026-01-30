@@ -281,7 +281,7 @@ export default function TimerScreen() {
       });
     }
 
-    // Build session results data and navigate to results screen
+    // Build session results data
     const resultsData = buildSessionResultsData(
       sessionResult,
       elapsed,
@@ -290,14 +290,30 @@ export default function TimerScreen() {
       updatedProgress.currentStreak
     );
 
-    debug.log('timer', 'Session end complete, navigating to results screen');
-    router.replace({
-      pathname: '/session-results',
-      params: {
-        data: JSON.stringify(resultsData),
-        bookTitle: book.title,
-      },
-    });
+    debug.log('timer', 'Session end complete, navigating to rewards reveal');
+
+    // Navigate to reveal screen if there are rewards, otherwise straight to results
+    const hasRewardsToReveal = unlockedCompanions.length > 0 || sessionResult.lootBoxes.length > 0;
+
+    if (hasRewardsToReveal) {
+      router.replace({
+        pathname: '/session-rewards-reveal',
+        params: {
+          companions: JSON.stringify(resultsData.unlockedCompanions),
+          lootBoxes: JSON.stringify(resultsData.lootBoxesEarned),
+          resultsData: JSON.stringify(resultsData),
+          bookTitle: book.title,
+        },
+      });
+    } else {
+      router.replace({
+        pathname: '/session-results',
+        params: {
+          data: JSON.stringify(resultsData),
+          bookTitle: book.title,
+        },
+      });
+    }
   }
 
   // Format active effects for display
