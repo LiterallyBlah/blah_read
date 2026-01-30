@@ -58,7 +58,8 @@
       "Bash(git stash:*)",
       "Bash(git checkout:*)",
       "Bash(git restore:*)",
-      "Bash(git rev-parse:*)"
+      "Bash(git rev-parse:*)",
+      "Bash(git -C /mnt/c/Users/micha/Projects/blah_read commit -m \"$\\(cat <<''EOF''\nfeat: add platform-agnostic background service API\n\nProvides a unified JavaScript API for background timer support:\n- Android: Calls native TimerService foreground service\n- iOS: Uses expo-notifications for local notifications\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }

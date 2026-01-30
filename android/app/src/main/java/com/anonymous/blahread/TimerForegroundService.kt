@@ -52,7 +52,7 @@ class TimerForegroundService : Service() {
                 setShowBadge(false)
             }
             val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
+            manager?.createNotificationChannel(channel)
         }
     }
 
@@ -73,7 +73,7 @@ class TimerForegroundService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Reading session active")
             .setContentText("Tap to return")
-            .setSmallIcon(android.R.drawable.ic_menu_book)
+            .setSmallIcon(R.mipmap.ic_launcher)
             .setOngoing(true)
             .setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_LOW)

@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Book, ReadingSession, UserProgress } from './types';
+import { Book, ReadingSession, UserProgress, Companion } from './types';
 import { migrateData, CURRENT_VERSION } from './migrations';
 import { debug } from './debug';
+import { deleteCompanionImage } from './imageStorage';
 
 export interface DuplicateQuery {
   asin?: string;
@@ -164,6 +165,55 @@ export const storage = {
 
   async deleteBook(id: string): Promise<void> {
     const books = await this.getBooks();
+    const book = books.find(b => b.id === id);
+
+    if (book) {
+      // Collect all companion IDs from this book
+      const companionIds: string[] = [];
+
+      if (book.companions) {
+        const collectCompanions = (companions: Companion[]) => {
+          for (const c of companions) {
+            companionIds.push(c.id);
+          }
+        };
+
+        collectCompanions(book.companions.unlockedCompanions || []);
+        collectCompanions(book.companions.readingTimeQueue?.companions || []);
+        collectCompanions(book.companions.poolQueue?.companions || []);
+
+        if (book.companions.completionLegendary) {
+          companionIds.push(book.companions.completionLegendary.id);
+        }
+        if (book.companions.poolLegendary) {
+          companionIds.push(book.companions.poolLegendary.id);
+        }
+      }
+
+      // Delete companion images (try common extensions)
+      for (const companionId of companionIds) {
+        for (const ext of ['png', 'jpeg', 'jpg', 'webp']) {
+          await deleteCompanionImage(`${companionId}.${ext}`);
+        }
+      }
+
+      // Clean up loadout references
+      const progress = await this.getProgress();
+      if (progress.loadout) {
+        const cleanedSlots = progress.loadout.slots.map(slot =>
+          slot && companionIds.includes(slot) ? null : slot
+        );
+        const hasOrphanedSlots = cleanedSlots.some((s, i) => s !== progress.loadout!.slots[i]);
+        if (hasOrphanedSlots) {
+          progress.loadout.slots = cleanedSlots;
+          await this.saveProgress(progress);
+          debug.log('storage', `Cleaned up ${companionIds.length} orphaned loadout references`);
+        }
+      }
+
+      debug.log('storage', `Deleted book ${id} with ${companionIds.length} companions`);
+    }
+
     await AsyncStorage.setItem(KEYS.BOOKS, JSON.stringify(books.filter(b => b.id !== id)));
   },
 

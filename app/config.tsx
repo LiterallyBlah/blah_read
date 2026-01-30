@@ -8,7 +8,7 @@ import { useTheme } from '@/lib/ThemeContext';
 import { settings, Settings, exportAllData, resetApp, selectiveDelete, DeleteOptions } from '@/lib/settings';
 import { resetDebugCache } from '@/lib/debug';
 import { validateApiKey, validateImageModel } from '@/lib/openrouter';
-import { getImageStorageDiagnostics } from '@/lib/imageStorage';
+import { getImageStorageDiagnostics, deleteOrphanedImages } from '@/lib/imageStorage';
 import { storage } from '@/lib/storage';
 import { FONTS } from '@/lib/theme';
 import type { LootBoxV3, LootBoxTier } from '@/lib/types';
@@ -559,6 +559,44 @@ export default function ConfigScreen() {
                 </Pressable>
               </View>
               <Text style={styles.hint}>adds loot boxes for testing rewards</Text>
+
+              <View style={styles.divider} />
+
+              <Text style={[styles.label, { color: '#f59e0b' }]}>cleanup orphaned data_</Text>
+              <Pressable
+                style={[styles.actionButton, { borderColor: '#f59e0b' }]}
+                onPress={async () => {
+                  const books = await storage.getBooks();
+                  const validCompanionIds: string[] = [];
+
+                  for (const book of books) {
+                    if (book.companions) {
+                      for (const c of book.companions.unlockedCompanions || []) {
+                        validCompanionIds.push(c.id);
+                      }
+                      for (const c of book.companions.readingTimeQueue?.companions || []) {
+                        validCompanionIds.push(c.id);
+                      }
+                      for (const c of book.companions.poolQueue?.companions || []) {
+                        validCompanionIds.push(c.id);
+                      }
+                      if (book.companions.completionLegendary) {
+                        validCompanionIds.push(book.companions.completionLegendary.id);
+                      }
+                      if (book.companions.poolLegendary) {
+                        validCompanionIds.push(book.companions.poolLegendary.id);
+                      }
+                    }
+                  }
+
+                  const deletedCount = await deleteOrphanedImages(validCompanionIds);
+                  await loadDiagnostics(); // Refresh diagnostics
+                  Alert.alert('Cleanup Complete', `Deleted ${deletedCount} orphaned companion image${deletedCount !== 1 ? 's' : ''}.`);
+                }}
+              >
+                <Text style={[styles.actionButtonText, { color: '#f59e0b' }]}>[delete orphaned images]</Text>
+              </Pressable>
+              <Text style={styles.hint}>removes companion images from deleted books</Text>
             </>
           )}
         </View>

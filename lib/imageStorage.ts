@@ -97,21 +97,20 @@ export async function saveCompanionImage(
 
 /**
  * Delete a companion image from the file system
- * @param imageUri - The local file URI
+ * @param imageUri - The local file URI or just the filename
  */
 export async function deleteCompanionImage(imageUri: string): Promise<void> {
-  if (!imageUri.startsWith(IMAGE_DIR)) {
-    return; // Not a local image, skip
-  }
+  // Support both full URI and filename-only
+  const fullPath = imageUri.startsWith(IMAGE_DIR) ? imageUri : `${IMAGE_DIR}${imageUri}`;
 
   try {
-    const fileInfo = await FileSystem.getInfoAsync(imageUri);
+    const fileInfo = await FileSystem.getInfoAsync(fullPath);
     if (fileInfo.exists) {
-      await FileSystem.deleteAsync(imageUri);
-      log( `Deleted image: ${imageUri}`);
+      await FileSystem.deleteAsync(fullPath);
+      log(`Deleted image: ${fullPath}`);
     }
   } catch (error) {
-    log( `Failed to delete image: ${imageUri}`, error);
+    log(`Failed to delete image: ${fullPath}`, error);
   }
 }
 
@@ -190,6 +189,38 @@ export async function getImageStorageDiagnostics(): Promise<{
   } catch (error) {
     log('getImageStorageDiagnostics failed', error);
     return { directoryExists: false, fileCount: 0, files: [], totalSize: 0 };
+  }
+}
+
+/**
+ * Delete orphaned companion images that don't belong to any current book
+ * @param validCompanionIds - Array of companion IDs that are currently in the library
+ * @returns Number of orphaned images deleted
+ */
+export async function deleteOrphanedImages(validCompanionIds: string[]): Promise<number> {
+  try {
+    const dirInfo = await FileSystem.getInfoAsync(IMAGE_DIR);
+    if (!dirInfo.exists) return 0;
+
+    const files = await FileSystem.readDirectoryAsync(IMAGE_DIR);
+    let deletedCount = 0;
+
+    for (const file of files) {
+      // Extract companion ID from filename (e.g., "abc123.png" -> "abc123")
+      const companionId = file.replace(/\.[^.]+$/, '');
+
+      if (!validCompanionIds.includes(companionId)) {
+        await FileSystem.deleteAsync(`${IMAGE_DIR}${file}`);
+        log(`Deleted orphaned image: ${file}`);
+        deletedCount++;
+      }
+    }
+
+    log(`Deleted ${deletedCount} orphaned images`);
+    return deletedCount;
+  } catch (error) {
+    log('Failed to delete orphaned images', error);
+    return 0;
   }
 }
 

@@ -24,7 +24,7 @@ class TimerServiceModule(reactContext: ReactApplicationContext) : ReactContextBa
             }
             promise.resolve(null)
         } catch (e: Exception) {
-            promise.reject("SERVICE_ERROR", e.message)
+            promise.reject("SERVICE_ERROR", e.message ?: e.toString())
         }
     }
 
@@ -37,7 +37,7 @@ class TimerServiceModule(reactContext: ReactApplicationContext) : ReactContextBa
             reactApplicationContext.startService(intent)
             promise.resolve(null)
         } catch (e: Exception) {
-            promise.reject("SERVICE_ERROR", e.message)
+            promise.reject("SERVICE_ERROR", e.message ?: e.toString())
         }
     }
 }
