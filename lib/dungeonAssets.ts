@@ -4,10 +4,10 @@ import type { ConsumableEffectType } from './consumables';
 // Tile require mappings - React Native needs static requires
 export const DUNGEON_TILES = {
   // Chests
-  chest_wood_closed: require('@/assets/kenney_tiny-dungeon/Tiles/tile_0054.png'),
-  chest_silver_closed: require('@/assets/kenney_tiny-dungeon/Tiles/tile_0055.png'),
-  chest_gold_closed: require('@/assets/kenney_tiny-dungeon/Tiles/tile_0055.png'), // Tinted in component
-  chest_open: require('@/assets/kenney_tiny-dungeon/Tiles/tile_0067.png'),
+  chest_wood_closed: require('@/assets/kenney_tiny-dungeon/Tiles/tile_0089.png'),
+  chest_silver_closed: require('@/assets/kenney_tiny-dungeon/Tiles/tile_0089.png'),
+  chest_gold_closed: require('@/assets/kenney_tiny-dungeon/Tiles/tile_0089.png'), // Tinted in component
+  chest_open: require('@/assets/kenney_tiny-dungeon/Tiles/tile_0092.png'),
 
   // Potions
   potion_red: require('@/assets/kenney_tiny-dungeon/Tiles/tile_0103.png'),
