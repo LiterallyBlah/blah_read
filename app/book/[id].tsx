@@ -15,6 +15,7 @@ import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 import { settings } from '@/lib/settings';
 import { generateCompanionsInBackground } from '@/lib/companionBackgroundGenerator';
+import { getBookTier, getTierColorKey, getTierGlow } from '@/lib/bookTier';
 
 const STATUS_OPTIONS: { label: string; value: BookStatus }[] = [
   { label: 'to read', value: 'to_read' },
@@ -271,6 +272,7 @@ export default function BookDetailScreen() {
         synopsis: enrichment.synopsis || book.synopsis,
         pageCount: enrichment.pageCount || book.pageCount,
         genres: enrichment.genres.length ? enrichment.genres : book.genres,
+        normalizedGenres: enrichment.normalizedGenres.length ? enrichment.normalizedGenres : book.normalizedGenres,
         publisher: enrichment.publisher || book.publisher,
         publishedDate: enrichment.publishedDate || book.publishedDate,
         metadataSynced: enrichment.source !== 'none',
@@ -284,6 +286,59 @@ export default function BookDetailScreen() {
       }
     } catch (error) {
       Alert.alert('Sync Failed', 'Could not fetch book metadata.');
+    } finally {
+      setIsSyncing(false);
+    }
+  }
+
+  async function handleDebugEnrichment() {
+    if (!book) return;
+
+    setIsSyncing(true);
+    try {
+      const config = await settings.get();
+
+      console.log('[DEBUG:enrichment] Starting enrichment for:', book.title);
+      console.log('[DEBUG:enrichment] Book authors:', book.authors);
+      console.log('[DEBUG:enrichment] Book ASIN:', book.asin);
+
+      const enrichment = await enrichBookData(book.title, book.authors?.[0], {
+        googleBooksApiKey: config.googleBooksApiKey,
+        asin: book.asin,
+      });
+
+      console.log('[DEBUG:enrichment] === ENRICHMENT RESULT ===');
+      console.log('[DEBUG:enrichment] Source:', enrichment.source);
+      console.log('[DEBUG:enrichment] Raw genres:', enrichment.genres);
+      console.log('[DEBUG:enrichment] Normalized genres:', enrichment.normalizedGenres);
+      console.log('[DEBUG:enrichment] Cover URL:', enrichment.coverUrl ? 'found' : 'none');
+      console.log('[DEBUG:enrichment] Page count:', enrichment.pageCount);
+      console.log('[DEBUG:enrichment] Publisher:', enrichment.publisher);
+
+      const updatedBook: Book = {
+        ...book,
+        coverUrl: enrichment.coverUrl || book.coverUrl,
+        synopsis: enrichment.synopsis || book.synopsis,
+        pageCount: enrichment.pageCount || book.pageCount,
+        genres: enrichment.genres.length ? enrichment.genres : book.genres,
+        normalizedGenres: enrichment.normalizedGenres.length ? enrichment.normalizedGenres : book.normalizedGenres,
+        publisher: enrichment.publisher || book.publisher,
+        publishedDate: enrichment.publishedDate || book.publishedDate,
+        metadataSynced: enrichment.source !== 'none',
+      };
+
+      await storage.saveBook(updatedBook);
+      setBook(updatedBook);
+
+      Alert.alert(
+        'Enrichment Complete',
+        `Source: ${enrichment.source}\n` +
+        `Raw genres: ${enrichment.genres.length ? enrichment.genres.join(', ') : '(none)'}\n` +
+        `Normalized: ${enrichment.normalizedGenres.length ? enrichment.normalizedGenres.join(', ') : '(none)'}`
+      );
+    } catch (error) {
+      console.error('[DEBUG:enrichment] Error:', error);
+      Alert.alert('Enrichment Failed', String(error));
     } finally {
       setIsSyncing(false);
     }
@@ -431,6 +486,11 @@ export default function BookDetailScreen() {
   const hours = Math.floor(book.totalReadingTime / 3600);
   const minutes = Math.floor((book.totalReadingTime % 3600) / 60);
 
+  const level = book.progression?.level || 1;
+  const tier = getBookTier(level);
+  const tierColor = colors[getTierColorKey(tier)];
+  const glow = getTierGlow(tier);
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={[styles.contentContainer, { paddingBottom: spacing(6) + insets.bottom }]}>
       {/* Back button */}
@@ -440,17 +500,32 @@ export default function BookDetailScreen() {
 
       {/* Book cover */}
       <View style={styles.coverSection}>
-        {book.coverUrl ? (
-          <Image source={{ uri: book.coverUrl }} style={styles.cover} resizeMode="contain" />
-        ) : (
-          <View style={[styles.cover, styles.placeholder]}>
-            <Text style={styles.placeholderText}>?</Text>
-          </View>
-        )}
+        <View
+          style={{
+            borderWidth: 2,
+            borderColor: tierColor,
+            shadowColor: tierColor,
+            shadowRadius: glow.shadowRadius,
+            shadowOpacity: glow.shadowOpacity,
+            shadowOffset: { width: 0, height: 0 },
+            elevation: glow.elevation,
+          }}
+        >
+          {book.coverUrl ? (
+            <Image source={{ uri: book.coverUrl }} style={styles.cover} resizeMode="contain" />
+          ) : (
+            <View style={[styles.cover, styles.placeholder]}>
+              <Text style={styles.placeholderText}>?</Text>
+            </View>
+          )}
+        </View>
       </View>
 
       {/* Title and time */}
       <Text style={styles.title}>{book.title.toLowerCase()}_</Text>
+      <Text style={[styles.levelBadge, { color: tierColor }]}>
+        lv.{level} [{tier}]
+      </Text>
       <Text style={styles.time}>{hours}h {minutes}m read</Text>
 
       {/* Synopsis */}
@@ -555,6 +630,15 @@ export default function BookDetailScreen() {
                 >
                   <Text style={styles.debugButtonText}>
                     [test rarity borders (2 each)]
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.debugButton, isSyncing && { opacity: 0.5 }, { marginTop: spacing(2) }]}
+                  onPress={handleDebugEnrichment}
+                  disabled={isSyncing}
+                >
+                  <Text style={styles.debugButtonText}>
+                    {isSyncing ? 'enriching...' : '[enrich from API]'}
                   </Text>
                 </Pressable>
               </View>
@@ -701,6 +785,13 @@ function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: a
       fontSize: fontSize('small'),
       letterSpacing: letterSpacing('tight'),
       marginBottom: spacing(4),
+    },
+    levelBadge: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+      marginBottom: spacing(2),
     },
     synopsis: {
       color: colors.textSecondary,
