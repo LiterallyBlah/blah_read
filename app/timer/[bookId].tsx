@@ -349,8 +349,8 @@ export default function TimerScreen() {
     <View style={styles.container}>
       {/* Book cover (optional) */}
       {book?.coverUrl && (
-        <View style={{ borderWidth: 1, borderColor: tierColor }}>
-          <Image source={{ uri: book.coverUrl }} style={styles.cover} resizeMode="contain" />
+        <View style={{ borderWidth: 1, borderColor: tierColor, marginBottom: spacing(6) }}>
+          <Image source={{ uri: book.coverUrl }} style={styles.coverImage} resizeMode="contain" />
         </View>
       )}
 
@@ -408,10 +408,9 @@ const createStyles = (
     alignItems: 'center',
     padding: spacing(6),
   },
-  cover: {
-    width: 120,
-    height: 180,
-    marginBottom: spacing(6),
+  coverImage: {
+    width: 118,
+    height: 178,
     opacity: 0.8,
   },
   title: {

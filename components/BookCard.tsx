@@ -76,8 +76,8 @@ const createStyles = (
     marginRight: spacing(3),
   },
   coverImage: {
-    width: 100,
-    height: 150,
+    width: 98,
+    height: 148,
     backgroundColor: colors.surface,
   },
   placeholder: {
