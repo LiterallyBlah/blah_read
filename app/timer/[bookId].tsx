@@ -220,10 +220,11 @@ export default function TimerScreen() {
     }
 
     // Save session record
+    // startTime uses elapsed (actual session window), duration uses finalTime (adjusted for XP)
     const session: ReadingSession = {
       id: Date.now().toString(),
       bookId: book.id,
-      startTime: Date.now() - finalTime * 1000,
+      startTime: Date.now() - elapsed * 1000,
       endTime: Date.now(),
       duration: finalTime,
       xpEarned: sessionResult.xpGained,
