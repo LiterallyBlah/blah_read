@@ -8,6 +8,7 @@ import { Book, UserProgress } from '@/lib/types';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 import { DungeonBar } from '@/components/dungeon';
+import { getBookTier, getTierColorKey } from '@/lib/bookTier';
 
 export default function HomeScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();
@@ -43,6 +44,10 @@ export default function HomeScreen() {
   const level = progress ? calculateLevel(progress.totalXp) : 1;
   const xp = progress ? xpProgress(progress.totalXp) : { current: 0, needed: 1000 };
 
+  const bookLevel = currentBook?.progression?.level || 1;
+  const bookTier = getBookTier(bookLevel);
+  const bookTierColor = currentBook ? colors[getTierColorKey(bookTier)] : colors.border;
+
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
   return (
@@ -71,7 +76,11 @@ export default function HomeScreen() {
       {/* Current book card */}
       {currentBook ? (
         <Pressable
-          style={[styles.currentBook, currentBook.coverUrl && styles.currentBookWithCover]}
+          style={[
+            styles.currentBook,
+            { borderColor: bookTierColor },
+            currentBook.coverUrl && styles.currentBookWithCover,
+          ]}
           onPress={() => router.push(`/timer/${currentBook.id}`)}
         >
           {currentBook.coverUrl && (
