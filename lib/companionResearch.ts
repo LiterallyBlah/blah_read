@@ -224,11 +224,12 @@ function shuffleArray<T>(array: T[]): T[] {
  * Assign companions to reading-time queue and pool queue
  *
  * Strategy:
- * - Higher importance (legendary, rare) prefer reading-time queue
- * - One legendary reserved for reading-time (5hr milestone)
- * - One legendary reserved for pool (lucky loot box pull)
+ * - Reading-time queue contains all rarities, shuffled
+ * - Rarity is determined at unlock time via RNG with milestone-based odds
+ * - Earlier milestones favor commons, later milestones favor rares/legendaries
+ * - One legendary reserved for reading-time (RNG pool)
+ * - One legendary reserved for pool (gold loot box pull)
  * - One legendary reserved for book completion
- * - Randomize order within each queue
  *
  * Legendary designation:
  * - completionLegendary: Awarded when user finishes reading the book
@@ -281,7 +282,8 @@ export function assignCompanionQueues(companions: Companion[]): {
   const commonsForReadingTime = shuffledCommons.slice(0, Math.ceil(shuffledCommons.length / 2));
   const commonsForPool = shuffledCommons.slice(Math.ceil(shuffledCommons.length / 2));
 
-  // Build reading-time queue (higher importance first, then randomize)
+  // Build reading-time queue with all rarities available
+  // Order doesn't matter - unlock uses RNG-based rarity selection per milestone
   const readingTimeCompanions = shuffleArray([
     ...(readingTimeLegendary ? [readingTimeLegendary] : []),
     ...raresForReadingTime,

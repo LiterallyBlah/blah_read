@@ -1,4 +1,4 @@
-import type { Book, BookCompanions, Companion, LootBox } from './types';
+import type { Book, BookCompanions, Companion, CompanionRarity, LootBox } from './types';
 import { debug } from './debug';
 
 /**
@@ -10,10 +10,71 @@ export const READING_TIME_MILESTONES = [
   60 * 60,      // 1 hour
   2 * 60 * 60,  // 2 hours
   3.5 * 60 * 60, // 3.5 hours
-  5 * 60 * 60,  // 5 hours (legendary milestone)
+  5 * 60 * 60,  // 5 hours
   7 * 60 * 60,  // 7 hours
   10 * 60 * 60, // 10 hours
 ];
+
+/**
+ * Rarity odds per milestone index
+ * Earlier milestones favor commons, later milestones favor rares/legendaries
+ */
+export const MILESTONE_RARITY_ODDS: Array<Record<CompanionRarity, number>> = [
+  { common: 0.90, rare: 0.10, legendary: 0.00 },  // 30 min
+  { common: 0.80, rare: 0.20, legendary: 0.00 },  // 1 hr
+  { common: 0.60, rare: 0.38, legendary: 0.02 },  // 2 hr
+  { common: 0.40, rare: 0.55, legendary: 0.05 },  // 3.5 hr
+  { common: 0.20, rare: 0.65, legendary: 0.15 },  // 5 hr
+  { common: 0.10, rare: 0.60, legendary: 0.30 },  // 7 hr
+  { common: 0.00, rare: 0.50, legendary: 0.50 },  // 10 hr
+];
+
+/**
+ * Roll for a rarity based on milestone odds
+ */
+export function rollMilestoneRarity(milestoneIndex: number): CompanionRarity {
+  const odds = MILESTONE_RARITY_ODDS[milestoneIndex] || MILESTONE_RARITY_ODDS[MILESTONE_RARITY_ODDS.length - 1];
+  const roll = Math.random();
+
+  if (roll < odds.legendary) {
+    return 'legendary';
+  } else if (roll < odds.legendary + odds.rare) {
+    return 'rare';
+  } else {
+    return 'common';
+  }
+}
+
+/**
+ * Find an available companion of the target rarity, with fallback to lower rarities
+ * Prioritizes companions with images
+ */
+export function findCompanionByRarity(
+  companions: Companion[],
+  targetRarity: CompanionRarity
+): number {
+  const rarityFallback: CompanionRarity[] =
+    targetRarity === 'legendary' ? ['legendary', 'rare', 'common'] :
+    targetRarity === 'rare' ? ['rare', 'common'] :
+    ['common'];
+
+  for (const rarity of rarityFallback) {
+    // First try to find one with an image
+    const withImage = companions.findIndex(
+      c => c.unlockMethod === null && c.rarity === rarity && c.imageUrl
+    );
+    if (withImage !== -1) return withImage;
+
+    // Fall back to any of this rarity
+    const any = companions.findIndex(
+      c => c.unlockMethod === null && c.rarity === rarity
+    );
+    if (any !== -1) return any;
+  }
+
+  // Last resort: any unlocked companion
+  return companions.findIndex(c => c.unlockMethod === null);
+}
 
 /**
  * After exhausting reading-time queue, earn 1 loot box per additional hour
@@ -122,16 +183,12 @@ export function processReadingSession(
   const unlockedCompanions: Companion[] = [];
 
   for (const milestoneIndex of crossedMilestones) {
-    // Prioritize companions WITH images, fall back to any unlocked companion
-    let companionIndex = readingQueue.companions.findIndex(
-      c => c.unlockMethod === null && c.imageUrl
-    );
-    if (companionIndex === -1) {
-      // No companion with image available, fall back to any unlocked
-      companionIndex = readingQueue.companions.findIndex(
-        c => c.unlockMethod === null
-      );
-    }
+    // Roll for rarity based on milestone
+    const targetRarity = rollMilestoneRarity(milestoneIndex);
+    debug.log('unlock', `Milestone ${milestoneIndex} rolled rarity: ${targetRarity}`);
+
+    // Find a companion of that rarity (with fallback)
+    const companionIndex = findCompanionByRarity(readingQueue.companions, targetRarity);
 
     if (companionIndex !== -1) {
       const companion = { ...readingQueue.companions[companionIndex] };
@@ -141,6 +198,7 @@ export function processReadingSession(
       debug.log('unlock', `Unlocked companion: "${companion.name}"`, {
         type: companion.type,
         rarity: companion.rarity,
+        targetRarity,
         milestoneIndex,
       });
 
