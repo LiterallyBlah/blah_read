@@ -96,6 +96,17 @@ export default function TimerScreen() {
 
   const displayTime = Math.max(0, elapsed + timeAdjustment);
 
+  function adjustTime(seconds: number) {
+    setTimeAdjustment(prev => {
+      const newAdjustment = prev + seconds;
+      // Ensure total time doesn't go below 0
+      if (elapsed + newAdjustment < 0) {
+        return -elapsed;
+      }
+      return newAdjustment;
+    });
+  }
+
   async function handleEnd() {
     if (!book || elapsed === 0) return;
 
@@ -400,6 +411,26 @@ export default function TimerScreen() {
         <Text style={styles.editLink}>{editMode ? 'done' : 'edit'}</Text>
       </Pressable>
 
+      {/* Adjustment buttons - only visible in edit mode */}
+      {editMode && (
+        <View style={styles.adjustmentContainer}>
+          <View style={styles.adjustmentRow}>
+            <Pressable style={styles.adjustButton} onPress={() => adjustTime(-3600)}>
+              <Text style={styles.adjustButtonText}>[-1h]</Text>
+            </Pressable>
+            <Pressable style={styles.adjustButton} onPress={() => adjustTime(-300)}>
+              <Text style={styles.adjustButtonText}>[-5m]</Text>
+            </Pressable>
+            <Pressable style={styles.adjustButton} onPress={() => adjustTime(300)}>
+              <Text style={styles.adjustButtonText}>[+5m]</Text>
+            </Pressable>
+            <Pressable style={styles.adjustButton} onPress={() => adjustTime(3600)}>
+              <Text style={styles.adjustButtonText}>[+1h]</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
       {/* Control buttons */}
       <View style={styles.buttons}>
         {!isRunning ? (
@@ -532,5 +563,22 @@ const createStyles = (
     fontFamily: FONTS.mono,
     fontSize: fontSize('small'),
     marginTop: spacing(2),
+  },
+  adjustmentContainer: {
+    marginTop: spacing(4),
+    alignItems: 'center',
+  },
+  adjustmentRow: {
+    flexDirection: 'row',
+    gap: spacing(2),
+  },
+  adjustButton: {
+    paddingVertical: spacing(2),
+    paddingHorizontal: spacing(3),
+  },
+  adjustButtonText: {
+    color: colors.textSecondary,
+    fontFamily: FONTS.mono,
+    fontSize: fontSize('body'),
   },
 });
