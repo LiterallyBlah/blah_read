@@ -108,7 +108,8 @@ export default function TimerScreen() {
   }
 
   async function handleEnd() {
-    if (!book || elapsed === 0) return;
+    const finalTime = Math.max(0, elapsed + timeAdjustment);
+    if (!book || finalTime === 0) return;
 
     // Clear timer persistence and stop background service
     await timerPersistence.clear();
@@ -120,7 +121,7 @@ export default function TimerScreen() {
 
     debug.log('timer', 'Ending reading session', {
       bookTitle: book.title,
-      elapsed,
+      finalTime,
       previousTime: book.totalReadingTime,
     });
 
@@ -149,7 +150,7 @@ export default function TimerScreen() {
       book,
       progress,
       equippedCompanions,
-      elapsed,
+      finalTime,
       false // isCompletion - timer screen doesn't handle book completion
     );
 
@@ -221,9 +222,9 @@ export default function TimerScreen() {
     const session: ReadingSession = {
       id: Date.now().toString(),
       bookId: book.id,
-      startTime: Date.now() - elapsed * 1000,
+      startTime: Date.now() - finalTime * 1000,
       endTime: Date.now(),
-      duration: elapsed,
+      duration: finalTime,
       xpEarned: sessionResult.xpGained,
     };
     await storage.saveSession(session);
@@ -236,7 +237,7 @@ export default function TimerScreen() {
     let unlockedCompanions: Companion[] = [];
     if (updatedBook.companions) {
       debug.log('timer', 'Processing companion unlocks...');
-      const result = processReadingSession(updatedBook, elapsed);
+      const result = processReadingSession(updatedBook, finalTime);
       updatedBook.companions = result.updatedCompanions;
       unlockedCompanions = result.unlockedCompanions;
 
@@ -300,7 +301,7 @@ export default function TimerScreen() {
     // Build session results data
     const resultsData = buildSessionResultsData(
       sessionResult,
-      elapsed,
+      finalTime,
       unlockedCompanions,
       previousStreak,
       updatedProgress.currentStreak
