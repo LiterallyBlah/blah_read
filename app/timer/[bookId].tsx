@@ -108,8 +108,9 @@ export default function TimerScreen() {
   }
 
   async function handleEnd() {
+    // Require actual timer activity - can't create sessions from adjustment alone
+    if (!book || elapsed === 0) return;
     const finalTime = Math.max(0, elapsed + timeAdjustment);
-    if (!book || finalTime === 0) return;
 
     // Clear timer persistence and stop background service
     await timerPersistence.clear();
