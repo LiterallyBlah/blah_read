@@ -20,6 +20,10 @@ export function getTierColorKey(tier: BookTier): 'rarityCommon' | 'rarityRare' |
     case 'legendary': return 'rarityLegendary';
     case 'rare': return 'rarityRare';
     case 'common': return 'rarityCommon';
+    default: {
+      const _exhaustive: never = tier;
+      throw new Error(`Unknown tier: ${_exhaustive}`);
+    }
   }
 }
 

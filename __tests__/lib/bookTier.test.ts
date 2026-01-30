@@ -1,4 +1,4 @@
-import { getBookTier, getTierGlow } from '@/lib/bookTier';
+import { getBookTier, getTierGlow, getTierColorKey } from '@/lib/bookTier';
 
 describe('getBookTier', () => {
   it('returns common for levels 1-3', () => {
@@ -44,5 +44,19 @@ describe('getTierGlow', () => {
     expect(glow.shadowRadius).toBe(12);
     expect(glow.shadowOpacity).toBe(0.8);
     expect(glow.elevation).toBe(8);
+  });
+});
+
+describe('getTierColorKey', () => {
+  it('returns rarityCommon for common tier', () => {
+    expect(getTierColorKey('common')).toBe('rarityCommon');
+  });
+
+  it('returns rarityRare for rare tier', () => {
+    expect(getTierColorKey('rare')).toBe('rarityRare');
+  });
+
+  it('returns rarityLegendary for legendary tier', () => {
+    expect(getTierColorKey('legendary')).toBe('rarityLegendary');
   });
 });
