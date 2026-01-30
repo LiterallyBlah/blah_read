@@ -24,6 +24,7 @@ import { calculateActiveEffects, ActiveEffects } from '@/lib/companionEffects';
 import { getActiveEffects as getConsumableEffects } from '@/lib/consumableManager';
 import { buildSessionResultsData } from '@/lib/sessionResultsData';
 import { shouldUnlockSlot2, shouldUnlockSlot3 } from '@/lib/slotProgress';
+import { getBookTier, getTierColorKey } from '@/lib/bookTier';
 
 export default function TimerScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();
@@ -340,11 +341,17 @@ export default function TimerScreen() {
   const displayEffects = formatActiveEffects();
   const hasActiveEffects = displayEffects.length > 0;
 
+  const level = book?.progression?.level || 1;
+  const tier = getBookTier(level);
+  const tierColor = colors[getTierColorKey(tier)];
+
   return (
     <View style={styles.container}>
       {/* Book cover (optional) */}
       {book?.coverUrl && (
-        <Image source={{ uri: book.coverUrl }} style={styles.cover} resizeMode="contain" />
+        <View style={{ borderWidth: 1, borderColor: tierColor }}>
+          <Image source={{ uri: book.coverUrl }} style={styles.cover} resizeMode="contain" />
+        </View>
       )}
 
       {/* Book title */}
