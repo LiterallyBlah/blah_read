@@ -1,9 +1,8 @@
 // components/dungeon/ConsumableIcon.tsx
 import React from 'react';
-import { View, StyleSheet, ViewStyle, StyleProp } from 'react-native';
+import { View, Image, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { useTheme } from '@/lib/ThemeContext';
-import { PixelSprite } from './PixelSprite';
-import { CONSUMABLE_TILES } from '@/lib/dungeonAssets';
+import { getConsumableTileForTier, getTierPixelSize } from '@/lib/dungeonAssets';
 import type { ConsumableEffectType, ConsumableTier } from '@/lib/consumables';
 
 interface ConsumableIconProps {
@@ -15,8 +14,9 @@ interface ConsumableIconProps {
 export function ConsumableIcon({ effectType, tier, style }: ConsumableIconProps) {
   const { colors } = useTheme();
 
-  // Scale based on tier
-  const scale: 2 | 3 | 4 = tier === 'strong' ? 4 : tier === 'medium' ? 3 : 2;
+  // Get the pre-scaled tile for this tier
+  const source = getConsumableTileForTier(effectType, tier);
+  const size = getTierPixelSize(tier);
 
   // Border color based on tier
   const borderColors: Record<ConsumableTier, string> = {
@@ -24,8 +24,6 @@ export function ConsumableIcon({ effectType, tier, style }: ConsumableIconProps)
     medium: colors.rarityRare,
     strong: colors.rarityLegendary,
   };
-
-  const tileKey = CONSUMABLE_TILES[effectType];
 
   return (
     <View
@@ -38,7 +36,11 @@ export function ConsumableIcon({ effectType, tier, style }: ConsumableIconProps)
         style,
       ]}
     >
-      <PixelSprite tile={tileKey} scale={scale} />
+      <Image
+        source={source}
+        style={{ width: size, height: size }}
+        resizeMode="contain"
+      />
     </View>
   );
 }
