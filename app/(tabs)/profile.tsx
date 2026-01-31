@@ -180,6 +180,62 @@ export default function ProfileScreen() {
         )}
       </View>
 
+      {/* Pending Instant Effects section */}
+      {(progress?.streakShieldExpiry || progress?.pendingBoxUpgrade ||
+        progress?.pendingGuaranteedCompanion || (progress?.pendingInstantLevels ?? 0) > 0) && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>pending effects_</Text>
+          <View style={styles.consumablesList}>
+            {progress.streakShieldExpiry && progress.streakShieldExpiry > Date.now() && (
+              <DungeonCard variant="default" style={styles.consumableItem}>
+                <View style={styles.consumableRow}>
+                  <ConsumableIcon effectType="streak_shield" tier="weak" />
+                  <View style={styles.consumableInfo}>
+                    <Text style={styles.consumableName}>streak shield</Text>
+                    <Text style={styles.consumableDesc}>
+                      {Math.ceil((progress.streakShieldExpiry - Date.now()) / (60 * 60 * 1000))}h protection remaining
+                    </Text>
+                  </View>
+                </View>
+              </DungeonCard>
+            )}
+            {progress.pendingBoxUpgrade && (
+              <DungeonCard variant="default" style={styles.consumableItem}>
+                <View style={styles.consumableRow}>
+                  <ConsumableIcon effectType="box_upgrade" tier="medium" />
+                  <View style={styles.consumableInfo}>
+                    <Text style={styles.consumableName}>polish kit</Text>
+                    <Text style={styles.consumableDesc}>next box tier upgraded</Text>
+                  </View>
+                </View>
+              </DungeonCard>
+            )}
+            {progress.pendingGuaranteedCompanion && (
+              <DungeonCard variant="default" style={styles.consumableItem}>
+                <View style={styles.consumableRow}>
+                  <ConsumableIcon effectType="guaranteed_companion" tier="strong" />
+                  <View style={styles.consumableInfo}>
+                    <Text style={styles.consumableName}>companion summon</Text>
+                    <Text style={styles.consumableDesc}>next box guarantees companion</Text>
+                  </View>
+                </View>
+              </DungeonCard>
+            )}
+            {(progress.pendingInstantLevels ?? 0) > 0 && (
+              <DungeonCard variant="default" style={styles.consumableItem}>
+                <View style={styles.consumableRow}>
+                  <ConsumableIcon effectType="instant_level" tier="strong" />
+                  <View style={styles.consumableInfo}>
+                    <Text style={styles.consumableName}>time warp x{progress.pendingInstantLevels}</Text>
+                    <Text style={styles.consumableDesc}>start a session to level up book</Text>
+                  </View>
+                </View>
+              </DungeonCard>
+            )}
+          </View>
+        </View>
+      )}
+
       {/* Loot Boxes section - shows unopened boxes */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>loot_</Text>
