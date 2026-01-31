@@ -10,6 +10,7 @@ import { LootBoxReveal } from '@/components/LootBoxReveal';
 import type { Companion, LootBoxV3, LootBoxTier } from '@/lib/types';
 import { ConsumableDefinition } from '@/lib/consumables';
 import { addActiveConsumable } from '@/lib/consumableManager';
+import { applyInstantConsumable } from '@/lib/instantConsumables';
 import { maybeGenerateImages } from '@/lib/companionImageQueue';
 import { generateImageForCompanion } from '@/lib/imageGen';
 import { settings } from '@/lib/settings';
@@ -100,10 +101,17 @@ export default function LootBoxScreen() {
 
       if (lootResult.category === 'consumable' && lootResult.consumable) {
         // Handle consumable drop
-        updatedProgress.activeConsumables = addActiveConsumable(
-          updatedProgress.activeConsumables || [],
-          lootResult.consumable
-        );
+        if (lootResult.consumable.duration === 0) {
+          // Instant consumable - apply directly
+          const withInstant = applyInstantConsumable(updatedProgress, lootResult.consumable);
+          updatedProgress = { ...updatedProgress, ...withInstant };
+        } else {
+          // Duration-based consumable - add to active list
+          updatedProgress.activeConsumables = addActiveConsumable(
+            updatedProgress.activeConsumables || [],
+            lootResult.consumable
+          );
+        }
         await storage.saveProgress(updatedProgress);
 
         setRevealedConsumable(lootResult.consumable);
