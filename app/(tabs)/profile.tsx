@@ -156,7 +156,7 @@ export default function ProfileScreen() {
               return (
                 <DungeonCard key={`${ac.consumableId}-${index}`} variant="default" style={styles.consumableItem}>
                   <View style={styles.consumableRow}>
-                    <ConsumableIcon effectType={consumable.effectType} tier={consumable.tier} />
+                    <ConsumableIcon effectType={consumable.effectType} tier={consumable.tier} size={48} />
                     <View style={styles.consumableInfo}>
                       <Text style={styles.consumableName}>{consumable.name.toLowerCase()}</Text>
                       <Text style={styles.consumableDesc}>{consumable.description}</Text>
@@ -189,7 +189,7 @@ export default function ProfileScreen() {
             {progress.streakShieldExpiry && progress.streakShieldExpiry > Date.now() && (
               <DungeonCard variant="default" style={styles.consumableItem}>
                 <View style={styles.consumableRow}>
-                  <ConsumableIcon effectType="streak_shield" tier="weak" />
+                  <ConsumableIcon effectType="streak_shield" tier="weak" size={48} />
                   <View style={styles.consumableInfo}>
                     <Text style={styles.consumableName}>streak shield</Text>
                     <Text style={styles.consumableDesc}>
@@ -202,7 +202,7 @@ export default function ProfileScreen() {
             {progress.pendingBoxUpgrade && (
               <DungeonCard variant="default" style={styles.consumableItem}>
                 <View style={styles.consumableRow}>
-                  <ConsumableIcon effectType="box_upgrade" tier="medium" />
+                  <ConsumableIcon effectType="box_upgrade" tier="medium" size={48} />
                   <View style={styles.consumableInfo}>
                     <Text style={styles.consumableName}>polish kit</Text>
                     <Text style={styles.consumableDesc}>next box tier upgraded</Text>
@@ -213,7 +213,7 @@ export default function ProfileScreen() {
             {progress.pendingGuaranteedCompanion && (
               <DungeonCard variant="default" style={styles.consumableItem}>
                 <View style={styles.consumableRow}>
-                  <ConsumableIcon effectType="guaranteed_companion" tier="strong" />
+                  <ConsumableIcon effectType="guaranteed_companion" tier="strong" size={48} />
                   <View style={styles.consumableInfo}>
                     <Text style={styles.consumableName}>companion summon</Text>
                     <Text style={styles.consumableDesc}>next box guarantees companion</Text>
@@ -224,7 +224,7 @@ export default function ProfileScreen() {
             {(progress.pendingInstantLevels ?? 0) > 0 && (
               <DungeonCard variant="default" style={styles.consumableItem}>
                 <View style={styles.consumableRow}>
-                  <ConsumableIcon effectType="instant_level" tier="strong" />
+                  <ConsumableIcon effectType="instant_level" tier="strong" size={48} />
                   <View style={styles.consumableInfo}>
                     <Text style={styles.consumableName}>time warp x{progress.pendingInstantLevels}</Text>
                     <Text style={styles.consumableDesc}>start a session to level up book</Text>

@@ -8,15 +8,18 @@ import type { ConsumableEffectType, ConsumableTier } from '@/lib/consumables';
 interface ConsumableIconProps {
   effectType: ConsumableEffectType;
   tier: ConsumableTier;
+  /** Override the tier-based size with a fixed size (in pixels) */
+  size?: number;
   style?: StyleProp<ViewStyle>;
 }
 
-export function ConsumableIcon({ effectType, tier, style }: ConsumableIconProps) {
+export function ConsumableIcon({ effectType, tier, size: fixedSize, style }: ConsumableIconProps) {
   const { colors } = useTheme();
 
   // Get the pre-scaled tile for this tier
   const source = getConsumableTileForTier(effectType, tier);
-  const size = getTierPixelSize(tier);
+  // Use fixed size if provided, otherwise use tier-based size
+  const size = fixedSize ?? getTierPixelSize(tier);
 
   // Border color based on tier
   const borderColors: Record<ConsumableTier, string> = {
