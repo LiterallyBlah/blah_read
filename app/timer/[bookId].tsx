@@ -5,7 +5,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useTimer } from '@/hooks/useTimer';
 import { storage } from '@/lib/storage';
-import { updateStreak, getDateString } from '@/lib/streak';
+import { updateStreakWithShield, getDateString } from '@/lib/streak';
 import { Book, ReadingSession, Companion, UserProgress } from '@/lib/types';
 import { processReadingSession } from '@/lib/companionUnlock';
 import { checkLootBoxRewards } from '@/lib/lootBox';
@@ -130,20 +130,28 @@ export default function TimerScreen() {
     const previousTime = book.totalReadingTime;
     const previousStreak = progress.currentStreak;
 
-    // Update streak
+    // Update streak (with shield protection)
     const today = getDateString();
-    const streakUpdate = updateStreak(
+    const streakResult = updateStreakWithShield(
       progress.lastReadDate,
       today,
       progress.currentStreak,
-      progress.longestStreak
+      progress.longestStreak,
+      progress.streakShieldExpiry ?? null,
+      Date.now()
     );
-    progress.currentStreak = streakUpdate.currentStreak;
-    progress.longestStreak = streakUpdate.longestStreak;
-    progress.lastReadDate = streakUpdate.lastReadDate;
+    progress.currentStreak = streakResult.currentStreak;
+    progress.longestStreak = streakResult.longestStreak;
+    progress.lastReadDate = streakResult.lastReadDate;
+    progress.streakShieldExpiry = streakResult.newShieldExpiry;
+
+    if (streakResult.shieldConsumed) {
+      debug.log('timer', 'Streak shield consumed!');
+    }
     debug.log('timer', 'Streak updated', {
       currentStreak: progress.currentStreak,
       longestStreak: progress.longestStreak,
+      shieldConsumed: streakResult.shieldConsumed,
     });
 
     // Process V3 session rewards (book levels, XP, loot boxes)
