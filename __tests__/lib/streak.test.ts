@@ -1,4 +1,4 @@
-import { updateStreak, getDateString } from '@/lib/streak';
+import { updateStreak, getDateString, updateStreakWithShield } from '@/lib/streak';
 
 describe('streak', () => {
   it('increments streak for consecutive days', () => {
@@ -30,5 +30,94 @@ describe('streak', () => {
   it('getDateString returns YYYY-MM-DD format', () => {
     const date = new Date('2026-01-27T12:00:00Z');
     expect(getDateString(date)).toBe('2026-01-27');
+  });
+});
+
+describe('updateStreakWithShield', () => {
+  it('should protect streak when shield is active and day was skipped', () => {
+    const now = Date.now();
+    const shieldExpiry = now + 24 * 60 * 60 * 1000;
+
+    const result = updateStreakWithShield(
+      '2026-01-25',
+      '2026-01-27',
+      5,
+      5,
+      shieldExpiry,
+      now
+    );
+
+    expect(result.currentStreak).toBe(5);
+    expect(result.shieldConsumed).toBe(true);
+    expect(result.newShieldExpiry).toBeNull();
+  });
+
+  it('should not consume shield for consecutive days', () => {
+    const now = Date.now();
+    const shieldExpiry = now + 24 * 60 * 60 * 1000;
+
+    const result = updateStreakWithShield(
+      '2026-01-26',
+      '2026-01-27',
+      5,
+      5,
+      shieldExpiry,
+      now
+    );
+
+    expect(result.currentStreak).toBe(6);
+    expect(result.shieldConsumed).toBe(false);
+    expect(result.newShieldExpiry).toBe(shieldExpiry);
+  });
+
+  it('should reset streak when shield is expired', () => {
+    const now = Date.now();
+    const shieldExpiry = now - 1000;
+
+    const result = updateStreakWithShield(
+      '2026-01-25',
+      '2026-01-27',
+      5,
+      5,
+      shieldExpiry,
+      now
+    );
+
+    expect(result.currentStreak).toBe(1);
+    expect(result.shieldConsumed).toBe(false);
+  });
+
+  it('should reset streak when no shield exists', () => {
+    const now = Date.now();
+
+    const result = updateStreakWithShield(
+      '2026-01-25',
+      '2026-01-27',
+      5,
+      5,
+      null,
+      now
+    );
+
+    expect(result.currentStreak).toBe(1);
+    expect(result.shieldConsumed).toBe(false);
+  });
+
+  it('should maintain streak for same day', () => {
+    const now = Date.now();
+    const shieldExpiry = now + 24 * 60 * 60 * 1000;
+
+    const result = updateStreakWithShield(
+      '2026-01-27',
+      '2026-01-27',
+      5,
+      5,
+      shieldExpiry,
+      now
+    );
+
+    expect(result.currentStreak).toBe(5);
+    expect(result.shieldConsumed).toBe(false);
+    expect(result.newShieldExpiry).toBe(shieldExpiry);
   });
 });
