@@ -2,7 +2,7 @@ import { LootBoxV3, LootBoxTier, UserProgress, Companion } from './types';
 import { Genre } from './genres';
 import { calculateActiveEffects } from './companionEffects';
 import { getActiveEffects as getConsumableEffects } from './consumableManager';
-import { rollBoxTierWithPity, rollLootForTier, LootResult } from './lootV3';
+import { rollBoxTierWithPity, rollLootForTier, LootResult, rollCompanionRarity } from './lootV3';
 
 export interface OpenLootBoxResult {
   rolledTier: LootBoxTier;
@@ -13,6 +13,17 @@ export interface OpenLootBoxResult {
 export interface OpenLootBoxOptions {
   /** Number of companions available in the pool (0 = force consumable) */
   companionPoolSize?: number;
+}
+
+/**
+ * Upgrade a box tier by one level.
+ */
+function upgradeTier(tier: LootBoxTier): LootBoxTier {
+  switch (tier) {
+    case 'wood': return 'silver';
+    case 'silver': return 'gold';
+    case 'gold': return 'gold';
+  }
 }
 
 /**
@@ -63,13 +74,37 @@ export function openLootBoxV3(
     newPityCounter = tierResult.newPityCounter;
   }
 
-  // Roll loot contents based on tier (force consumable if pool empty)
-  const lootResult = rollLootForTier(rolledTier, { companionPoolAvailable });
+  // Apply box upgrade if pending
+  let consumedBoxUpgrade = false;
+  if (progress.pendingBoxUpgrade) {
+    rolledTier = upgradeTier(rolledTier);
+    consumedBoxUpgrade = true;
+  }
 
-  // Create updated progress with new pity counter
+  // Roll loot contents
+  let lootResult: LootResult;
+  let consumedGuaranteedCompanion = false;
+
+  if (progress.pendingGuaranteedCompanion && companionPoolAvailable) {
+    // Force companion drop
+    const companionRarity = rollCompanionRarity(rolledTier);
+    lootResult = {
+      boxTier: rolledTier,
+      category: 'companion',
+      companionRarity,
+    };
+    consumedGuaranteedCompanion = true;
+  } else {
+    // Normal roll (force consumable if pool empty)
+    lootResult = rollLootForTier(rolledTier, { companionPoolAvailable });
+  }
+
+  // Create updated progress with new pity counter and consumed flags
   const updatedProgress: UserProgress = {
     ...progress,
     goldPityCounter: newPityCounter,
+    pendingBoxUpgrade: consumedBoxUpgrade ? false : progress.pendingBoxUpgrade,
+    pendingGuaranteedCompanion: consumedGuaranteedCompanion ? false : progress.pendingGuaranteedCompanion,
   };
 
   return {
