@@ -60,6 +60,10 @@ const defaultProgress: UserProgress = {
   },
   activeConsumables: [],
   lootBoxesV3: [],
+  streakShieldExpiry: null,
+  pendingBoxUpgrade: false,
+  pendingGuaranteedCompanion: false,
+  pendingInstantLevels: 0,
 };
 
 // Track if migration has run this session

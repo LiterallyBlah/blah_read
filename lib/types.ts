@@ -166,6 +166,11 @@ export interface UserProgress {
   activeConsumables?: ActiveConsumable[]; // Active consumable effects
   lootBoxesV3?: LootBoxV3[]; // Tiered loot boxes
   goldPityCounter?: number; // Pity counter for gold boxes, resets on gold
+  // Instant consumable storage
+  streakShieldExpiry?: number | null;   // Timestamp when shield expires, null = no shield
+  pendingBoxUpgrade?: boolean;          // Upgrade next box tier
+  pendingGuaranteedCompanion?: boolean; // Force companion on next box
+  pendingInstantLevels?: number;        // Count of instant level-ups available
 }
 
 export interface LootItem {
