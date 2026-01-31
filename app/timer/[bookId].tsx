@@ -47,11 +47,40 @@ export default function TimerScreen() {
 
   async function loadBookAndCompanions() {
     const books = await storage.getBooks();
-    const foundBook = books.find(b => b.id === bookId) || null;
-    setBook(foundBook);
+    let foundBook = books.find(b => b.id === bookId) || null;
 
     // Load equipped companions and calculate active effects
     const progress = await storage.getProgress();
+
+    // Check for pending instant levels
+    if (foundBook && progress.pendingInstantLevels && progress.pendingInstantLevels > 0) {
+      debug.log('timer', `Applying ${progress.pendingInstantLevels} instant level(s) to book`);
+
+      // Apply instant levels to book
+      const currentLevel = foundBook.progression?.level || 1;
+      const newLevel = currentLevel + progress.pendingInstantLevels;
+
+      foundBook = {
+        ...foundBook,
+        progression: {
+          ...foundBook.progression,
+          level: newLevel,
+          totalSeconds: foundBook.progression?.totalSeconds || foundBook.totalReadingTime,
+          levelUps: [...(foundBook.progression?.levelUps || []), Date.now()],
+        },
+      };
+
+      // Clear the pending instant levels
+      progress.pendingInstantLevels = 0;
+
+      // Save both
+      await storage.saveBook(foundBook);
+      await storage.saveProgress(progress);
+
+      debug.log('timer', `Book leveled up to ${newLevel}`);
+    }
+
+    setBook(foundBook);
     const loadout = progress.loadout || { slots: [null, null, null], unlockedSlots: 1 };
     const equippedIds = getEquippedCompanionIds(loadout);
 
