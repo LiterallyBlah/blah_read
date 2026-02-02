@@ -1,6 +1,7 @@
 import {
   checkLootBoxRewards,
   openLootBox,
+  openLootBoxWithRarity,
   getPoolCompanions,
 } from '@/lib/lootBox';
 import type { UserProgress, Book, Companion } from '@/lib/types';
@@ -109,6 +110,92 @@ describe('lootBox', () => {
     it('returns null when pool is empty', () => {
       const result = openLootBox([], null);
       expect(result.companion).toBeNull();
+    });
+  });
+
+  describe('openLootBoxWithRarity', () => {
+    const createMockCompanion = (id: string, rarity: 'common' | 'rare' | 'legendary', bookId = 'book-1'): Companion => ({
+      id,
+      bookId,
+      name: `${rarity} Companion`,
+      type: 'character',
+      rarity,
+      description: 'A test',
+      traits: 'Testy',
+      visualDescription: 'A pixel character',
+      imageUrl: 'http://example.com/image.png',
+      source: 'discovered',
+      unlockMethod: null,
+      unlockedAt: null,
+    });
+
+    it('selects companion of target rarity when available', () => {
+      const pool = [
+        createMockCompanion('common-1', 'common'),
+        createMockCompanion('rare-1', 'rare'),
+        createMockCompanion('legendary-1', 'legendary'),
+      ];
+
+      // Run multiple times to verify consistency
+      for (let i = 0; i < 20; i++) {
+        const result = openLootBoxWithRarity(pool, null, 'legendary');
+        expect(result.companion?.rarity).toBe('legendary');
+        expect(result.actualRarity).toBe('legendary');
+      }
+    });
+
+    it('falls back to lower rarity when target unavailable', () => {
+      const pool = [
+        createMockCompanion('common-1', 'common'),
+        createMockCompanion('rare-1', 'rare'),
+      ];
+
+      const result = openLootBoxWithRarity(pool, null, 'legendary');
+      expect(result.companion?.rarity).toBe('rare');
+      expect(result.actualRarity).toBe('rare');
+    });
+
+    it('falls back to common when only commons available', () => {
+      const pool = [
+        createMockCompanion('common-1', 'common'),
+        createMockCompanion('common-2', 'common'),
+      ];
+
+      const result = openLootBoxWithRarity(pool, null, 'legendary');
+      expect(result.companion?.rarity).toBe('common');
+      expect(result.actualRarity).toBe('common');
+    });
+
+    it('still weights toward current book within rarity', () => {
+      const pool = [
+        createMockCompanion('rare-other', 'rare', 'other-book'),
+        createMockCompanion('rare-current', 'rare', 'current-book'),
+      ];
+
+      let currentBookWins = 0;
+      for (let i = 0; i < 100; i++) {
+        const result = openLootBoxWithRarity(pool, 'current-book', 'rare');
+        if (result.companion?.bookId === 'current-book') {
+          currentBookWins++;
+        }
+      }
+
+      // Current book should win more often due to weighting
+      expect(currentBookWins).toBeGreaterThan(60);
+    });
+
+    it('returns null when pool is empty', () => {
+      const result = openLootBoxWithRarity([], null, 'common');
+      expect(result.companion).toBeNull();
+      expect(result.actualRarity).toBeNull();
+    });
+
+    it('marks companion as unlocked via loot_box', () => {
+      const pool = [createMockCompanion('rare-1', 'rare')];
+      const result = openLootBoxWithRarity(pool, null, 'rare');
+
+      expect(result.companion?.unlockMethod).toBe('loot_box');
+      expect(result.companion?.unlockedAt).toBeDefined();
     });
   });
 

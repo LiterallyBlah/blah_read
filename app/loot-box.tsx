@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
 import { storage } from '@/lib/storage';
-import { openLootBox, getPoolCompanions } from '@/lib/lootBox';
+import { openLootBox, openLootBoxWithRarity, getPoolCompanions } from '@/lib/lootBox';
 import { openLootBoxV3 } from '@/lib/lootBoxV3';
 import { LootBoxReveal } from '@/components/LootBoxReveal';
 import type { Companion, LootBoxV3, LootBoxTier } from '@/lib/types';
@@ -118,18 +118,29 @@ export default function LootBoxScreen() {
         setRevealedTier(rolledTier);
         setRevealedCompanion(null);
       } else if (lootResult.category === 'companion' && lootResult.companionRarity) {
-        // Handle companion drop - get from pool
+        // Handle companion drop - get from pool with rarity-aware selection
         const pool = getPoolCompanions(books);
         debug.log('lootBox', 'Companion drop - checking pool', {
           poolSize: pool.length,
-          poolCompanions: pool.map(c => ({ name: c.name, bookId: c.bookId })),
+          targetRarity: lootResult.companionRarity,
+          poolByRarity: {
+            common: pool.filter(c => c.rarity === 'common').length,
+            rare: pool.filter(c => c.rarity === 'rare').length,
+            legendary: pool.filter(c => c.rarity === 'legendary').length,
+          },
         });
-        const { companion } = openLootBox(pool, currentBook?.id || null);
+        const { companion, actualRarity } = openLootBoxWithRarity(
+          pool,
+          currentBook?.id || null,
+          lootResult.companionRarity
+        );
 
         if (companion) {
           debug.log('lootBox', 'Companion selected from pool', {
             name: companion.name,
-            rarity: companion.rarity,
+            targetRarity: lootResult.companionRarity,
+            actualRarity: actualRarity,
+            companionRarity: companion.rarity,
             bookId: companion.bookId,
           });
           // Update book's companion state

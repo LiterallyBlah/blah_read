@@ -1,4 +1,4 @@
-import type { Book, Companion, LootBox, UserProgress } from './types';
+import type { Book, Companion, CompanionRarity, LootBox, UserProgress } from './types';
 
 /**
  * Loot box reward thresholds
@@ -163,4 +163,72 @@ export function openLootBox(
   };
 
   return { companion: unlocked };
+}
+
+/**
+ * Rarity fallback order - if target rarity unavailable, try lower rarities
+ */
+const RARITY_FALLBACK: Record<CompanionRarity, CompanionRarity[]> = {
+  legendary: ['legendary', 'rare', 'common'],
+  rare: ['rare', 'common'],
+  common: ['common'],
+};
+
+/**
+ * Open a loot box with rarity-aware selection.
+ * Prioritizes companions of the target rarity, with fallback to lower rarities.
+ * Still weighted toward companions from the current book.
+ */
+export function openLootBoxWithRarity(
+  pool: Companion[],
+  currentBookId: string | null,
+  targetRarity: CompanionRarity
+): { companion: Companion | null; actualRarity: CompanionRarity | null } {
+  if (pool.length === 0) {
+    return { companion: null, actualRarity: null };
+  }
+
+  // Try each rarity in fallback order
+  const fallbackOrder = RARITY_FALLBACK[targetRarity];
+  let filteredPool: Companion[] = [];
+  let actualRarity: CompanionRarity | null = null;
+
+  for (const rarity of fallbackOrder) {
+    filteredPool = pool.filter(c => c.rarity === rarity);
+    if (filteredPool.length > 0) {
+      actualRarity = rarity;
+      break;
+    }
+  }
+
+  // If no companions match any rarity (shouldn't happen), use full pool
+  if (filteredPool.length === 0) {
+    filteredPool = pool;
+    actualRarity = pool[0]?.rarity ?? null;
+  }
+
+  // Build weighted pool from filtered companions
+  const weightedPool: Companion[] = [];
+  for (const companion of filteredPool) {
+    const weight =
+      currentBookId && companion.bookId === currentBookId
+        ? CURRENT_BOOK_WEIGHT
+        : 1;
+    for (let i = 0; i < weight; i++) {
+      weightedPool.push(companion);
+    }
+  }
+
+  // Random selection
+  const index = Math.floor(Math.random() * weightedPool.length);
+  const selected = weightedPool[index];
+
+  // Mark as unlocked
+  const unlocked: Companion = {
+    ...selected,
+    unlockMethod: 'loot_box',
+    unlockedAt: Date.now(),
+  };
+
+  return { companion: unlocked, actualRarity };
 }

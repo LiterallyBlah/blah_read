@@ -66,7 +66,7 @@ export default function TimerScreen() {
           ...foundBook.progression,
           level: newLevel,
           totalSeconds: foundBook.progression?.totalSeconds || foundBook.totalReadingTime,
-          levelUps: [...(foundBook.progression?.levelUps || []), Date.now()],
+          levelUps: [...(foundBook.progression?.levelUps || []), ...Array(progress.pendingInstantLevels).fill(Date.now())],
         },
       };
 
@@ -137,9 +137,9 @@ export default function TimerScreen() {
   }
 
   async function handleEnd() {
-    // Require actual timer activity - can't create sessions from adjustment alone
-    if (!book || elapsed === 0) return;
     const finalTime = Math.max(0, elapsed + timeAdjustment);
+    // Require non-zero session time (from timer activity, adjustments, or both)
+    if (!book || finalTime === 0) return;
 
     // Clear timer persistence and stop background service
     await timerPersistence.clear();
