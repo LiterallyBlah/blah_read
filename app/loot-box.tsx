@@ -79,13 +79,14 @@ export default function LootBoxScreen() {
       const pool = getPoolCompanions(books);
 
       // Open using new system with tier rolling and pity
-      const { rolledTier, lootResult, updatedProgress } = openLootBoxV3(
+      const { rolledTier, lootResult, updatedProgress: initialProgress } = openLootBoxV3(
         boxToOpen,
         progress,
         equippedCompanions,
         bookGenres,
         { companionPoolSize: pool.length }
       );
+      let updatedProgress = initialProgress;
 
       debug.log('lootBox', 'V3 box opened', {
         poolSize: pool.length,
