@@ -144,7 +144,7 @@ export function LootBoxReveal({ companion, consumable, boxTier, onDismiss, hasMo
   }
 
   const rarityColor = rarityColors[companion.rarity] || colors.text;
-  const boxColor = boxTier ? tierColors[boxTier] : null;
+  const boxColor = boxTier ? tierColors[boxTier] : colors.text;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

@@ -8,6 +8,8 @@ import {
   CompanionEffect,
   canEquipCompanion,
   ActiveEffects,
+  rollCompanionEffects,
+  backfillAllCompanionEffects,
 } from '../../lib/companionEffects';
 import { Companion } from '../../lib/types';
 
@@ -382,6 +384,129 @@ describe('companionEffects', () => {
       expect(result.canEquip).toBe(false);
       expect(result.missingGenreLevel).toBe(5);
       expect(result.missingBookLevel).toBe(5);
+    });
+  });
+
+  describe('rollCompanionEffects', () => {
+    it('should always return at least 1 effect for legendary', () => {
+      for (let i = 0; i < 20; i++) {
+        const effects = rollCompanionEffects('legendary');
+        expect(effects.length).toBeGreaterThanOrEqual(1);
+      }
+    });
+
+    it('should always return at least 1 effect for rare', () => {
+      for (let i = 0; i < 20; i++) {
+        const effects = rollCompanionEffects('rare');
+        expect(effects.length).toBeGreaterThanOrEqual(1);
+      }
+    });
+
+    it('should sometimes return no effects for common (75% chance)', () => {
+      let noEffectsCount = 0;
+      for (let i = 0; i < 100; i++) {
+        const effects = rollCompanionEffects('common');
+        if (effects.length === 0) noEffectsCount++;
+      }
+      // Should have no effects roughly 75% of the time
+      expect(noEffectsCount).toBeGreaterThan(50);
+      expect(noEffectsCount).toBeLessThan(95);
+    });
+
+    it('should never have duplicate effect types', () => {
+      for (let i = 0; i < 50; i++) {
+        const effects = rollCompanionEffects('legendary');
+        if (effects.length === 2) {
+          expect(effects[0].type).not.toBe(effects[1].type);
+        }
+      }
+    });
+
+    it('should calculate magnitude in correct range for rarity', () => {
+      const effects = rollCompanionEffects('legendary');
+      expect(effects[0].magnitude).toBeGreaterThanOrEqual(0.25);
+      expect(effects[0].magnitude).toBeLessThanOrEqual(0.35);
+    });
+
+    it('should sometimes target genres when provided', () => {
+      let genreTargetedCount = 0;
+      for (let i = 0; i < 100; i++) {
+        const effects = rollCompanionEffects('legendary', ['fantasy']);
+        const xpBoosts = effects.filter(e => e.type === 'xp_boost');
+        for (const e of xpBoosts) {
+          if (e.targetGenre === 'fantasy') genreTargetedCount++;
+        }
+      }
+      // Should sometimes target genre (50% chance when xp_boost is rolled)
+      expect(genreTargetedCount).toBeGreaterThan(0);
+    });
+
+    it('should not include completion_bonus for non-legendary', () => {
+      for (let i = 0; i < 50; i++) {
+        const effects = rollCompanionEffects('rare');
+        expect(effects.some(e => e.type === 'completion_bonus')).toBe(false);
+      }
+    });
+  });
+
+  describe('backfillAllCompanionEffects', () => {
+    const createMockCompanion = (id: string, rarity: 'common' | 'rare' | 'legendary', bookId = 'book-1'): Companion => ({
+      id,
+      bookId,
+      name: `Companion ${id}`,
+      type: 'character',
+      rarity,
+      description: 'Test',
+      traits: 'Test',
+      visualDescription: 'Test',
+      imageUrl: null,
+      source: 'discovered',
+      unlockMethod: null,
+      unlockedAt: null,
+    });
+
+    it('should return effects map for all companions', () => {
+      const companions = [
+        createMockCompanion('c1', 'legendary'),
+        createMockCompanion('c2', 'rare'),
+        createMockCompanion('c3', 'common'),
+      ];
+
+      const result = backfillAllCompanionEffects(companions);
+      expect(result.size).toBe(3);
+      expect(result.has('c1')).toBe(true);
+      expect(result.has('c2')).toBe(true);
+      expect(result.has('c3')).toBe(true);
+    });
+
+    it('should always give legendary and rare at least 1 effect', () => {
+      const companions = [
+        createMockCompanion('c1', 'legendary'),
+        createMockCompanion('c2', 'rare'),
+      ];
+
+      for (let i = 0; i < 10; i++) {
+        const result = backfillAllCompanionEffects(companions);
+        expect(result.get('c1')).toBeDefined();
+        expect(result.get('c1')!.length).toBeGreaterThanOrEqual(1);
+        expect(result.get('c2')).toBeDefined();
+        expect(result.get('c2')!.length).toBeGreaterThanOrEqual(1);
+      }
+    });
+
+    it('should use book genres when provided', () => {
+      const companions = [createMockCompanion('c1', 'legendary', 'book-fantasy')];
+      const genresMap = new Map([['book-fantasy', ['fantasy'] as any]]);
+
+      let genreTargetedCount = 0;
+      for (let i = 0; i < 50; i++) {
+        const result = backfillAllCompanionEffects(companions, genresMap);
+        const effects = result.get('c1') || [];
+        for (const e of effects) {
+          if (e.targetGenre === 'fantasy') genreTargetedCount++;
+        }
+      }
+      expect(genreTargetedCount).toBeGreaterThan(0);
     });
   });
 });

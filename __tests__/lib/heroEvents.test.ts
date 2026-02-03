@@ -15,7 +15,7 @@ function createMockSessionResult(overrides: Partial<SessionRewardResult> = {}): 
     xpGained: 0,
     genreLevelIncreases: {} as Record<Genre, number>,
     lootBoxes: [],
-    bonusDropCount: 0,
+    bonusDrops: [],
     activeEffects: {
       xpBoost: 0,
       luck: 0,
@@ -54,7 +54,7 @@ describe('heroEvents', () => {
     });
 
     it('should detect bonus drop as hero event', () => {
-      const result = createMockSessionResult({ bonusDropCount: 1 });
+      const result = createMockSessionResult({ bonusDrops: [{ type: 'consumable' }] as any });
       const events = detectHeroEvents(result, [], 0, 0);
 
       expect(events).toContainEqual(
@@ -175,7 +175,7 @@ describe('heroEvents', () => {
         rarity: 'legendary',
       } as Companion;
       const result = createMockSessionResult({
-        bonusDropCount: 1,
+        bonusDrops: [{ type: 'consumable' }] as any,
         bookLevelsGained: 1,
         previousBookLevel: 4,
         newBookLevel: 5,

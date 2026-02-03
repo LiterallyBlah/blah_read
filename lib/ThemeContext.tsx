@@ -33,21 +33,23 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }
 
   // Determine colors based on theme
-  let colors: typeof COLORS;
+  // Use typeof COLORS as base, with flexibility for theme variants that may have extra properties
+  type ThemeColors = typeof COLORS & Record<string, string>;
+  let colors: ThemeColors;
   let isDark: boolean;
 
   if (theme === 'dungeon') {
-    colors = COLORS_DUNGEON as typeof COLORS;
+    colors = COLORS_DUNGEON as unknown as ThemeColors;
     isDark = true;
   } else if (theme === 'auto') {
     isDark = systemScheme !== 'light';
-    colors = isDark ? COLORS : COLORS_LIGHT;
+    colors = (isDark ? COLORS : COLORS_LIGHT) as unknown as ThemeColors;
   } else if (theme === 'dark') {
     isDark = true;
-    colors = COLORS;
+    colors = COLORS as unknown as ThemeColors;
   } else {
     isDark = false;
-    colors = COLORS_LIGHT;
+    colors = COLORS_LIGHT as unknown as ThemeColors;
   }
 
   const scaledFontSize = (size: 'micro' | 'small' | 'body' | 'large' | 'title' | 'hero') => {

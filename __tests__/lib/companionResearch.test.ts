@@ -30,21 +30,14 @@ describe('companionResearch', () => {
       expect(prompt).toContain('borders');
     });
 
-    it('includes effect generation instructions', () => {
+    it('does not include effect generation instructions (effects are code-based)', () => {
       const prompt = buildResearchPrompt('Test Book', 'Author');
-      expect(prompt).toContain('effects');
-      expect(prompt).toContain('xp_boost');
-      expect(prompt).toContain('luck');
-      expect(prompt).toContain('drop_rate_boost');
-      expect(prompt).toContain('completion_bonus');
-      expect(prompt).toContain('targetGenre');
-    });
-
-    it('lists valid genres for effect targeting', () => {
-      const prompt = buildResearchPrompt('Test Book', 'Author');
-      expect(prompt).toContain('fantasy');
-      expect(prompt).toContain('sci-fi');
-      expect(prompt).toContain('mystery-thriller');
+      // Effects are now rolled in code, not by LLM
+      expect(prompt).not.toContain('xp_boost');
+      expect(prompt).not.toContain('luck');
+      expect(prompt).not.toContain('drop_rate_boost');
+      expect(prompt).not.toContain('completion_bonus');
+      expect(prompt).not.toContain('targetGenre');
     });
   });
 
@@ -60,7 +53,6 @@ describe('companionResearch', () => {
             role: 'Protagonist',
             traits: 'Brave, curious, resourceful',
             physicalDescription: 'Small hobbit with curly hair and bare feet',
-            effects: [{ type: 'xp_boost', targetGenre: 'fantasy' }],
           },
           {
             name: 'Smaug',
@@ -70,7 +62,6 @@ describe('companionResearch', () => {
             role: 'Antagonist',
             traits: 'Greedy, cunning, powerful',
             physicalDescription: 'Large red dragon with golden eyes',
-            effects: [{ type: 'luck' }, { type: 'drop_rate_boost' }],
           },
         ],
         researchConfidence: 'high' as const,
@@ -100,7 +91,6 @@ describe('companionResearch', () => {
           role: 'Main character',
           traits: 'Brave',
           physicalDescription: 'Tall warrior with silver armor',
-          effects: [{ type: 'xp_boost' }],
         }],
         researchConfidence: 'high' as const,
       };
@@ -109,141 +99,150 @@ describe('companionResearch', () => {
       expect(result.companions[0].physicalDescription).toBe('Tall warrior with silver armor');
     });
 
-    it('parses effects and calculates magnitude', () => {
-      const response = {
-        companions: [{
-          name: 'Wizard',
-          type: 'character' as const,
-          rarity: 'rare' as const,
-          description: 'A wise wizard',
-          role: 'Mentor',
-          traits: 'Wise, magical',
-          physicalDescription: 'Elderly man with long beard and robes',
-          effects: [
-            { type: 'xp_boost', targetGenre: 'fantasy' },
-            { type: 'luck' },
-          ],
-        }],
-        researchConfidence: 'high' as const,
-      };
+    describe('probability-based effects', () => {
+      it('rolls effects based on rarity - legendary always gets at least 1', () => {
+        const response = {
+          companions: [{
+            name: 'Hero',
+            type: 'character' as const,
+            rarity: 'legendary' as const,
+            description: 'A legendary hero',
+            role: 'Protagonist',
+            traits: 'Heroic',
+            physicalDescription: 'Heroic appearance',
+          }],
+          researchConfidence: 'high' as const,
+        };
 
-      const result = parseResearchResponse(response, 'book-123');
-      expect(result.companions[0].effects).toHaveLength(2);
-      expect(result.companions[0].effects![0].type).toBe('xp_boost');
-      expect(result.companions[0].effects![0].targetGenre).toBe('fantasy');
-      expect(result.companions[0].effects![0].magnitude).toBeGreaterThan(0);
-      expect(result.companions[0].effects![1].type).toBe('luck');
-      expect(result.companions[0].effects![1].magnitude).toBeGreaterThan(0);
-    });
+        // Run multiple times - legendary should always have at least 1 effect
+        for (let i = 0; i < 10; i++) {
+          const result = parseResearchResponse(response, 'book-123');
+          expect(result.companions[0].effects).toBeDefined();
+          expect(result.companions[0].effects!.length).toBeGreaterThanOrEqual(1);
+        }
+      });
 
-    it('filters out invalid effect types', () => {
-      const response = {
-        companions: [{
-          name: 'Test',
-          type: 'character' as const,
-          rarity: 'common' as const,
-          description: 'Test character',
-          role: 'Test',
-          traits: 'Test',
-          physicalDescription: 'Test appearance',
-          effects: [
-            { type: 'xp_boost' },
-            { type: 'invalid_effect' }, // Invalid
-          ],
-        }],
-        researchConfidence: 'high' as const,
-      };
+      it('rolls effects based on rarity - rare always gets at least 1', () => {
+        const response = {
+          companions: [{
+            name: 'Sidekick',
+            type: 'character' as const,
+            rarity: 'rare' as const,
+            description: 'A rare sidekick',
+            role: 'Sidekick',
+            traits: 'Helpful',
+            physicalDescription: 'Friendly appearance',
+          }],
+          researchConfidence: 'high' as const,
+        };
 
-      const result = parseResearchResponse(response, 'book-123');
-      expect(result.companions[0].effects).toHaveLength(1);
-      expect(result.companions[0].effects![0].type).toBe('xp_boost');
-    });
+        // Run multiple times - rare should always have at least 1 effect
+        for (let i = 0; i < 10; i++) {
+          const result = parseResearchResponse(response, 'book-123');
+          expect(result.companions[0].effects).toBeDefined();
+          expect(result.companions[0].effects!.length).toBeGreaterThanOrEqual(1);
+        }
+      });
 
-    it('filters out completion_bonus for non-legendary companions', () => {
-      const response = {
-        companions: [{
-          name: 'Test',
-          type: 'character' as const,
-          rarity: 'rare' as const,
-          description: 'Test character',
-          role: 'Test',
-          traits: 'Test',
-          physicalDescription: 'Test appearance',
-          effects: [
-            { type: 'xp_boost' },
-            { type: 'completion_bonus' }, // Should be filtered for non-legendary
-          ],
-        }],
-        researchConfidence: 'high' as const,
-      };
+      it('rolls effects based on rarity - common has chance of no effects', () => {
+        const response = {
+          companions: [{
+            name: 'Guard',
+            type: 'character' as const,
+            rarity: 'common' as const,
+            description: 'A common guard',
+            role: 'Background',
+            traits: 'Generic',
+            physicalDescription: 'Plain appearance',
+          }],
+          researchConfidence: 'high' as const,
+        };
 
-      const result = parseResearchResponse(response, 'book-123');
-      expect(result.companions[0].effects).toHaveLength(1);
-      expect(result.companions[0].effects![0].type).toBe('xp_boost');
-    });
+        // Run many times - common should sometimes have no effects (75% chance)
+        let noEffectsCount = 0;
+        for (let i = 0; i < 100; i++) {
+          const result = parseResearchResponse(response, 'book-123');
+          if (!result.companions[0].effects) {
+            noEffectsCount++;
+          }
+        }
+        // Should have no effects roughly 75% of the time (allow some variance)
+        expect(noEffectsCount).toBeGreaterThan(50);
+        expect(noEffectsCount).toBeLessThan(95);
+      });
 
-    it('allows completion_bonus for legendary companions', () => {
-      const response = {
-        companions: [{
-          name: 'Hero',
-          type: 'character' as const,
-          rarity: 'legendary' as const,
-          description: 'The legendary hero',
-          role: 'Protagonist',
-          traits: 'Heroic',
-          physicalDescription: 'Heroic appearance',
-          effects: [
-            { type: 'xp_boost' },
-            { type: 'completion_bonus' },
-          ],
-        }],
-        researchConfidence: 'high' as const,
-      };
+      it('calculates magnitude within rarity range', () => {
+        const response = {
+          companions: [{
+            name: 'Hero',
+            type: 'character' as const,
+            rarity: 'legendary' as const,
+            description: 'A legendary hero',
+            role: 'Protagonist',
+            traits: 'Heroic',
+            physicalDescription: 'Heroic appearance',
+          }],
+          researchConfidence: 'high' as const,
+        };
 
-      const result = parseResearchResponse(response, 'book-123');
-      expect(result.companions[0].effects).toHaveLength(2);
-      expect(result.companions[0].effects!.some(e => e.type === 'completion_bonus')).toBe(true);
-    });
+        const result = parseResearchResponse(response, 'book-123');
+        // Legendary magnitude range is 0.25 to 0.35
+        expect(result.companions[0].effects![0].magnitude).toBeGreaterThanOrEqual(0.25);
+        expect(result.companions[0].effects![0].magnitude).toBeLessThanOrEqual(0.35);
+      });
 
-    it('handles invalid genre by making effect global', () => {
-      const response = {
-        companions: [{
-          name: 'Test',
-          type: 'character' as const,
-          rarity: 'common' as const,
-          description: 'Test character',
-          role: 'Test',
-          traits: 'Test',
-          physicalDescription: 'Test appearance',
-          effects: [
-            { type: 'xp_boost', targetGenre: 'invalid-genre' },
-          ],
-        }],
-        researchConfidence: 'high' as const,
-      };
+      it('can use book genres for xp_boost targeting', () => {
+        const response = {
+          companions: [{
+            name: 'Wizard',
+            type: 'character' as const,
+            rarity: 'legendary' as const,
+            description: 'A wise wizard',
+            role: 'Mentor',
+            traits: 'Magical',
+            physicalDescription: 'Elderly with robes',
+          }],
+          researchConfidence: 'high' as const,
+        };
 
-      const result = parseResearchResponse(response, 'book-123');
-      expect(result.companions[0].effects).toHaveLength(1);
-      expect(result.companions[0].effects![0].targetGenre).toBeUndefined();
-    });
+        // Run many times to check if genre targeting works
+        let genreTargetedCount = 0;
+        for (let i = 0; i < 50; i++) {
+          const result = parseResearchResponse(response, 'book-123', ['fantasy', 'mystery-thriller']);
+          const xpBoostEffects = result.companions[0].effects?.filter(e => e.type === 'xp_boost') || [];
+          for (const effect of xpBoostEffects) {
+            if (effect.targetGenre) {
+              expect(['fantasy', 'mystery-thriller']).toContain(effect.targetGenre);
+              genreTargetedCount++;
+            }
+          }
+        }
+        // Should sometimes have genre-targeted effects (50% chance)
+        expect(genreTargetedCount).toBeGreaterThan(0);
+      });
 
-    it('handles empty effects array', () => {
-      const response = {
-        companions: [{
-          name: 'Test',
-          type: 'character' as const,
-          rarity: 'common' as const,
-          description: 'Test character',
-          role: 'Test',
-          traits: 'Test',
-          physicalDescription: 'Test appearance',
-          effects: [],
-        }],
-        researchConfidence: 'high' as const,
-      };
+      it('second effect has different type than first', () => {
+        const response = {
+          companions: [{
+            name: 'Hero',
+            type: 'character' as const,
+            rarity: 'legendary' as const,
+            description: 'A legendary hero',
+            role: 'Protagonist',
+            traits: 'Heroic',
+            physicalDescription: 'Heroic appearance',
+          }],
+          researchConfidence: 'high' as const,
+        };
 
-      const result = parseResearchResponse(response, 'book-123');
-      expect(result.companions[0].effects).toBeUndefined();
+        // Run many times to check duplicates never happen
+        for (let i = 0; i < 50; i++) {
+          const result = parseResearchResponse(response, 'book-123');
+          if (result.companions[0].effects && result.companions[0].effects.length === 2) {
+            expect(result.companions[0].effects[0].type).not.toBe(result.companions[0].effects[1].type);
+          }
+        }
+      });
     });
   });
 

@@ -35,6 +35,7 @@ export async function generateCompanionsInBackground(
       title: book.title,
       author: book.authors?.[0],
       synopsis: book.synopsis,
+      genres: book.normalizedGenres,
     });
     debug.timeEnd('background', 'companion-research');
 
@@ -79,7 +80,10 @@ export async function generateCompanionsInBackground(
       }
     };
 
-    const companionsWithImages = await generateBufferedImages(companions, generateImage);
+    // Generate ALL companion images upfront to avoid reserve/buffer edge cases
+    const companionsWithImages = await generateBufferedImages(companions, generateImage, {
+      generateAll: true,
+    });
     debug.timeEnd('background', 'image-generation');
 
     // Step 4: Return updated book with companions and detected genres

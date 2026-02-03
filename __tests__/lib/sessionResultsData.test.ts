@@ -47,7 +47,7 @@ function createMockSessionResult(overrides: Partial<SessionRewardResult> = {}): 
     xpGained: 150,
     genreLevelIncreases: { fantasy: 1 } as Record<Genre, number>,
     lootBoxes: [{ id: 'lb1', earnedAt: Date.now(), source: 'level_up' }],
-    bonusDropCount: 0,
+    bonusDrops: [],
     activeEffects: {
       xpBoost: 0.25,
       luck: 0.10,
@@ -83,7 +83,7 @@ describe('sessionResultsData', () => {
           { id: 'lb2', earnedAt: Date.now(), source: 'level_up' },
           { id: 'lb3', earnedAt: Date.now(), source: 'bonus_drop' },
         ],
-        bonusDropCount: 1,
+        bonusDrops: [{ type: 'lootbox', lootBoxTier: 'wood' }] as any,
       });
 
       const data = buildSessionResultsData(result, 3600, [], 0, 0);
@@ -95,7 +95,7 @@ describe('sessionResultsData', () => {
 
     it('should include hero events sorted by priority', () => {
       const result = createMockSessionResult({
-        bonusDropCount: 1,
+        bonusDrops: [{ type: 'consumable' }] as any,
         bookLevelsGained: 1,
       });
 

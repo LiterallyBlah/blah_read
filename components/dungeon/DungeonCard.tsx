@@ -27,7 +27,7 @@ export function DungeonCard({ children, variant = 'default', noPadding, style }:
       style={[
         styles.card,
         {
-          backgroundColor: colors.card || colors.backgroundCard,
+          backgroundColor: (colors as any).card || colors.backgroundCard,
           borderColor,
           padding: noPadding ? 0 : spacing(4),
         },

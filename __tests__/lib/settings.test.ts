@@ -10,9 +10,9 @@ describe('settings', () => {
     (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
     const result = await settings.get();
     expect(result.apiKey).toBeNull();
-    expect(result.llmModel).toBe('google/gemini-2.5-flash-preview-05-20');
-    expect(result.imageModel).toBe('bytedance-seed/seedream-4.5');
-    expect(result.theme).toBe('auto');
+    expect(result.llmModel).toBe('google/gemini-flash-1.5');
+    expect(result.imageModel).toBe('google/gemini-2.5-flash-image');
+    expect(result.theme).toBe('dungeon');
   });
 
   it('merges partial stored settings with defaults', async () => {

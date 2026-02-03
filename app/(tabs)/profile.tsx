@@ -186,7 +186,7 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>pending effects_</Text>
           <View style={styles.consumablesList}>
-            {progress.streakShieldExpiry && progress.streakShieldExpiry > Date.now() && (
+            {progress?.streakShieldExpiry && progress.streakShieldExpiry > Date.now() && (
               <DungeonCard variant="default" style={styles.consumableItem}>
                 <View style={styles.consumableRow}>
                   <ConsumableIcon effectType="streak_shield" tier="weak" size={48} />
@@ -199,7 +199,7 @@ export default function ProfileScreen() {
                 </View>
               </DungeonCard>
             )}
-            {progress.pendingBoxUpgrade && (
+            {progress?.pendingBoxUpgrade && (
               <DungeonCard variant="default" style={styles.consumableItem}>
                 <View style={styles.consumableRow}>
                   <ConsumableIcon effectType="box_upgrade" tier="medium" size={48} />
@@ -210,7 +210,7 @@ export default function ProfileScreen() {
                 </View>
               </DungeonCard>
             )}
-            {progress.pendingGuaranteedCompanion && (
+            {progress?.pendingGuaranteedCompanion && (
               <DungeonCard variant="default" style={styles.consumableItem}>
                 <View style={styles.consumableRow}>
                   <ConsumableIcon effectType="guaranteed_companion" tier="strong" size={48} />
@@ -221,12 +221,12 @@ export default function ProfileScreen() {
                 </View>
               </DungeonCard>
             )}
-            {(progress.pendingInstantLevels ?? 0) > 0 && (
+            {(progress?.pendingInstantLevels ?? 0) > 0 && (
               <DungeonCard variant="default" style={styles.consumableItem}>
                 <View style={styles.consumableRow}>
                   <ConsumableIcon effectType="instant_level" tier="strong" size={48} />
                   <View style={styles.consumableInfo}>
-                    <Text style={styles.consumableName}>time warp x{progress.pendingInstantLevels}</Text>
+                    <Text style={styles.consumableName}>time warp x{progress?.pendingInstantLevels}</Text>
                     <Text style={styles.consumableDesc}>start a session to level up book</Text>
                   </View>
                 </View>
@@ -346,7 +346,10 @@ export default function ProfileScreen() {
   );
 }
 
-function createStyles(colors: any, spacing: (n: number) => number, fontSize: (size: string) => number, letterSpacing: (size: string) => number) {
+type FontSize = 'micro' | 'small' | 'body' | 'large' | 'title' | 'hero';
+type LetterSpacingSize = 'tight' | 'normal' | 'wide' | 'hero';
+
+function createStyles(colors: any, spacing: (n: number) => number, fontSize: (size: FontSize) => number, letterSpacing: (size: LetterSpacingSize) => number) {
   return StyleSheet.create({
     container: {
       flex: 1,

@@ -110,7 +110,7 @@ export function detectHeroEvents(
   }
 
   // Check bonus drop (priority 3)
-  if (result.bonusDropCount > 0) {
+  if (result.bonusDrops.length > 0) {
     events.push({
       type: 'bonus_drop',
       priority: HERO_EVENT_PRIORITY.bonus_drop,

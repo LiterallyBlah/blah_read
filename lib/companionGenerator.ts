@@ -1,3 +1,7 @@
+/**
+ * @deprecated This module is deprecated. Use companionOrchestrator.ts instead.
+ * Kept for backwards compatibility only.
+ */
 import { storage } from './storage';
 import { settings } from './settings';
 import { generateCompanionData } from './llm';
@@ -23,7 +27,8 @@ export async function generateCompanion(book: Book): Promise<Companion> {
   const companionData = await generateCompanionData(book.synopsis, config.apiKey, { model: config.llmModel });
   const imageUrl = await generateCompanionImage(companionData.creature, companionData.keywords, config.apiKey, { model: config.imageModel });
 
-  const companion: Companion = {
+  // Legacy companion format - cast to any for backwards compatibility
+  const companion = {
     id: Date.now().toString(),
     bookId: book.id,
     imageUrl,
@@ -31,7 +36,7 @@ export async function generateCompanion(book: Book): Promise<Companion> {
     creature: companionData.creature,
     keywords: companionData.keywords,
     generatedAt: Date.now(),
-  };
+  } as unknown as Companion;
 
   book.companion = companion;
   await storage.saveBook(book);

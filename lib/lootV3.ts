@@ -1,5 +1,32 @@
-import { LootBoxTier, CompanionRarity } from './types';
+import { LootBoxTier, CompanionRarity, Companion } from './types';
 import { ConsumableTier, ConsumableDefinition, getConsumablesByTier } from './consumables';
+
+// Unified bonus drop system
+// When reading, checkpoint drops can be consumables, loot boxes, or companions directly
+
+export type BonusDropResult =
+  | { type: 'consumable'; tier: ConsumableTier; consumable: ConsumableDefinition }
+  | { type: 'lootbox'; tier: LootBoxTier }
+  | { type: 'companion'; rarity: CompanionRarity };
+
+// Drop weights - higher = more common
+// Total: 120, roughly:
+// - 64% consumable (77/120)
+// - 28% loot box (34/120)
+// - 8% companion (9/120)
+export const BONUS_DROP_WEIGHTS = {
+  consumable_weak: 40,
+  consumable_medium: 25,
+  lootbox_wood: 20,
+  consumable_strong: 12,
+  lootbox_silver: 10,
+  companion_common: 6,
+  lootbox_gold: 4,
+  companion_rare: 2,
+  companion_legendary: 1,
+} as const;
+
+type BonusDropKey = keyof typeof BONUS_DROP_WEIGHTS;
 
 // Layer 1: Box tier odds (base)
 export const BOX_TIER_ODDS: Record<LootBoxTier, number> = {
@@ -122,27 +149,105 @@ export function rollConsumable(boxTier: LootBoxTier): ConsumableDefinition {
 }
 
 /**
- * Roll for a bonus drop based on drop rate boost.
- * @param dropRateBoost - Value between 0 and 1, chance for bonus drop
- * @returns true if bonus drop should occur
+ * Available companion rarities in the current book's pool.
+ * Used to exclude unavailable rarities from the drop table.
  */
-export function rollBonusDrop(dropRateBoost: number): boolean {
-  if (dropRateBoost <= 0) return false;
-  return Math.random() < dropRateBoost;
+export interface AvailableRarities {
+  common: boolean;
+  rare: boolean;
+  legendary: boolean;
+}
+
+/**
+ * Roll for what type of bonus drop occurs using the unified drop table.
+ * Returns the drop type and specifics (tier/rarity).
+ *
+ * @param availableRarities - Which companion rarities are available in the pool.
+ *                            Unavailable rarities have their weight redistributed.
+ */
+export function rollBonusDropType(availableRarities?: AvailableRarities): BonusDropResult {
+  // Build adjusted weights based on available rarities
+  const adjustedWeights: Record<BonusDropKey, number> = { ...BONUS_DROP_WEIGHTS };
+
+  // If rarities info provided, zero out unavailable companion rarities
+  if (availableRarities) {
+    let removedWeight = 0;
+
+    if (!availableRarities.common) {
+      removedWeight += adjustedWeights.companion_common;
+      adjustedWeights.companion_common = 0;
+    }
+    if (!availableRarities.rare) {
+      removedWeight += adjustedWeights.companion_rare;
+      adjustedWeights.companion_rare = 0;
+    }
+    if (!availableRarities.legendary) {
+      removedWeight += adjustedWeights.companion_legendary;
+      adjustedWeights.companion_legendary = 0;
+    }
+
+    // Redistribute removed weight proportionally to non-companion drops
+    if (removedWeight > 0) {
+      const nonCompanionKeys: BonusDropKey[] = [
+        'consumable_weak', 'consumable_medium', 'consumable_strong',
+        'lootbox_wood', 'lootbox_silver', 'lootbox_gold',
+      ];
+      const nonCompanionTotal = nonCompanionKeys.reduce((sum, key) => sum + adjustedWeights[key], 0);
+
+      for (const key of nonCompanionKeys) {
+        const proportion = adjustedWeights[key] / nonCompanionTotal;
+        adjustedWeights[key] += removedWeight * proportion;
+      }
+    }
+  }
+
+  const entries = Object.entries(adjustedWeights) as [BonusDropKey, number][];
+  const totalWeight = entries.reduce((sum, [, weight]) => sum + weight, 0);
+
+  let random = Math.random() * totalWeight;
+
+  let selectedKey: BonusDropKey = 'consumable_weak'; // default fallback
+  for (const [key, weight] of entries) {
+    random -= weight;
+    if (random <= 0) {
+      selectedKey = key;
+      break;
+    }
+  }
+
+  // Parse the selected key into a drop result
+  if (selectedKey.startsWith('consumable_')) {
+    const tier = selectedKey.replace('consumable_', '') as ConsumableTier;
+    const consumables = getConsumablesByTier(tier);
+    const consumable = consumables[Math.floor(Math.random() * consumables.length)];
+    return { type: 'consumable', tier, consumable };
+  } else if (selectedKey.startsWith('lootbox_')) {
+    const tier = selectedKey.replace('lootbox_', '') as LootBoxTier;
+    return { type: 'lootbox', tier };
+  } else {
+    // companion_*
+    const rarity = selectedKey.replace('companion_', '') as CompanionRarity;
+    return { type: 'companion', rarity };
+  }
 }
 
 /**
  * Roll for bonus drops at checkpoints during a session.
- * Replaces the single session-end rollBonusDrop for exploit prevention.
+ * Returns array of actual drop results (consumables, loot boxes, or companion rarities).
  *
  * @param sessionMinutes - Duration of the reading session in minutes
  * @param dropRateBoost - Value between 0 and 1, added to base chance
- * @returns Number of bonus drops earned
+ * @param availableRarities - Which companion rarities are available in the pool
+ * @returns Array of bonus drop results
  */
-export function rollCheckpointDrops(sessionMinutes: number, dropRateBoost: number): number {
+export function rollCheckpointDrops(
+  sessionMinutes: number,
+  dropRateBoost: number,
+  availableRarities?: AvailableRarities
+): BonusDropResult[] {
   // Enforce minimum session length
   if (sessionMinutes < MINIMUM_SESSION_MINUTES) {
-    return 0;
+    return [];
   }
 
   // Calculate drop chance (base + boost, but boost can't go negative)
@@ -156,23 +261,29 @@ export function rollCheckpointDrops(sessionMinutes: number, dropRateBoost: numbe
   const remainingMinutes = sessionMinutes % CHECKPOINT_INTERVAL_MINUTES;
   const partialMultiplier = remainingMinutes / CHECKPOINT_INTERVAL_MINUTES;
 
-  let chestsEarned = 0;
+  const drops: BonusDropResult[] = [];
 
   // Roll full checkpoints
   for (let i = 0; i < fullCheckpoints; i++) {
     if (Math.random() < dropChance) {
-      chestsEarned++;
+      drops.push(rollBonusDropType(availableRarities));
     }
   }
 
   // Roll partial checkpoint
   if (partialMultiplier > 0) {
     if (Math.random() < dropChance * partialMultiplier) {
-      chestsEarned++;
+      drops.push(rollBonusDropType(availableRarities));
     }
   }
 
-  return chestsEarned;
+  return drops;
+}
+
+/** @deprecated Use rollCheckpointDrops instead */
+export function rollBonusDrop(dropRateBoost: number): boolean {
+  if (dropRateBoost <= 0) return false;
+  return Math.random() < dropRateBoost;
 }
 
 /**

@@ -440,8 +440,10 @@ export default function BookDetailScreen() {
       const updatedCompanions = await generateBufferedImages(
         book.companions,
         generateImage,
-        (completed, total) => {
-          setImageGenProgress(`Generated ${completed}/${total} images`);
+        {
+          onProgress: (completed, total) => {
+            setImageGenProgress(`Generated ${completed}/${total} images`);
+          },
         }
       );
 

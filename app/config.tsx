@@ -10,8 +10,12 @@ import { resetDebugCache } from '@/lib/debug';
 import { validateApiKey, validateImageModel } from '@/lib/openrouter';
 import { getImageStorageDiagnostics, deleteOrphanedImages } from '@/lib/imageStorage';
 import { storage } from '@/lib/storage';
+import { backfillAllCompanionEffects } from '@/lib/companionEffects';
+import { generateBufferedImages } from '@/lib/companionImageQueue';
+import { generateImageForCompanion } from '@/lib/imageGen';
+import type { Genre } from '@/lib/genres';
 import { FONTS } from '@/lib/theme';
-import type { LootBoxV3, LootBoxTier } from '@/lib/types';
+import type { LootBoxV3, LootBoxTier, Companion } from '@/lib/types';
 
 type ApiStatus = 'not set' | 'testing' | 'connected' | 'invalid';
 
@@ -42,6 +46,7 @@ export default function ConfigScreen() {
     withImages: number;
     books: { title: string; unlocked: number; withImages: number }[];
   } | null>(null);
+  const [imageGenStatus, setImageGenStatus] = useState<string | null>(null);
 
   useEffect(() => { loadConfig(); }, []);
 
@@ -597,6 +602,163 @@ export default function ConfigScreen() {
                 <Text style={[styles.actionButtonText, { color: '#f59e0b' }]}>[delete orphaned images]</Text>
               </Pressable>
               <Text style={styles.hint}>removes companion images from deleted books</Text>
+
+              <View style={styles.divider} />
+
+              <Text style={[styles.label, { color: '#f59e0b' }]}>re-roll companion effects_</Text>
+              <Pressable
+                style={[styles.actionButton, { borderColor: '#f59e0b' }]}
+                onPress={async () => {
+                  const books = await storage.getBooks();
+                  let totalCompanions = 0;
+                  let updatedBooks = 0;
+
+                  for (const book of books) {
+                    if (!book.companions) continue;
+
+                    // Build genre map for this book
+                    const bookGenresMap = new Map<string, Genre[]>();
+                    if (book.normalizedGenres?.length) {
+                      // All companions from this book get the same genres
+                      const allCompanions = [
+                        ...book.companions.unlockedCompanions,
+                        ...book.companions.readingTimeQueue.companions,
+                        ...book.companions.poolQueue.companions,
+                        ...(book.companions.completionLegendary ? [book.companions.completionLegendary] : []),
+                        ...(book.companions.poolLegendary ? [book.companions.poolLegendary] : []),
+                      ];
+                      for (const c of allCompanions) {
+                        bookGenresMap.set(c.id, book.normalizedGenres);
+                      }
+                    }
+
+                    // Collect all companions
+                    const allCompanions = [
+                      ...book.companions.unlockedCompanions,
+                      ...book.companions.readingTimeQueue.companions,
+                      ...book.companions.poolQueue.companions,
+                      ...(book.companions.completionLegendary ? [book.companions.completionLegendary] : []),
+                      ...(book.companions.poolLegendary ? [book.companions.poolLegendary] : []),
+                    ];
+
+                    if (allCompanions.length === 0) continue;
+
+                    // Backfill effects
+                    const effectsMap = backfillAllCompanionEffects(allCompanions, bookGenresMap);
+                    totalCompanions += allCompanions.length;
+
+                    // Apply new effects to companions
+                    const applyEffects = (companions: typeof allCompanions) => {
+                      for (const c of companions) {
+                        const newEffects = effectsMap.get(c.id);
+                        c.effects = newEffects;
+                      }
+                    };
+
+                    applyEffects(book.companions.unlockedCompanions);
+                    applyEffects(book.companions.readingTimeQueue.companions);
+                    applyEffects(book.companions.poolQueue.companions);
+                    if (book.companions.completionLegendary) {
+                      book.companions.completionLegendary.effects = effectsMap.get(book.companions.completionLegendary.id);
+                    }
+                    if (book.companions.poolLegendary) {
+                      book.companions.poolLegendary.effects = effectsMap.get(book.companions.poolLegendary.id);
+                    }
+
+                    await storage.saveBook(book);
+                    updatedBooks++;
+                  }
+
+                  Alert.alert(
+                    'Effects Re-rolled',
+                    `Updated ${totalCompanions} companions across ${updatedBooks} books.\n\nEffects are now based on rarity probability:\n• Common: 25% chance\n• Rare: 100% + 20% for 2nd\n• Legendary: 100% + 50% for 2nd`
+                  );
+                }}
+              >
+                <Text style={[styles.actionButtonText, { color: '#f59e0b' }]}>[re-roll all effects]</Text>
+              </Pressable>
+              <Text style={styles.hint}>re-generates effects for all companions using new rarity-based probability system</Text>
+
+              <View style={styles.divider} />
+
+              <Text style={[styles.label, { color: '#f59e0b' }]}>generate missing images_</Text>
+              <Pressable
+                style={[styles.actionButton, { borderColor: '#f59e0b' }]}
+                disabled={imageGenStatus !== null}
+                onPress={async () => {
+                  if (!config?.apiKey) {
+                    Alert.alert('Error', 'API key not configured');
+                    return;
+                  }
+
+                  const books = await storage.getBooks();
+                  let totalGenerated = 0;
+                  let totalMissing = 0;
+
+                  // Count total missing images first
+                  for (const book of books) {
+                    if (!book.companions) continue;
+                    const allCompanions = [
+                      ...book.companions.readingTimeQueue.companions,
+                      ...book.companions.poolQueue.companions,
+                      ...(book.companions.completionLegendary ? [book.companions.completionLegendary] : []),
+                      ...(book.companions.poolLegendary ? [book.companions.poolLegendary] : []),
+                    ];
+                    totalMissing += allCompanions.filter(c => !c.imageUrl).length;
+                  }
+
+                  if (totalMissing === 0) {
+                    Alert.alert('All Done', 'All companions already have images!');
+                    return;
+                  }
+
+                  setImageGenStatus(`Starting... 0/${totalMissing}`);
+
+                  try {
+                    for (const book of books) {
+                      if (!book.companions) continue;
+
+                      const generateImage = async (companion: Companion) => {
+                        try {
+                          const url = await generateImageForCompanion(companion, config.apiKey!, {
+                            model: config.imageModel,
+                            imageSize: config.imageSize,
+                            llmModel: config.llmModel,
+                          });
+                          totalGenerated++;
+                          setImageGenStatus(`Generating... ${totalGenerated}/${totalMissing}`);
+                          return url;
+                        } catch (error) {
+                          console.error(`Failed to generate image for ${companion.name}:`, error);
+                          totalGenerated++;
+                          setImageGenStatus(`Generating... ${totalGenerated}/${totalMissing}`);
+                          return null;
+                        }
+                      };
+
+                      const updatedCompanions = await generateBufferedImages(
+                        book.companions,
+                        generateImage,
+                        { generateAll: true }
+                      );
+
+                      await storage.saveBook({ ...book, companions: updatedCompanions });
+                    }
+
+                    setImageGenStatus(null);
+                    await loadDiagnostics();
+                    Alert.alert('Complete', `Generated ${totalGenerated} images for companions.`);
+                  } catch (error) {
+                    setImageGenStatus(null);
+                    Alert.alert('Error', `Image generation failed: ${error}`);
+                  }
+                }}
+              >
+                <Text style={[styles.actionButtonText, { color: '#f59e0b' }]}>
+                  {imageGenStatus || '[generate all missing images]'}
+                </Text>
+              </Pressable>
+              <Text style={styles.hint}>generates images for all companions without images across all books</Text>
             </>
           )}
         </View>

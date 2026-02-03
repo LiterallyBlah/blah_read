@@ -1,4 +1,5 @@
 import type { Book, BookCompanions, Companion } from './types';
+import type { Genre } from './genres';
 import { settings } from './settings';
 import { executeCompanionResearch } from './llm';
 import {
@@ -17,6 +18,7 @@ interface ResearchInput {
   title: string;
   author?: string;
   synopsis?: string | null;
+  genres?: Genre[];
 }
 
 /**
@@ -57,7 +59,7 @@ export async function orchestrateCompanionResearch(
       confidence: response.researchConfidence,
     });
 
-    const parsed = parseResearchResponse(response, input.bookId);
+    const parsed = parseResearchResponse(response, input.bookId, input.genres);
     debug.log('research', 'Parsed companions from response', {
       count: parsed.companions.length,
       confidence: parsed.confidence,

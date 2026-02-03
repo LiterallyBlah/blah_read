@@ -37,6 +37,17 @@ const BOOK_LEVEL_REQUIREMENTS: Record<CompanionRarity, number> = {
   legendary: 10,
 };
 
+// Probability of getting effects based on rarity
+// Second effect only rolls if first effect was granted
+const EFFECT_CHANCES: Record<CompanionRarity, { first: number; second: number }> = {
+  common: { first: 0.25, second: 0.05 },    // 25% for 1st, 5% for 2nd
+  rare: { first: 1.0, second: 0.20 },       // 100% for 1st, 20% for 2nd
+  legendary: { first: 1.0, second: 0.50 },  // 100% for 1st, 50% for 2nd
+};
+
+// Chance that xp_boost targets a specific genre vs being global
+const XP_BOOST_GENRE_TARGET_CHANCE = 0.5;
+
 export interface EquipRequirements {
   canEquip: boolean;
   missingGenreLevel?: number;
@@ -104,6 +115,65 @@ export function getAvailableEffectTypes(rarity: CompanionRarity): EffectType[] {
   return EFFECT_TYPES.filter(t => t !== 'completion_bonus');
 }
 
+/**
+ * Roll a single effect, excluding specified types
+ */
+function rollSingleEffect(
+  rarity: CompanionRarity,
+  bookGenres: Genre[] | undefined,
+  excludeTypes: EffectType[]
+): CompanionEffect {
+  const availableTypes = getAvailableEffectTypes(rarity)
+    .filter(t => !excludeTypes.includes(t));
+
+  const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+  const magnitude = calculateEffectMagnitude(rarity);
+
+  // For xp_boost, optionally target a genre
+  let targetGenre: Genre | undefined;
+  if (type === 'xp_boost' && bookGenres && bookGenres.length > 0) {
+    if (Math.random() < XP_BOOST_GENRE_TARGET_CHANCE) {
+      targetGenre = bookGenres[Math.floor(Math.random() * bookGenres.length)];
+    }
+  }
+
+  return { type, magnitude, targetGenre };
+}
+
+/**
+ * Roll effects for a companion based on rarity probability
+ */
+export function rollCompanionEffects(
+  rarity: CompanionRarity,
+  bookGenres?: Genre[]
+): CompanionEffect[] {
+  const effects: CompanionEffect[] = [];
+  const chances = EFFECT_CHANCES[rarity];
+
+  // Roll for first effect
+  if (Math.random() < chances.first) {
+    effects.push(rollSingleEffect(rarity, bookGenres, []));
+
+    // Roll for second effect (only if first was granted)
+    if (Math.random() < chances.second) {
+      effects.push(rollSingleEffect(rarity, bookGenres, [effects[0].type]));
+    }
+  }
+
+  return effects;
+}
+
+/**
+ * Re-roll effects for an existing companion
+ * Returns new effects array (does not mutate the companion)
+ */
+export function rerollCompanionEffects(
+  companion: Companion,
+  bookGenres?: Genre[]
+): CompanionEffect[] {
+  return rollCompanionEffects(companion.rarity, bookGenres);
+}
+
 export interface ActiveEffects {
   xpBoost: number;
   luck: number;           // was luckBoost - reduces wood chance
@@ -167,4 +237,24 @@ export function calculateActiveEffects(
   }
 
   return effects;
+}
+
+/**
+ * Backfill effects for all companions based on rarity probability.
+ * Returns a map of companionId -> new effects array.
+ * Pass bookGenresMap to enable genre-targeted xp_boost effects.
+ */
+export function backfillAllCompanionEffects(
+  companions: Companion[],
+  bookGenresMap?: Map<string, Genre[]>
+): Map<string, CompanionEffect[] | undefined> {
+  const result = new Map<string, CompanionEffect[] | undefined>();
+
+  for (const companion of companions) {
+    const bookGenres = bookGenresMap?.get(companion.bookId);
+    const effects = rollCompanionEffects(companion.rarity, bookGenres);
+    result.set(companion.id, effects.length > 0 ? effects : undefined);
+  }
+
+  return result;
 }

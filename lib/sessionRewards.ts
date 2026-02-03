@@ -5,16 +5,30 @@
  * and calculates all rewards: book levels, XP, genre levels, loot boxes.
  */
 
-import { Book, UserProgress, Companion, LootBoxV3, GenreLevels } from './types';
+import { Book, UserProgress, Companion, LootBoxV3, GenreLevels, CompanionRarity, ActiveConsumable } from './types';
 import { Genre, GENRES } from './genres';
 import { processReadingTime, calculateCompletionBonus } from './bookLeveling';
 import { calculateActiveEffects, ActiveEffects } from './companionEffects';
 import { getActiveEffects as getConsumableEffects, tickConsumables } from './consumableManager';
-import { rollCheckpointDrops, rollBoxTierWithPity } from './lootV3';
+import { rollCheckpointDrops, rollBoxTierWithPity, BonusDropResult, AvailableRarities } from './lootV3';
+import { ConsumableDefinition } from './consumables';
 import { getStreakMultiplier, calculateLevel } from './xp';
 
 // Constants
 export const BASE_XP_PER_MINUTE = 10;
+
+/**
+ * A processed bonus drop with the actual item.
+ */
+export interface ProcessedBonusDrop {
+  type: 'consumable' | 'lootbox' | 'companion';
+  consumable?: ConsumableDefinition;
+  lootBoxTier?: 'wood' | 'silver' | 'gold';
+  companion?: Companion;
+  // For display: what was originally rolled (before fallback)
+  originalRarity?: CompanionRarity;
+  wasFallback?: boolean;
+}
 
 /**
  * Result of processing a session end.
@@ -25,7 +39,7 @@ export interface SessionRewardResult {
   xpGained: number;
   genreLevelIncreases: Record<Genre, number>;
   lootBoxes: LootBoxV3[];
-  bonusDropCount: number;
+  bonusDrops: ProcessedBonusDrop[];
   activeEffects: ActiveEffects;
   updatedBook: Book;
   updatedProgress: UserProgress;
@@ -91,6 +105,42 @@ function combineEffects(
     totalLegendaryLuck,
     totalDropRateBoost,
     combinedActiveEffects,
+  };
+}
+
+/**
+ * Try to pull a companion of specific rarity from a book's pool queue.
+ * Returns the companion if available, null otherwise.
+ * Does NOT modify the book - caller must handle moving companion to unlocked.
+ */
+function pullCompanionFromBookPool(book: Book, rarity: CompanionRarity): Companion | null {
+  if (!book.companions?.poolQueue?.companions) {
+    return null;
+  }
+
+  const pool = book.companions.poolQueue.companions;
+  const index = pool.findIndex(c => c.rarity === rarity && !c.unlockedAt);
+
+  if (index === -1) {
+    return null;
+  }
+
+  // Return the companion (actual removal happens when updating book)
+  return pool[index];
+}
+
+/**
+ * Calculate which companion rarities are available in a book's pool.
+ * Used to adjust drop table weights so we don't roll for unavailable rarities.
+ */
+function getAvailableRarities(book: Book): AvailableRarities {
+  const pool = book.companions?.poolQueue?.companions || [];
+  const unlockedPool = pool.filter(c => !c.unlockedAt);
+
+  return {
+    common: unlockedPool.some(c => c.rarity === 'common'),
+    rare: unlockedPool.some(c => c.rarity === 'rare'),
+    legendary: unlockedPool.some(c => c.rarity === 'legendary'),
   };
 }
 
@@ -218,33 +268,95 @@ export function processSessionEnd(
     });
   }
 
-  // Step 9: Roll checkpoint drops (time-based to prevent exploit)
+  // Step 9: Roll checkpoint drops (unified drop table)
   const sessionMinutes = Math.floor(validSessionSeconds / 60);
-  const bonusDropCount = rollCheckpointDrops(sessionMinutes, totalDropRateBoost);
-  for (let i = 0; i < bonusDropCount; i++) {
-    const { tier, newPityCounter } = rollBoxTierWithPity(
-      totalLuck,
-      combinedActiveEffects.rareLuck,
-      combinedActiveEffects.legendaryLuck,
-      { goldPityCounter: currentPityCounter }
-    );
-    currentPityCounter = newPityCounter;
-    lootBoxes.push({
-      id: generateLootBoxId(),
-      tier,
-      earnedAt: now,
-      source: 'bonus_drop',
-      bookId: book.id,
-    });
+  const availableRarities = getAvailableRarities(book);
+  const rawDrops = rollCheckpointDrops(sessionMinutes, totalDropRateBoost, availableRarities);
+  const bonusDrops: ProcessedBonusDrop[] = [];
+  const droppedConsumables: ActiveConsumable[] = [];
+  const droppedCompanions: Companion[] = [];
+
+  for (const drop of rawDrops) {
+    if (drop.type === 'consumable') {
+      // Direct consumable drop
+      bonusDrops.push({
+        type: 'consumable',
+        consumable: drop.consumable,
+      });
+      // Add to active consumables
+      droppedConsumables.push({
+        consumableId: drop.consumable.id,
+        appliedAt: now,
+        remainingDuration: drop.consumable.duration,
+      });
+    } else if (drop.type === 'lootbox') {
+      // Direct loot box drop
+      bonusDrops.push({
+        type: 'lootbox',
+        lootBoxTier: drop.tier,
+      });
+      lootBoxes.push({
+        id: generateLootBoxId(),
+        tier: drop.tier,
+        earnedAt: now,
+        source: 'bonus_drop',
+        bookId: book.id,
+      });
+    } else if (drop.type === 'companion') {
+      // Try to pull companion from current book's pool
+      const companion = pullCompanionFromBookPool(book, drop.rarity);
+      if (companion) {
+        // Mark as unlocked
+        companion.unlockMethod = 'loot_box'; // bonus drop counts as loot
+        companion.unlockedAt = now;
+        bonusDrops.push({
+          type: 'companion',
+          companion,
+          originalRarity: drop.rarity,
+        });
+        droppedCompanions.push(companion);
+      } else {
+        // Fallback to loot box of equivalent tier
+        const fallbackTier = drop.rarity === 'legendary' ? 'gold' :
+                            drop.rarity === 'rare' ? 'silver' : 'wood';
+        bonusDrops.push({
+          type: 'lootbox',
+          lootBoxTier: fallbackTier,
+          originalRarity: drop.rarity,
+          wasFallback: true,
+        });
+        lootBoxes.push({
+          id: generateLootBoxId(),
+          tier: fallbackTier,
+          earnedAt: now,
+          source: 'bonus_drop',
+          bookId: book.id,
+        });
+      }
+    }
   }
 
-  // Step 10: Update book progression
+  // Step 10: Update book progression and companions
   const newTotalSeconds = currentProgression.totalSeconds + validSessionSeconds;
   const newLevelUps = [...currentProgression.levelUps];
 
   // Record timestamps for level ups
   for (let i = 0; i < levelsGained; i++) {
     newLevelUps.push(now);
+  }
+
+  // Update book companions: move dropped companions from pool to unlocked
+  let updatedCompanions = book.companions;
+  if (droppedCompanions.length > 0 && book.companions) {
+    const droppedIds = new Set(droppedCompanions.map(c => c.id));
+    updatedCompanions = {
+      ...book.companions,
+      poolQueue: {
+        ...book.companions.poolQueue,
+        companions: book.companions.poolQueue.companions.filter(c => !droppedIds.has(c.id)),
+      },
+      unlockedCompanions: [...book.companions.unlockedCompanions, ...droppedCompanions],
+    };
   }
 
   const updatedBook: Book = {
@@ -255,6 +367,7 @@ export function processSessionEnd(
       totalSeconds: newTotalSeconds,
       levelUps: newLevelUps,
     },
+    companions: updatedCompanions,
   };
 
   // Step 11: Update user progress
@@ -263,8 +376,9 @@ export function processSessionEnd(
     updatedGenreLevels[genre] = (updatedGenreLevels[genre] || 0) + genreLevelIncreases[genre];
   }
 
-  // Step 11b: Tick consumables (pass session minutes)
+  // Step 11b: Tick consumables and add dropped consumables
   const tickedConsumables = tickConsumables(activeConsumables, sessionMinutes);
+  const allConsumables = [...tickedConsumables, ...droppedConsumables];
 
   const existingLootBoxesV3 = progress.lootBoxesV3 || [];
 
@@ -273,7 +387,7 @@ export function processSessionEnd(
     totalXp: progress.totalXp + xpGained,
     genreLevels: updatedGenreLevels,
     lootBoxesV3: [...existingLootBoxesV3, ...lootBoxes],
-    activeConsumables: tickedConsumables,
+    activeConsumables: allConsumables,
     goldPityCounter: currentPityCounter,
   };
 
@@ -283,7 +397,7 @@ export function processSessionEnd(
     xpGained,
     genreLevelIncreases,
     lootBoxes,
-    bonusDropCount,
+    bonusDrops,
     activeEffects: combinedActiveEffects,
     updatedBook,
     updatedProgress,

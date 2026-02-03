@@ -350,19 +350,19 @@ describe('lootV3', () => {
   });
 
   describe('rollCheckpointDrops', () => {
-    it('should return 0 for sessions under minimum', () => {
+    it('should return empty array for sessions under minimum', () => {
       // 4 minutes is under the 5 minute minimum
-      expect(rollCheckpointDrops(4, 0)).toBe(0);
-      expect(rollCheckpointDrops(4, 0.5)).toBe(0);
-      expect(rollCheckpointDrops(0, 0.5)).toBe(0);
+      expect(rollCheckpointDrops(4, 0)).toHaveLength(0);
+      expect(rollCheckpointDrops(4, 0.5)).toHaveLength(0);
+      expect(rollCheckpointDrops(0, 0.5)).toHaveLength(0);
     });
 
-    it('should return 0 for exactly minimum session with no boost', () => {
+    it('should return few drops for exactly minimum session with no boost', () => {
       // 5 minutes gets a partial checkpoint (5/10 = 0.5 multiplier)
       // With 1% base and 0 boost, very unlikely to get a drop
       let drops = 0;
       for (let i = 0; i < 100; i++) {
-        drops += rollCheckpointDrops(5, 0);
+        drops += rollCheckpointDrops(5, 0).length;
       }
       // With 0.5% chance (1% * 0.5), expect ~0-1 drops in 100 trials
       expect(drops).toBeLessThan(5);
@@ -373,7 +373,7 @@ describe('lootV3', () => {
       // With 50% boost, total chance is 51%
       let drops = 0;
       for (let i = 0; i < 100; i++) {
-        drops += rollCheckpointDrops(10, 0.5);
+        drops += rollCheckpointDrops(10, 0.5).length;
       }
       // With 51% chance, expect 30-70 drops
       expect(drops).toBeGreaterThan(20);
@@ -385,7 +385,7 @@ describe('lootV3', () => {
       // With 100% chance (99% boost + 1% base), should get ~2-3 drops
       let totalDrops = 0;
       for (let i = 0; i < 100; i++) {
-        totalDrops += rollCheckpointDrops(25, 0.99);
+        totalDrops += rollCheckpointDrops(25, 0.99).length;
       }
       // Average should be close to 2.5 * 100 = 250
       expect(totalDrops).toBeGreaterThan(200);
@@ -396,7 +396,7 @@ describe('lootV3', () => {
       // 20 minutes = exactly 2 checkpoints, no partial
       // With 100% chance, should always get exactly 2
       for (let i = 0; i < 10; i++) {
-        expect(rollCheckpointDrops(20, 0.99)).toBe(2);
+        expect(rollCheckpointDrops(20, 0.99)).toHaveLength(2);
       }
     });
 
@@ -405,7 +405,7 @@ describe('lootV3', () => {
       // With 100% boost: full gets 1, partial gets ~0.5
       let totalDrops = 0;
       for (let i = 0; i < 100; i++) {
-        totalDrops += rollCheckpointDrops(15, 0.99);
+        totalDrops += rollCheckpointDrops(15, 0.99).length;
       }
       // Average should be 1.5 * 100 = 150 (allow variance)
       expect(totalDrops).toBeGreaterThan(120);
@@ -416,10 +416,25 @@ describe('lootV3', () => {
       // Negative boost should be treated as 0, leaving just base chance
       let drops = 0;
       for (let i = 0; i < 100; i++) {
-        drops += rollCheckpointDrops(60, -0.5);
+        drops += rollCheckpointDrops(60, -0.5).length;
       }
       // 6 checkpoints at 1% = 6% total, expect ~6 drops in 100 trials
       expect(drops).toBeLessThan(20);
+    });
+
+    it('should return array of BonusDropResult with varied types', () => {
+      // With high boost, should get various drop types
+      const typeCounts = { consumable: 0, lootbox: 0, companion: 0 };
+      for (let i = 0; i < 500; i++) {
+        const drops = rollCheckpointDrops(60, 0.99); // 6 checkpoints, ~100% each
+        for (const drop of drops) {
+          typeCounts[drop.type]++;
+        }
+      }
+      // Should have all three types (consumables most common)
+      expect(typeCounts.consumable).toBeGreaterThan(typeCounts.lootbox);
+      expect(typeCounts.lootbox).toBeGreaterThan(typeCounts.companion);
+      expect(typeCounts.companion).toBeGreaterThan(0);
     });
   });
 

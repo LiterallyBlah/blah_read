@@ -142,14 +142,14 @@ describe('sessionRewards', () => {
         expect(levelUpBoxes.length).toBe(3);
       });
 
-      it('should return bonusDropCount as number', () => {
+      it('should return bonusDrops as array', () => {
         const mockBook = createMockBook();
         const mockProgress = createMockProgress();
 
         const result = processSessionEnd(mockBook, mockProgress, [], 3600);
 
-        expect(typeof result.bonusDropCount).toBe('number');
-        expect(result.bonusDropCount).toBeGreaterThanOrEqual(0);
+        expect(Array.isArray(result.bonusDrops)).toBe(true);
+        expect(result.bonusDrops.length).toBeGreaterThanOrEqual(0);
       });
 
       it('should track levels on book with existing progression', () => {
@@ -328,19 +328,19 @@ describe('sessionRewards', () => {
         });
       });
 
-      it('should create blank boxes without tier (tier determined at open time)', () => {
+      it('should create boxes with tier assigned at earn time using luck boost', () => {
         const mockBook = createMockBook();
         const mockProgress = createMockProgress();
         const companion = createMockCompanion('comp-1', [
           { type: 'luck', magnitude: 0.30, targetGenre: 'fantasy' },
         ]);
 
-        // Even with luck boost, boxes should not have tier assigned at earn time
+        // With luck boost, tier is assigned at earn time
         const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
 
         expect(result.lootBoxes.length).toBe(1);
-        expect(result.lootBoxes[0].tier).toBeUndefined();
-        // Tier will be determined at open time using the luck boost
+        // Tier is now assigned at earn time (wood, silver, or gold)
+        expect(['wood', 'silver', 'gold']).toContain(result.lootBoxes[0].tier);
       });
     });
 
@@ -355,8 +355,7 @@ describe('sessionRewards', () => {
         // 4 minutes = under minimum, no drops even with high boost
         const result = processSessionEnd(mockBook, mockProgress, [companion], 240);
 
-        expect(result.bonusDropCount).toBe(0);
-        expect(result.lootBoxes.filter(b => b.source === 'bonus_drop').length).toBe(0);
+        expect(result.bonusDrops.length).toBe(0);
       });
 
       it('should award drops based on checkpoints with boost', () => {
@@ -374,13 +373,12 @@ describe('sessionRewards', () => {
         // With mock always succeeding, should get 3 drops
         const result = processSessionEnd(mockBook, mockProgress, [companion], 1500);
 
-        expect(result.bonusDropCount).toBe(3);
-        expect(result.lootBoxes.filter(b => b.source === 'bonus_drop').length).toBe(3);
+        expect(result.bonusDrops.length).toBe(3);
 
         jest.restoreAllMocks();
       });
 
-      it('should award multiple bonus boxes for long sessions', () => {
+      it('should award multiple bonus drops for long sessions', () => {
         const mockBook = createMockBook();
         const mockProgress = createMockProgress();
 
@@ -394,7 +392,7 @@ describe('sessionRewards', () => {
         // 60 minutes = 6 checkpoints
         const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
 
-        expect(result.bonusDropCount).toBe(6);
+        expect(result.bonusDrops.length).toBe(6);
 
         jest.restoreAllMocks();
       });
@@ -407,12 +405,39 @@ describe('sessionRewards', () => {
         let totalDrops = 0;
         for (let i = 0; i < 100; i++) {
           const result = processSessionEnd(mockBook, mockProgress, [], 3600);
-          totalDrops += result.bonusDropCount;
+          totalDrops += result.bonusDrops.length;
         }
 
         // 6 checkpoints at 1% = 6% per session
         // Over 100 sessions, expect ~6 drops (allow variance)
         expect(totalDrops).toBeLessThan(30);
+      });
+
+      it('should return varied drop types (consumables, lootboxes, companions)', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress();
+
+        // Mock to always succeed
+        jest.spyOn(Math, 'random').mockReturnValue(0.001);
+
+        const companion = createMockCompanion('comp-1', [
+          { type: 'drop_rate_boost', magnitude: 0.99 },
+        ]);
+
+        // Run many times to get varied drops
+        const typeCounts = { consumable: 0, lootbox: 0, companion: 0 };
+        jest.restoreAllMocks(); // Restore for varied random results
+
+        for (let i = 0; i < 50; i++) {
+          const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
+          for (const drop of result.bonusDrops) {
+            typeCounts[drop.type]++;
+          }
+        }
+
+        // Should have at least some consumables and lootboxes (most common)
+        expect(typeCounts.consumable).toBeGreaterThan(0);
+        expect(typeCounts.lootbox).toBeGreaterThan(0);
       });
     });
 
@@ -652,8 +677,8 @@ describe('sessionRewards', () => {
       });
     });
 
-    describe('blank box earning', () => {
-      it('should create boxes without tier', () => {
+    describe('loot box tiers', () => {
+      it('should create level-up boxes with tier', () => {
         const mockBook = createMockBook();
         const mockProgress = createMockProgress();
 
@@ -661,11 +686,11 @@ describe('sessionRewards', () => {
         const result = processSessionEnd(mockBook, mockProgress, [], 3600, false);
 
         expect(result.lootBoxes.length).toBe(1);
-        expect(result.lootBoxes[0].tier).toBeUndefined();
+        expect(['wood', 'silver', 'gold']).toContain(result.lootBoxes[0].tier);
         expect(result.lootBoxes[0].source).toBe('level_up');
       });
 
-      it('should create completion boxes without tier', () => {
+      it('should create completion boxes with tier', () => {
         const mockBook = createMockBook({
           pageCount: 90, // 3 level floor
           progression: {
@@ -681,29 +706,34 @@ describe('sessionRewards', () => {
         const completionBoxes = result.lootBoxes.filter(b => b.source === 'completion');
         expect(completionBoxes.length).toBe(2); // 3 - 1 = 2 bonus levels
         completionBoxes.forEach(box => {
-          expect(box.tier).toBeUndefined();
+          expect(['wood', 'silver', 'gold']).toContain(box.tier);
         });
       });
 
-      it('should create bonus drop boxes without tier', () => {
+      it('should add dropped loot boxes with tier to lootBoxes array', () => {
         const mockBook = createMockBook();
         const mockProgress = createMockProgress();
 
-        // Mock to always succeed
-        jest.spyOn(Math, 'random').mockReturnValue(0.001);
-
         const companion = createMockCompanion('comp-1', [
-          { type: 'drop_rate_boost', magnitude: 0.50, targetGenre: 'fantasy' },
+          { type: 'drop_rate_boost', magnitude: 0.99 },
         ]);
 
-        // 10 minutes = 1 checkpoint
-        const result = processSessionEnd(mockBook, mockProgress, [companion], 600);
-
-        const bonusBoxes = result.lootBoxes.filter(b => b.source === 'bonus_drop');
-        expect(bonusBoxes.length).toBe(1);
-        expect(bonusBoxes[0].tier).toBeUndefined();
-
-        jest.restoreAllMocks();
+        // Run multiple times to get at least one loot box drop
+        let foundLootboxDrop = false;
+        for (let i = 0; i < 50 && !foundLootboxDrop; i++) {
+          const result = processSessionEnd(mockBook, mockProgress, [companion], 3600);
+          const lootboxDrops = result.bonusDrops.filter(d => d.type === 'lootbox');
+          if (lootboxDrops.length > 0) {
+            foundLootboxDrop = true;
+            // Loot box drops should have a tier
+            expect(lootboxDrops[0].lootBoxTier).toBeDefined();
+            // Should also appear in lootBoxes array
+            const bonusBoxes = result.lootBoxes.filter(b => b.source === 'bonus_drop');
+            expect(bonusBoxes.length).toBeGreaterThan(0);
+            expect(['wood', 'silver', 'gold']).toContain(bonusBoxes[0].tier);
+          }
+        }
+        expect(foundLootboxDrop).toBe(true);
       });
     });
 

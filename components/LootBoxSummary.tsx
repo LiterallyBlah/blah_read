@@ -16,11 +16,11 @@ interface Props {
   onContinue: () => void;
 }
 
-const CHEST_TILES: Record<LootBoxTier, string> = {
+const CHEST_TILES = {
   wood: 'chest_wood_closed',
   silver: 'chest_silver_closed',
   gold: 'chest_gold_closed',
-};
+} as const;
 
 export function LootBoxSummary({ boxes, onContinue }: Props) {
   const { colors, spacing, fontSize } = useTheme();
