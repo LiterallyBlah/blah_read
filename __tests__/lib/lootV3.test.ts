@@ -15,6 +15,7 @@ import {
   BASE_CHECKPOINT_DROP_CHANCE,
   CHECKPOINT_INTERVAL_MINUTES,
   MINIMUM_SESSION_MINUTES,
+  MAX_DROP_CHANCE,
   BOX_TIER_ODDS,
   CATEGORY_ODDS,
   CONSUMABLE_TIER_ODDS,
@@ -382,34 +383,42 @@ describe('lootV3', () => {
 
     it('should calculate correct number of checkpoints', () => {
       // 25 minutes = 2 full checkpoints + partial (5/10)
-      // With 100% chance (99% boost + 1% base), should get ~2-3 drops
+      // With high boost, capped at 50%, should get ~1.25 drops per trial
+      // (2 full * 50% + 0.5 partial * 50% = 1 + 0.25 = 1.25)
       let totalDrops = 0;
       for (let i = 0; i < 100; i++) {
         totalDrops += rollCheckpointDrops(25, 0.99).length;
       }
-      // Average should be close to 2.5 * 100 = 250
-      expect(totalDrops).toBeGreaterThan(200);
-      expect(totalDrops).toBeLessThan(300);
+      // Average should be close to 1.25 * 100 = 125 (with variance)
+      expect(totalDrops).toBeGreaterThan(90);
+      expect(totalDrops).toBeLessThan(160);
     });
 
     it('should handle exact checkpoint boundaries', () => {
       // 20 minutes = exactly 2 checkpoints, no partial
-      // With 100% chance, should always get exactly 2
-      for (let i = 0; i < 10; i++) {
-        expect(rollCheckpointDrops(20, 0.99)).toHaveLength(2);
+      // With high boost (capped at 50%), should get 0-2 drops
+      let totalDrops = 0;
+      for (let i = 0; i < 100; i++) {
+        const drops = rollCheckpointDrops(20, 0.99);
+        expect(drops.length).toBeLessThanOrEqual(2);
+        totalDrops += drops.length;
       }
+      // Average should be close to 1.0 (2 checkpoints * 50%)
+      expect(totalDrops).toBeGreaterThan(70);
+      expect(totalDrops).toBeLessThan(130);
     });
 
     it('should apply proportional chance to partial checkpoints', () => {
       // 15 minutes = 1 full + 0.5 partial
-      // With 100% boost: full gets 1, partial gets ~0.5
+      // With high boost (capped at 50%): full gets 50%, partial gets 25%
+      // Expected average: 0.5 + 0.25 = 0.75 per trial
       let totalDrops = 0;
       for (let i = 0; i < 100; i++) {
         totalDrops += rollCheckpointDrops(15, 0.99).length;
       }
-      // Average should be 1.5 * 100 = 150 (allow variance)
-      expect(totalDrops).toBeGreaterThan(120);
-      expect(totalDrops).toBeLessThan(180);
+      // Average should be 0.75 * 100 = 75 (allow variance)
+      expect(totalDrops).toBeGreaterThan(50);
+      expect(totalDrops).toBeLessThan(100);
     });
 
     it('should handle negative boost as 0', () => {
@@ -436,6 +445,42 @@ describe('lootV3', () => {
       expect(typeCounts.lootbox).toBeGreaterThan(typeCounts.companion);
       expect(typeCounts.companion).toBeGreaterThan(0);
     });
+
+    it('should cap drop chance at 50% even with extremely high boost', () => {
+      // With a 10x (1000%) boost, uncapped chance would be:
+      // BASE_CHECKPOINT_DROP_CHANCE + 10 = 10.01 (1001%)
+      // But it should be capped at 50%
+      const dropRateBoost = 10;
+      let totalDrops = 0;
+      const trials = 1000;
+
+      for (let i = 0; i < trials; i++) {
+        // 10 minutes = 1 full checkpoint
+        totalDrops += rollCheckpointDrops(10, dropRateBoost).length;
+      }
+
+      // With 50% cap, expect ~500 drops (+/- statistical variance)
+      // If uncapped at 100%+, would get 1000 drops
+      expect(totalDrops).toBeLessThanOrEqual(700); // Allow variance but clearly under 100%
+      expect(totalDrops).toBeGreaterThan(300); // Should still get ~50%
+    });
+
+    it('should cap drop chance at 50% for partial checkpoints too', () => {
+      // Partial checkpoint multiplier should apply AFTER the cap
+      const dropRateBoost = 10;
+      let totalDrops = 0;
+      const trials = 1000;
+
+      for (let i = 0; i < trials; i++) {
+        // 5 minutes = 0.5 partial checkpoint
+        // Capped at 50%, then * 0.5 = 25% effective
+        totalDrops += rollCheckpointDrops(5, dropRateBoost).length;
+      }
+
+      // With 25% effective chance, expect ~250 drops (+/- variance)
+      expect(totalDrops).toBeLessThanOrEqual(400);
+      expect(totalDrops).toBeGreaterThan(100);
+    });
   });
 
   describe('rollBoxTierWithPity', () => {
@@ -449,6 +494,7 @@ describe('lootV3', () => {
         expect(BASE_CHECKPOINT_DROP_CHANCE).toBe(0.01);
         expect(CHECKPOINT_INTERVAL_MINUTES).toBe(10);
         expect(MINIMUM_SESSION_MINUTES).toBe(5);
+        expect(MAX_DROP_CHANCE).toBe(0.5);
       });
     });
 

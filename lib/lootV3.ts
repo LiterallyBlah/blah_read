@@ -271,8 +271,12 @@ export function rollCheckpointDrops(
   }
 
   // Calculate drop chance (base + boost, but boost can't go negative)
+  // Cap at MAX_DROP_CHANCE (50%) to prevent excessive drops with stacked boosts
   const effectiveBoost = Math.max(0, dropRateBoost);
-  const dropChance = BASE_CHECKPOINT_DROP_CHANCE + effectiveBoost;
+  const dropChance = Math.min(
+    BASE_CHECKPOINT_DROP_CHANCE + effectiveBoost,
+    MAX_DROP_CHANCE
+  );
 
   // Full checkpoints
   const fullCheckpoints = Math.floor(sessionMinutes / CHECKPOINT_INTERVAL_MINUTES);
@@ -369,6 +373,7 @@ export const PITY_HARD_CAP = 25; // Guaranteed gold after 25 non-gold boxes
 export const BASE_CHECKPOINT_DROP_CHANCE = 0.01; // 1% base chance per checkpoint
 export const CHECKPOINT_INTERVAL_MINUTES = 10;   // Roll every 10 minutes
 export const MINIMUM_SESSION_MINUTES = 5;        // Must read at least 5 min
+export const MAX_DROP_CHANCE = 0.5;              // Cap at 50% per checkpoint
 
 export interface PityState {
   goldPityCounter: number;
