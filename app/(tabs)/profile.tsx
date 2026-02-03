@@ -216,7 +216,8 @@ export default function ProfileScreen() {
         )}
       </View>
 
-      {/* Reading Milestones section */}
+      {/* Reading Milestones section - shows AGGREGATE time across all books
+          (Book detail screen shows per-book milestones for individual progress) */}
       <ReadingMilestones currentReadingMinutes={Math.floor(totalTime / 60)} />
 
       {/* Genre Levels section with threshold markers */}
