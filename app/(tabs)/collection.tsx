@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, ScrollView, StyleSheet, Text, Pressable, Image, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -11,7 +11,7 @@ import { maybeGenerateImages, shouldGenerateMoreImages } from '@/lib/companionIm
 import { generateImageForCompanion } from '@/lib/imageGen';
 import type { Book, Companion, LootBoxState, CompanionLoadout, UserProgress, LootBoxV3, LootBoxTier } from '@/lib/types';
 import type { Settings } from '@/lib/settings';
-import { equipCompanion, unequipCompanion, getEquippedCompanionIds, isSlotUnlocked, equipCompanionToBook, getBookLoadout, getBookEquippedCompanionIds } from '@/lib/loadout';
+import { equipCompanion, unequipCompanion, getEquippedCompanionIds, isSlotUnlocked, equipCompanionToBook, unequipCompanionFromBook, getBookLoadout } from '@/lib/loadout';
 import { canEquipCompanion, EFFECT_TYPES, EquipRequirements, CompanionEffect } from '@/lib/companionEffects';
 import { GENRE_DISPLAY_NAMES, Genre } from '@/lib/genres';
 import { PixelSprite } from '@/components/dungeon';
@@ -282,10 +282,36 @@ export default function CollectionScreen() {
     }
   }
 
-  // Handle unequip action
+  // Handle unequip action - supports both per-book and global modes
   async function handleUnequip(companion: DisplayCompanion) {
     const slotIndex = getEquippedSlot(companion.id);
-    if (slotIndex === -1 || !loadout) return;
+    if (slotIndex === -1) return;
+
+    // Per-book mode: unequip from target book's loadout
+    if (isPerBookEquipMode && targetBook) {
+      Alert.alert(
+        'Unequip Companion',
+        `Remove ${companion.name} from slot ${slotIndex + 1}?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Unequip',
+            onPress: async () => {
+              try {
+                await unequipCompanionFromBook(targetBook.id, slotIndex);
+                router.back();
+              } catch (error) {
+                Alert.alert('Error', error instanceof Error ? error.message : 'Failed to unequip companion');
+              }
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    // Global mode: unequip from global loadout
+    if (!loadout) return;
 
     Alert.alert(
       'Unequip Companion',
