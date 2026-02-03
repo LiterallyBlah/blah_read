@@ -9,9 +9,9 @@ import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 import { GENRES, GENRE_DISPLAY_NAMES, Genre } from '@/lib/genres';
 import { getConsumableById, formatDuration } from '@/lib/consumables';
-import { calculateSlot2Progress, calculateSlot3Progress, SLOT_2_POINTS, SLOT_3_POINTS } from '@/lib/slotProgress';
 import { DungeonBar, DungeonCard, ConsumableIcon } from '@/components/dungeon';
 import { ReadingMilestones } from '@/components/Milestones';
+import { SlotProgress } from '@/components/SlotProgress';
 
 export default function ProfileScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();
@@ -310,49 +310,10 @@ export default function ProfileScreen() {
 
       {/* Slot Unlock Progress section */}
       {progress?.slotProgress && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>slot progress_</Text>
-
-          {/* Slot 2 progress */}
-          {(progress.loadout?.unlockedSlots || 1) < 2 && (
-            <View style={styles.progressItem}>
-              <Text style={styles.progressLabel}>slot 2</Text>
-              <View style={styles.progressBarContainer}>
-                <View
-                  style={[
-                    styles.progressBar,
-                    { width: `${Math.min(100, (calculateSlot2Progress(progress.slotProgress) / SLOT_2_POINTS) * 100)}%` }
-                  ]}
-                />
-              </View>
-              <Text style={styles.progressText}>
-                {calculateSlot2Progress(progress.slotProgress)} / {SLOT_2_POINTS}
-              </Text>
-            </View>
-          )}
-
-          {/* Slot 3 progress */}
-          {(progress.loadout?.unlockedSlots || 1) < 3 && (
-            <View style={styles.progressItem}>
-              <Text style={styles.progressLabel}>slot 3</Text>
-              <View style={styles.progressBarContainer}>
-                <View
-                  style={[
-                    styles.progressBar,
-                    { width: `${Math.min(100, (calculateSlot3Progress(progress.slotProgress) / SLOT_3_POINTS) * 100)}%` }
-                  ]}
-                />
-              </View>
-              <Text style={styles.progressText}>
-                {calculateSlot3Progress(progress.slotProgress)} / {SLOT_3_POINTS}
-              </Text>
-            </View>
-          )}
-
-          {(progress.loadout?.unlockedSlots || 1) >= 3 && (
-            <Text style={styles.emptyText}>all slots unlocked_</Text>
-          )}
-        </View>
+        <SlotProgress
+          slotProgress={progress.slotProgress}
+          unlockedSlots={progress.loadout?.unlockedSlots || 1}
+        />
       )}
     </ScrollView>
   );
@@ -579,32 +540,6 @@ function createStyles(colors: any, spacing: (n: number) => number, fontSize: (si
       fontSize: fontSize('micro'),
     },
     slotLockText: {
-      color: colors.textMuted,
-      fontFamily: FONTS.mono,
-      fontSize: fontSize('micro'),
-    },
-    // Slot progress styles
-    progressItem: {
-      marginBottom: spacing(3),
-    },
-    progressLabel: {
-      color: colors.textSecondary,
-      fontFamily: FONTS.mono,
-      fontSize: fontSize('small'),
-      marginBottom: spacing(1),
-    },
-    progressBarContainer: {
-      height: 6,
-      backgroundColor: colors.backgroundCard,
-      borderWidth: 1,
-      borderColor: colors.border,
-      marginBottom: spacing(1),
-    },
-    progressBar: {
-      height: '100%',
-      backgroundColor: colors.success,
-    },
-    progressText: {
       color: colors.textMuted,
       fontFamily: FONTS.mono,
       fontSize: fontSize('micro'),

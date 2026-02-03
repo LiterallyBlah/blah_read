@@ -4,18 +4,18 @@ import { SlotUnlockProgress } from './types';
 export const SLOT_2_POINTS = 100;
 export const SLOT_3_POINTS = 300;
 
-// Slot 2 point values
-const SLOT_2_BOOK_FINISHED = 50;
-const SLOT_2_HOUR_LOGGED = 15;
-const SLOT_2_COMPANION_COLLECTED = 20;
+// Slot 2 point values (exported for UI breakdown)
+export const SLOT_2_BOOK_FINISHED = 50;
+export const SLOT_2_HOUR_LOGGED = 15;
+export const SLOT_2_COMPANION_COLLECTED = 20;
 // Sessions removed from slot 2 - use cumulative hours instead
 
-// Slot 3 point values
-const SLOT_3_BOOK_FINISHED = 40;
-const SLOT_3_HOUR_LOGGED = 10;
-const SLOT_3_COMPANION_COLLECTED = 15;
-const SLOT_3_GENRE_LEVEL_TEN = 50;
-const SLOT_3_NEW_GENRE = 30;
+// Slot 3 point values (exported for UI breakdown)
+export const SLOT_3_BOOK_FINISHED = 40;
+export const SLOT_3_HOUR_LOGGED = 10;
+export const SLOT_3_COMPANION_COLLECTED = 15;
+export const SLOT_3_GENRE_LEVEL_TEN = 50;
+export const SLOT_3_NEW_GENRE = 30;
 
 /**
  * Creates a default SlotUnlockProgress with all values at zero/empty.
