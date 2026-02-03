@@ -41,6 +41,7 @@ export interface Book {
   // Reward System V3 fields
   normalizedGenres?: Genre[]; // Normalized genres for reward system
   progression?: BookProgression; // Book-specific progression
+  loadout?: CompanionLoadout; // Per-book equipped companions
 }
 
 export interface ReadingSession {
