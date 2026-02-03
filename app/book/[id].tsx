@@ -20,6 +20,8 @@ import { SECONDS_PER_LEVEL } from '@/lib/bookLeveling';
 import { BOOK_LEVEL_REQUIREMENTS } from '@/lib/companionEffects';
 import { GENRES, Genre, GENRE_DISPLAY_NAMES } from '@/lib/genres';
 import { detectBookGenres } from '@/lib/genreDetection';
+import { getBookLoadout, isSlotUnlocked } from '@/lib/loadout';
+import { EffectBadgeList } from '@/components/EffectBadge';
 
 const STATUS_OPTIONS: { label: string; value: BookStatus }[] = [
   { label: 'to read', value: 'to_read' },
@@ -784,6 +786,96 @@ export default function BookDetailScreen() {
         )}
       </View>
 
+      {/* Loadout section - shows companions equipped to this book */}
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>loadout_</Text>
+
+        {(() => {
+          const loadout = getBookLoadout(book);
+          const bookGenres = book.normalizedGenres || [];
+
+          // Get all companions from all books to find equipped ones
+          const allCompanions: Companion[] = [];
+          // We only have this book's companions readily available
+          if (book.companions?.unlockedCompanions) {
+            allCompanions.push(...book.companions.unlockedCompanions);
+          }
+
+          return (
+            <View style={styles.loadoutGrid}>
+              {[0, 1, 2].map((slotIndex) => {
+                const isUnlocked = isSlotUnlocked(loadout, slotIndex);
+                const companionId = loadout.slots[slotIndex];
+                const companion = companionId
+                  ? allCompanions.find(c => c.id === companionId)
+                  : null;
+
+                return (
+                  <Pressable
+                    key={slotIndex}
+                    style={[
+                      styles.loadoutSlot,
+                      !isUnlocked && styles.loadoutSlotLocked,
+                    ]}
+                    onPress={() => {
+                      if (isUnlocked) {
+                        router.push({
+                          pathname: '/(tabs)/collection',
+                          params: { bookId: book.id, slotIndex: slotIndex.toString() },
+                        });
+                      }
+                    }}
+                    disabled={!isUnlocked}
+                  >
+                    {!isUnlocked ? (
+                      <View style={styles.loadoutSlotContent}>
+                        <Text style={styles.loadoutSlotLockIcon}>[ ]</Text>
+                        <Text style={styles.loadoutSlotLabel}>locked</Text>
+                      </View>
+                    ) : companion ? (
+                      <View style={styles.loadoutSlotContent}>
+                        {companion.imageUrl ? (
+                          <Image
+                            source={{ uri: companion.imageUrl }}
+                            style={styles.loadoutCompanionImage}
+                            resizeMode="contain"
+                          />
+                        ) : (
+                          <View style={styles.loadoutCompanionPlaceholder}>
+                            <Text style={styles.loadoutSlotLockIcon}>?</Text>
+                          </View>
+                        )}
+                        <Text style={styles.loadoutCompanionName} numberOfLines={1}>
+                          {companion.name.toLowerCase()}
+                        </Text>
+                        {companion.effects && companion.effects.length > 0 && (
+                          <View style={styles.loadoutEffects}>
+                            <EffectBadgeList
+                              effects={companion.effects}
+                              bookGenres={bookGenres}
+                              compact
+                            />
+                          </View>
+                        )}
+                      </View>
+                    ) : (
+                      <View style={styles.loadoutSlotContent}>
+                        <Text style={styles.loadoutSlotEmptyIcon}>[+]</Text>
+                        <Text style={styles.loadoutSlotLabel}>empty</Text>
+                      </View>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          );
+        })()}
+
+        <Text style={styles.loadoutHint}>
+          tap slot to equip from collection
+        </Text>
+      </View>
+
       {/* Companion section */}
       <View style={styles.section}>
         {book.companions ? (
@@ -1349,6 +1441,73 @@ function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: a
       fontFamily: FONTS.mono,
       fontSize: fontSize('small'),
       letterSpacing: letterSpacing('tight'),
+    },
+    // Loadout section styles
+    loadoutGrid: {
+      flexDirection: 'row',
+      gap: spacing(2),
+      marginTop: spacing(2),
+    },
+    loadoutSlot: {
+      flex: 1,
+      minHeight: 140,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: spacing(2),
+    },
+    loadoutSlotLocked: {
+      opacity: 0.4,
+      backgroundColor: colors.surface,
+    },
+    loadoutSlotContent: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    loadoutSlotLockIcon: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('large'),
+    },
+    loadoutSlotEmptyIcon: {
+      color: colors.textSecondary,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('large'),
+    },
+    loadoutSlotLabel: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('micro'),
+      marginTop: spacing(1),
+    },
+    loadoutCompanionImage: {
+      width: 48,
+      height: 48,
+      marginBottom: spacing(1),
+    },
+    loadoutCompanionPlaceholder: {
+      width: 48,
+      height: 48,
+      backgroundColor: colors.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: spacing(1),
+    },
+    loadoutCompanionName: {
+      color: colors.text,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('micro'),
+      textAlign: 'center',
+    },
+    loadoutEffects: {
+      marginTop: spacing(1),
+      width: '100%',
+    },
+    loadoutHint: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('micro'),
+      marginTop: spacing(2),
     },
   });
 }
