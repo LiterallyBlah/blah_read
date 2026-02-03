@@ -1,15 +1,20 @@
-// components/dungeon/ChestReveal.tsx
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
+import React from 'react';
+import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  interpolate,
+  Extrapolation,
+} from 'react-native-reanimated';
 import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
-import { PixelSprite } from './PixelSprite';
+import { TintedChest } from './TintedChest';
+import { ParticleBurst } from './ParticleBurst';
+import { ItemGlow } from './ItemGlow';
 import { ConsumableIcon } from './ConsumableIcon';
-import { CHEST_TILES } from '@/lib/dungeonAssets';
-import type { LootBoxTier, Companion } from '@/lib/types';
+import { useRevealTimeline, TIMELINE } from '@/hooks/useRevealTimeline';
+import { getTierGlowColor } from '@/lib/dungeonAssets';
+import type { LootBoxTier, Companion, CompanionRarity } from '@/lib/types';
 import type { ConsumableDefinition } from '@/lib/consumables';
-
-type RevealStage = 'closed' | 'shaking' | 'open' | 'category' | 'item';
 
 interface ChestRevealProps {
   tier: LootBoxTier;
@@ -36,146 +41,195 @@ export function ChestReveal({
   hasMoreBoxes,
   onOpenAnother,
 }: ChestRevealProps) {
-  const { colors, spacing, fontSize } = useTheme();
-  const [stage, setStage] = useState<RevealStage>('closed');
-  const shakeAnim = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const { colors } = useTheme();
+  const { state, progress, start, reset } = useRevealTimeline();
 
-  const tierColors: Record<LootBoxTier, string> = {
+  const tierColor = {
     wood: colors.rarityCommon,
     silver: colors.rarityRare,
     gold: colors.rarityLegendary,
-  };
+  }[tier];
 
-  // Handle stage transitions
-  useEffect(() => {
-    if (stage === 'shaking') {
-      // Shake animation
-      Animated.sequence([
-        Animated.timing(shakeAnim, { toValue: 1, duration: 50, useNativeDriver: true }),
-        Animated.timing(shakeAnim, { toValue: -1, duration: 50, useNativeDriver: true }),
-        Animated.timing(shakeAnim, { toValue: 1, duration: 50, useNativeDriver: true }),
-        Animated.timing(shakeAnim, { toValue: -1, duration: 50, useNativeDriver: true }),
-        Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
-      ]).start(() => {
-        setStage('open');
-      });
-    } else if (stage === 'open') {
-      // Fade in tier label
-      Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
-      // Move to category after delay
-      setTimeout(() => setStage('category'), 800);
-    } else if (stage === 'category') {
-      // Move to item after delay
-      setTimeout(() => setStage('item'), 600);
-    }
-  }, [stage]);
+  const itemRarity: CompanionRarity = companion?.rarity ??
+    (consumable?.tier === 'strong' ? 'legendary' :
+     consumable?.tier === 'medium' ? 'rare' : 'common');
 
   const handleTap = () => {
-    if (stage === 'closed') {
-      setStage('shaking');
+    if (state === 'idle') {
+      start();
     }
   };
 
-  const shakeTransform = shakeAnim.interpolate({
-    inputRange: [-1, 0, 1],
-    outputRange: ['-3deg', '0deg', '3deg'],
+  const handleOpenAnother = () => {
+    reset();
+    onOpenAnother();
+  };
+
+  // Animated styles derived from progress
+  const shakeStyle = useAnimatedStyle(() => {
+    const shakeProgress = interpolate(
+      progress.value,
+      [0, 0.1, 0.2, 0.3, 0.33],
+      [0, 1, -1, 1, 0],
+      Extrapolation.CLAMP
+    );
+    return {
+      transform: [{ rotate: `${shakeProgress * 3}deg` }],
+    };
   });
 
-  // Get chest tile key
-  const chestTileKey = stage === 'closed' || stage === 'shaking'
-    ? CHEST_TILES[tier].closed
-    : CHEST_TILES[tier].open;
+  const itemRiseStyle = useAnimatedStyle(() => {
+    const riseStart = TIMELINE.ITEM_RISE_START / TIMELINE.TOTAL_DURATION;
+    const riseEnd = TIMELINE.ITEM_RISE_END / TIMELINE.TOTAL_DURATION;
 
-  // Gold tint for gold chests
-  const chestTint = tier === 'gold' && (stage === 'closed' || stage === 'shaking')
-    ? colors.rarityLegendary
-    : undefined;
+    const translateY = interpolate(
+      progress.value,
+      [riseStart, riseEnd],
+      [40, 0],
+      Extrapolation.CLAMP
+    );
+    const opacity = interpolate(
+      progress.value,
+      [riseStart, riseStart + 0.05],
+      [0, 1],
+      Extrapolation.CLAMP
+    );
+    const scale = interpolate(
+      progress.value,
+      [riseStart, riseEnd * 0.9, riseEnd],
+      [0.8, 1.05, 1],
+      Extrapolation.CLAMP
+    );
+
+    return {
+      transform: [{ translateY }, { scale }],
+      opacity,
+    };
+  });
+
+  const itemGlowStyle = useAnimatedStyle(() => {
+    const glowStart = TIMELINE.GLOW_START / TIMELINE.TOTAL_DURATION;
+    const opacity = interpolate(
+      progress.value,
+      [glowStart, glowStart + 0.1],
+      [0, 1],
+      Extrapolation.CLAMP
+    );
+    return { opacity };
+  });
+
+  const nameFadeStyle = useAnimatedStyle(() => {
+    const fadeStart = TIMELINE.NAME_FADE_IN / TIMELINE.TOTAL_DURATION;
+    const opacity = interpolate(
+      progress.value,
+      [fadeStart, fadeStart + 0.08],
+      [0, 1],
+      Extrapolation.CLAMP
+    );
+    return { opacity };
+  });
+
+  const detailsFadeStyle = useAnimatedStyle(() => {
+    const fadeStart = TIMELINE.DETAILS_FADE_IN / TIMELINE.TOTAL_DURATION;
+    const opacity = interpolate(
+      progress.value,
+      [fadeStart, fadeStart + 0.08],
+      [0, 1],
+      Extrapolation.CLAMP
+    );
+    return { opacity };
+  });
+
+  const buttonsFadeStyle = useAnimatedStyle(() => {
+    const fadeStart = TIMELINE.BUTTONS_FADE_IN / TIMELINE.TOTAL_DURATION;
+    const opacity = interpolate(
+      progress.value,
+      [fadeStart, fadeStart + 0.08],
+      [0, 1],
+      Extrapolation.CLAMP
+    );
+    return { opacity };
+  });
+
+  const isOpen = state === 'revealing' || state === 'complete';
+  const showParticles = state === 'revealing' || state === 'complete';
+  const showItem = state === 'revealing' || state === 'complete';
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Chest area */}
       <Pressable onPress={handleTap} style={styles.chestArea}>
-        <Animated.View style={{ transform: [{ rotate: shakeTransform }] }}>
-          <PixelSprite tile={chestTileKey} scale={4} tint={chestTint} />
+        <Animated.View style={shakeStyle}>
+          <TintedChest
+            tier={tier}
+            isOpen={isOpen}
+            glowIntensity={state === 'shaking' ? 0.8 : state === 'idle' ? 0.3 : 0}
+            scale={4}
+          />
         </Animated.View>
 
-        {stage === 'closed' && (
+        {/* Particle burst */}
+        <ParticleBurst
+          active={showParticles}
+          color={getTierGlowColor(tier)}
+          particleCount={10}
+          size={120}
+        />
+
+        {state === 'idle' && (
           <Text style={[styles.tapText, { color: colors.textMuted }]}>
             tap to open
           </Text>
         )}
-
-        {/* Tier label (shows after open) */}
-        {(stage === 'open' || stage === 'category' || stage === 'item') && (
-          <Animated.Text
-            style={[
-              styles.tierLabel,
-              { color: tierColors[tier], opacity: fadeAnim },
-            ]}
-          >
-            [{TIER_LABELS[tier]}]
-          </Animated.Text>
-        )}
       </Pressable>
 
-      {/* Category hint */}
-      {stage === 'category' && (
-        <View style={styles.categoryHint}>
-          <Text style={[styles.categoryText, { color: colors.textSecondary }]}>
-            you found a {category}...
-          </Text>
-        </View>
-      )}
-
       {/* Item reveal */}
-      {stage === 'item' && (
+      {showItem && (
         <View style={styles.itemReveal}>
-          {category === 'consumable' && consumable && (
-            <View style={styles.itemCard}>
-              <ConsumableIcon
-                effectType={consumable.effectType}
-                tier={consumable.tier}
-              />
-              <Text style={[styles.itemName, { color: colors.text }]}>
-                {consumable.name.toLowerCase()}
-              </Text>
-              <Text style={[styles.itemRarity, { color: tierColors[tier] }]}>
-                [{consumable.tier}]
-              </Text>
-              <Text style={[styles.itemDesc, { color: colors.textSecondary }]}>
-                {consumable.description}
-              </Text>
-            </View>
-          )}
+          {/* Item with glow */}
+          <Animated.View style={[styles.itemContainer, itemRiseStyle]}>
+            <Animated.View style={[styles.glowContainer, itemGlowStyle]}>
+              <ItemGlow rarity={itemRarity} intensity={1} />
+            </Animated.View>
 
-          {category === 'companion' && companion && (
-            <View style={styles.itemCard}>
-              {companion.imageUrl ? (
-                <View style={styles.companionImage}>
-                  {/* Companion image handled by parent */}
-                </View>
-              ) : (
-                <PixelSprite tile="character_knight" scale={4} />
-              )}
-              <Text style={[styles.itemName, { color: colors.text }]}>
-                {companion.name.toLowerCase()}
-              </Text>
-              <Text style={[styles.itemRarity, { color: tierColors[tier] }]}>
-                [{companion.rarity}]
-              </Text>
-              <Text style={[styles.itemDesc, { color: colors.textSecondary }]}>
-                {companion.description}
-              </Text>
-            </View>
-          )}
+            {category === 'consumable' && consumable && (
+              <ConsumableIcon effectType={consumable.effectType} tier={consumable.tier} />
+            )}
+
+            {category === 'companion' && companion?.imageUrl && (
+              <Image
+                source={{ uri: companion.imageUrl }}
+                style={styles.companionImage}
+                resizeMode="contain"
+              />
+            )}
+          </Animated.View>
+
+          {/* Item details */}
+          <Animated.View style={nameFadeStyle}>
+            <Text style={[styles.tierLabel, { color: tierColor }]}>
+              [{TIER_LABELS[tier]}]
+            </Text>
+            <Text style={[styles.itemName, { color: colors.text }]}>
+              {consumable?.name.toLowerCase() ?? companion?.name.toLowerCase()}
+            </Text>
+          </Animated.View>
+
+          <Animated.View style={detailsFadeStyle}>
+            <Text style={[styles.itemRarity, { color: tierColor }]}>
+              [{consumable?.tier ?? companion?.rarity}]
+            </Text>
+            <Text style={[styles.itemDesc, { color: colors.textSecondary }]}>
+              {consumable?.description ?? companion?.description}
+            </Text>
+          </Animated.View>
 
           {/* Action buttons */}
-          <View style={styles.buttons}>
+          <Animated.View style={[styles.buttons, buttonsFadeStyle]}>
             {hasMoreBoxes && (
               <Pressable
                 style={[styles.primaryButton, { borderColor: colors.text }]}
-                onPress={onOpenAnother}
+                onPress={handleOpenAnother}
               >
                 <Text style={[styles.buttonText, { color: colors.text }]}>
                   [ open another ]
@@ -190,7 +244,7 @@ export function ChestReveal({
                 [ done ]
               </Text>
             </Pressable>
-          </View>
+          </Animated.View>
         </View>
       )}
     </View>
@@ -213,45 +267,44 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 16,
   },
-  tierLabel: {
-    fontFamily: FONTS.mono,
-    fontWeight: FONTS.monoBold,
-    fontSize: 16,
-    marginTop: 16,
-  },
-  categoryHint: {
-    marginTop: 16,
-  },
-  categoryText: {
-    fontFamily: FONTS.mono,
-    fontSize: 14,
-  },
   itemReveal: {
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 16,
   },
-  itemCard: {
+  itemContainer: {
     alignItems: 'center',
-    padding: 16,
-    minWidth: 200,
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  glowContainer: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   companionImage: {
     width: 64,
     height: 64,
-    marginBottom: 8,
+    borderRadius: 8,
+  },
+  tierLabel: {
+    fontFamily: FONTS.mono,
+    fontWeight: FONTS.monoBold,
+    fontSize: 12,
+    marginBottom: 4,
+    textAlign: 'center',
   },
   itemName: {
     fontFamily: FONTS.mono,
     fontWeight: FONTS.monoBold,
     fontSize: 18,
-    marginTop: 12,
     textAlign: 'center',
   },
   itemRarity: {
     fontFamily: FONTS.mono,
     fontWeight: FONTS.monoBold,
     fontSize: 14,
-    marginTop: 4,
+    marginTop: 8,
+    textAlign: 'center',
   },
   itemDesc: {
     fontFamily: FONTS.mono,
@@ -259,6 +312,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
     maxWidth: 250,
+    lineHeight: 18,
   },
   buttons: {
     marginTop: 32,
