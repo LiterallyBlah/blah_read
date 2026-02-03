@@ -1140,6 +1140,86 @@ describe('sessionRewards', () => {
         expect(result.updatedProgress.slotProgress?.genreLevelTens).toContain('fantasy');
         expect(result.updatedProgress.slotProgress?.genreLevelTens).toContain('romance');
       });
+
+      it('increments booksFinished in slotProgress when book is completed', () => {
+        const mockBook = createMockBook({
+          pageCount: 90, // 3 level floor
+          progression: {
+            level: 1,
+            totalSeconds: 3600,
+            levelUps: [],
+          },
+        });
+        const mockProgress = createMockProgress({
+          booksFinished: 2,
+          slotProgress: {
+            slot2Points: 0,
+            slot3Points: 0,
+            booksFinished: 2,
+            hoursLogged: 0,
+            companionsCollected: 0,
+            sessionsCompleted: 0,
+            genreLevelTens: [],
+            genresRead: [],
+          },
+        });
+
+        // isCompletion = true should increment booksFinished
+        const result = processSessionEnd(mockBook, mockProgress, [], 0, true);
+
+        expect(result.updatedProgress.slotProgress?.booksFinished).toBe(3);
+      });
+
+      it('increments top-level booksFinished when book is completed', () => {
+        const mockBook = createMockBook({
+          pageCount: 90,
+          progression: {
+            level: 1,
+            totalSeconds: 3600,
+            levelUps: [],
+          },
+        });
+        const mockProgress = createMockProgress({
+          booksFinished: 5,
+          slotProgress: {
+            slot2Points: 0,
+            slot3Points: 0,
+            booksFinished: 5,
+            hoursLogged: 0,
+            companionsCollected: 0,
+            sessionsCompleted: 0,
+            genreLevelTens: [],
+            genresRead: [],
+          },
+        });
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 0, true);
+
+        expect(result.updatedProgress.booksFinished).toBe(6);
+      });
+
+      it('does not increment booksFinished for regular sessions', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress({
+          booksFinished: 3,
+          slotProgress: {
+            slot2Points: 0,
+            slot3Points: 0,
+            booksFinished: 3,
+            hoursLogged: 0,
+            companionsCollected: 0,
+            sessionsCompleted: 0,
+            genreLevelTens: [],
+            genresRead: [],
+          },
+        });
+
+        // isCompletion = false (default)
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600, false);
+
+        expect(result.updatedProgress.booksFinished).toBe(3);
+        expect(result.updatedProgress.slotProgress?.booksFinished).toBe(3);
+      });
     });
 
     describe('edge cases', () => {

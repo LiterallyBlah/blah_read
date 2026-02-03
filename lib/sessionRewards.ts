@@ -426,6 +426,13 @@ export function processSessionEnd(
     }
   }
 
+  // Track books finished (increment when isCompletion=true)
+  let updatedBooksFinished = progress.booksFinished || 0;
+  if (isCompletion) {
+    updatedBooksFinished += 1;
+    updatedSlotProgress.booksFinished += 1;
+  }
+
   const existingLootBoxesV3 = progress.lootBoxesV3 || [];
 
   const updatedProgress: UserProgress = {
@@ -436,6 +443,7 @@ export function processSessionEnd(
     activeConsumables: allConsumables,
     goldPityCounter: currentPityCounter,
     slotProgress: updatedSlotProgress,
+    booksFinished: updatedBooksFinished,
   };
 
   return {
