@@ -23,6 +23,7 @@ export default function ShareScreen() {
   async function processUrl(sharedUrl: string) {
     try {
       const og = await fetchOgTags(sharedUrl);
+      const defaultLoadout = await storage.getDefaultLoadoutForNewBook();
       const book: Book = {
         id: Date.now().toString(),
         title: og.title || 'Unknown Book',
@@ -32,6 +33,7 @@ export default function ShareScreen() {
         status: 'to_read',
         totalReadingTime: 0,
         createdAt: Date.now(),
+        loadout: defaultLoadout,
       };
       await storage.saveBook(book);
       setStatus('success');

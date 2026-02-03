@@ -56,6 +56,58 @@ describe('storage', () => {
     expect(progress.lootItems).toEqual([]);
   });
 
+  describe('updateBookLoadout', () => {
+    it('updates the loadout for a specific book', async () => {
+      const existingBooks = [
+        { id: '1', title: 'Book 1', loadout: { slots: [null, null, null], unlockedSlots: 1 } },
+        { id: '2', title: 'Book 2', loadout: { slots: [null, null, null], unlockedSlots: 1 } },
+      ];
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(existingBooks));
+      (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
+
+      const newLoadout = { slots: ['companion-1', 'companion-2', null] as [string | null, string | null, string | null], unlockedSlots: 2 as const };
+      await storage.updateBookLoadout('1', newLoadout);
+
+      const savedData = JSON.parse((AsyncStorage.setItem as jest.Mock).mock.calls[0][1]);
+      expect(savedData[0].loadout).toEqual(newLoadout);
+      expect(savedData[1].loadout.slots).toEqual([null, null, null]); // Unchanged
+    });
+
+    it('throws error when book not found', async () => {
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue('[]');
+
+      await expect(
+        storage.updateBookLoadout('non-existent', { slots: [null, null, null], unlockedSlots: 1 })
+      ).rejects.toThrow('Book not found: non-existent');
+    });
+  });
+
+  describe('getDefaultLoadoutForNewBook', () => {
+    it('uses unlockedSlots from user progress', async () => {
+      const progress = {
+        loadout: { slots: ['comp-1', null, null], unlockedSlots: 2 },
+      };
+      (AsyncStorage.getItem as jest.Mock).mockImplementation((key) => {
+        if (key === 'blahread:progress') return JSON.stringify(progress);
+        return null;
+      });
+
+      const defaultLoadout = await storage.getDefaultLoadoutForNewBook();
+
+      expect(defaultLoadout.slots).toEqual([null, null, null]); // Empty slots
+      expect(defaultLoadout.unlockedSlots).toBe(2); // Same unlocked count as user
+    });
+
+    it('defaults to 1 unlocked slot when no progress exists', async () => {
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+
+      const defaultLoadout = await storage.getDefaultLoadoutForNewBook();
+
+      expect(defaultLoadout.slots).toEqual([null, null, null]);
+      expect(defaultLoadout.unlockedSlots).toBe(1);
+    });
+  });
+
   describe('findDuplicateBook', () => {
     it('finds duplicate by exact ASIN match', async () => {
       const existingBooks = [

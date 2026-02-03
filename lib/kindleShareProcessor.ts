@@ -86,6 +86,7 @@ export async function processKindleShare(
   });
 
   // Step 4: Create book object
+  const defaultLoadout = await storage.getDefaultLoadoutForNewBook();
   const book: Book = {
     id: generateId('book'),
     title: parsed.title,
@@ -105,6 +106,7 @@ export async function processKindleShare(
     createdAt: Date.now(),
     metadataSynced: enrichment.source !== 'none',
     companionsPending: !!config.apiKey,
+    loadout: defaultLoadout,
   };
   debug.log('kindle', 'Book object created', { id: book.id });
 

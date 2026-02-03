@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Book, ReadingSession, UserProgress, Companion } from './types';
+import { Book, ReadingSession, UserProgress, Companion, CompanionLoadout } from './types';
 import { migrateData, CURRENT_VERSION } from './migrations';
 import { debug } from './debug';
 import { deleteCompanionImage } from './imageStorage';
@@ -289,6 +289,36 @@ export const storage = {
 
   async saveProgress(progress: UserProgress): Promise<void> {
     await AsyncStorage.setItem(KEYS.PROGRESS, JSON.stringify(progress));
+  },
+
+  /**
+   * Update a book's loadout.
+   * @param bookId - The book ID to update
+   * @param loadout - The new loadout to set
+   */
+  async updateBookLoadout(bookId: string, loadout: CompanionLoadout): Promise<void> {
+    const books = await this.getBooks();
+    const book = books.find(b => b.id === bookId);
+    if (!book) {
+      throw new Error(`Book not found: ${bookId}`);
+    }
+
+    book.loadout = loadout;
+    await this.saveBook(book);
+    debug.log('storage', `Updated loadout for book ${bookId}`, loadout);
+  },
+
+  /**
+   * Get the default loadout for a new book.
+   * Uses the user's unlocked slot count but with empty slots.
+   */
+  async getDefaultLoadoutForNewBook(): Promise<CompanionLoadout> {
+    const progress = await this.getProgress();
+    const unlockedSlots = progress.loadout?.unlockedSlots || 1;
+    return {
+      slots: [null, null, null],
+      unlockedSlots,
+    };
   },
 
   async findDuplicateBook(query: DuplicateQuery): Promise<Book | null> {
