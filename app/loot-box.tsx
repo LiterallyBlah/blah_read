@@ -6,6 +6,7 @@ import { FONTS } from '@/lib/theme';
 import { storage } from '@/lib/storage';
 import { openLootBox, openLootBoxWithRarity, getPoolCompanions } from '@/lib/lootBox';
 import { openLootBoxV3 } from '@/lib/lootBoxV3';
+import { PITY_HARD_CAP } from '@/lib/lootV3';
 import { LootBoxReveal } from '@/components/LootBoxReveal';
 import type { Companion, LootBoxV3, LootBoxTier } from '@/lib/types';
 import { ConsumableDefinition } from '@/lib/consumables';
@@ -32,6 +33,7 @@ export default function LootBoxScreen() {
   const [revealedTier, setRevealedTier] = useState<LootBoxTier | null>(null);
   const [boxCount, setBoxCount] = useState(0);
   const [boxesV3, setBoxesV3] = useState<LootBoxV3[]>([]);
+  const [goldPityCounter, setGoldPityCounter] = useState(0);
   const styles = createStyles(colors, spacing, fontSize);
 
   useEffect(() => {
@@ -45,6 +47,7 @@ export default function LootBoxScreen() {
     const v3Boxes = progress.lootBoxesV3 || [];
     setBoxCount(v2Count + v3Boxes.length);
     setBoxesV3(v3Boxes);
+    setGoldPityCounter(progress.goldPityCounter ?? 0);
   }
 
   async function handleOpenBox() {
@@ -171,6 +174,8 @@ export default function LootBoxScreen() {
                 maybeGenerateImages(book, generateImage).then(async finalBook => {
                   debug.log('lootBox', 'Image generation complete, saving book');
                   await storage.saveBook(finalBook);
+                }).catch(error => {
+                  debug.error('lootBox', 'Image generation failed', error);
                 });
               } else {
                 debug.log('lootBox', 'No API key, skipping image generation');
@@ -210,6 +215,7 @@ export default function LootBoxScreen() {
       const v2Count = progress.lootBoxes?.availableBoxes?.length || 0;
       setBoxCount(v2Count + newV3Count);
       setBoxesV3(updatedProgress.lootBoxesV3 || []);
+      setGoldPityCounter(updatedProgress.goldPityCounter ?? 0);
       setRevealing(false);
       return;
     }
@@ -250,6 +256,8 @@ export default function LootBoxScreen() {
             };
             maybeGenerateImages(book, generateImage).then(async finalBook => {
               await storage.saveBook(finalBook);
+            }).catch(error => {
+              debug.error('lootBox', 'Image generation failed', error);
             });
           }
         }
@@ -359,6 +367,16 @@ export default function LootBoxScreen() {
             </View>
           )}
 
+          {/* Pity counter display */}
+          {(() => {
+            const boxesUntilPity = PITY_HARD_CAP - goldPityCounter;
+            return boxesUntilPity > 0 && (
+              <Text style={[styles.pityText, { color: colors.textMuted }]}>
+                {boxesUntilPity} more until guaranteed gold
+              </Text>
+            );
+          })()}
+
           <Pressable
             style={[styles.openButton, { borderColor: colors.text }]}
             onPress={handleOpenBox}
@@ -422,6 +440,11 @@ const createStyles = (
   tierCount: {
     fontFamily: FONTS.mono,
     fontSize: fontSize('small'),
+  },
+  pityText: {
+    fontFamily: FONTS.mono,
+    fontSize: fontSize('small'),
+    marginBottom: spacing(4),
   },
   openButton: {
     borderWidth: 1,
