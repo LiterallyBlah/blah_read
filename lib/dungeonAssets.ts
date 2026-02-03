@@ -1,6 +1,33 @@
 import type { LootBoxTier } from './types';
 import type { ConsumableEffectType, ConsumableTier } from './consumables';
 
+// Tier color configuration for chest tinting and glow effects
+export const TIER_COLORS: Record<LootBoxTier, {
+  tint: string | null;
+  tintOpacity: number;
+  glow: string;
+}> = {
+  wood: {
+    tint: null,           // No tint - natural brown
+    tintOpacity: 0,
+    glow: '#8B7355',      // Warm brown glow
+  },
+  silver: {
+    tint: '#A8B5C4',      // Desaturated gray-blue
+    tintOpacity: 0.6,
+    glow: '#C0C0C0',      // Silver glow
+  },
+  gold: {
+    tint: '#FFD700',      // Warm gold
+    tintOpacity: 0.5,
+    glow: '#FFD700',      // Gold glow
+  },
+};
+
+export function getTierGlowColor(tier: LootBoxTier): string {
+  return TIER_COLORS[tier].glow;
+}
+
 // Tile require mappings - React Native needs static requires
 export const DUNGEON_TILES = {
   // Chests

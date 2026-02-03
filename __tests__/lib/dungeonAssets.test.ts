@@ -8,6 +8,8 @@ import {
   getConsumableTile,
   getConsumableTileForTier,
   getTierPixelSize,
+  TIER_COLORS,
+  getTierGlowColor,
 } from '@/lib/dungeonAssets';
 
 describe('dungeonAssets', () => {
@@ -146,6 +148,42 @@ describe('dungeonAssets', () => {
 
     it('returns 64px for strong tier (4x scale)', () => {
       expect(getTierPixelSize('strong')).toBe(64);
+    });
+  });
+
+  describe('TIER_COLORS', () => {
+    it('defines colors for all tiers', () => {
+      expect(TIER_COLORS.wood).toBeDefined();
+      expect(TIER_COLORS.silver).toBeDefined();
+      expect(TIER_COLORS.gold).toBeDefined();
+    });
+
+    it('wood has no tint (null)', () => {
+      expect(TIER_COLORS.wood.tint).toBeNull();
+    });
+
+    it('silver has gray-blue tint', () => {
+      expect(TIER_COLORS.silver.tint).toBe('#A8B5C4');
+      expect(TIER_COLORS.silver.tintOpacity).toBe(0.6);
+    });
+
+    it('gold has warm gold tint', () => {
+      expect(TIER_COLORS.gold.tint).toBe('#FFD700');
+      expect(TIER_COLORS.gold.tintOpacity).toBe(0.5);
+    });
+
+    it('defines glow colors for all tiers', () => {
+      expect(TIER_COLORS.wood.glow).toBe('#8B7355');
+      expect(TIER_COLORS.silver.glow).toBe('#C0C0C0');
+      expect(TIER_COLORS.gold.glow).toBe('#FFD700');
+    });
+  });
+
+  describe('getTierGlowColor', () => {
+    it('returns correct glow color for each tier', () => {
+      expect(getTierGlowColor('wood')).toBe('#8B7355');
+      expect(getTierGlowColor('silver')).toBe('#C0C0C0');
+      expect(getTierGlowColor('gold')).toBe('#FFD700');
     });
   });
 });
