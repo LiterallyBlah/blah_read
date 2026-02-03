@@ -5,11 +5,11 @@
  * and calculates all rewards: book levels, XP, genre levels, loot boxes.
  */
 
-import { Book, UserProgress, Companion, LootBoxV3, GenreLevels, CompanionRarity, ActiveConsumable } from './types';
+import { Book, UserProgress, Companion, LootBoxV3, GenreLevels, CompanionRarity, ActiveConsumable, SlotUnlockProgress } from './types';
 import { Genre, GENRES } from './genres';
 import { processReadingTime, calculateCompletionBonus } from './bookLeveling';
 import { calculateActiveEffects, ActiveEffects } from './companionEffects';
-import { getActiveEffects as getConsumableEffects, tickConsumables } from './consumableManager';
+import { getActiveEffects as getConsumableEffects, tickConsumables, consolidateActiveConsumables } from './consumableManager';
 import { rollCheckpointDrops, rollBoxTierWithPity, BonusDropResult, AvailableRarities } from './lootV3';
 import { ConsumableDefinition } from './consumables';
 import { getStreakMultiplier, calculateLevel } from './xp';
@@ -206,10 +206,11 @@ export function processSessionEnd(
   }
 
   // Step 6: Calculate XP (BASE_XP_PER_MINUTE=10, apply boost and streak)
+  // Use Math.floor consistently with lib/xp.ts
   const minutes = validSessionSeconds / 60;
   const streakMultiplier = getStreakMultiplier(progress.currentStreak);
-  const baseXpBeforeBoosts = Math.round(minutes * BASE_XP_PER_MINUTE * streakMultiplier);
-  const xpGained = Math.round(baseXpBeforeBoosts * (1 + totalXpBoost));
+  const baseXpBeforeBoosts = Math.floor(minutes * BASE_XP_PER_MINUTE * streakMultiplier);
+  const xpGained = Math.floor(baseXpBeforeBoosts * (1 + totalXpBoost));
 
   // Step 7: Calculate genre level increases (distribute evenly across genres)
   const genreLevelIncreases = createEmptyGenreLevelIncreases();
@@ -376,9 +377,54 @@ export function processSessionEnd(
     updatedGenreLevels[genre] = (updatedGenreLevels[genre] || 0) + genreLevelIncreases[genre];
   }
 
-  // Step 11b: Tick consumables and add dropped consumables
+  // Step 11b: Tick consumables, add dropped consumables, and consolidate
   const tickedConsumables = tickConsumables(activeConsumables, sessionMinutes);
-  const allConsumables = [...tickedConsumables, ...droppedConsumables];
+  const mergedConsumables = [...tickedConsumables, ...droppedConsumables];
+  // Consolidate same-type consumables to prevent duplicate entries
+  const { consolidated: allConsumables } = consolidateActiveConsumables(mergedConsumables);
+
+  // Step 11c: Update slot progress tracking
+  const currentSlotProgress = progress.slotProgress || {
+    slot2Points: 0,
+    slot3Points: 0,
+    booksFinished: 0,
+    hoursLogged: 0,
+    companionsCollected: 0,
+    sessionsCompleted: 0,
+    genreLevelTens: [],
+    genresRead: [],
+  };
+  const updatedSlotProgress: SlotUnlockProgress = {
+    ...currentSlotProgress,
+    genreLevelTens: [...currentSlotProgress.genreLevelTens],
+    genresRead: [...currentSlotProgress.genresRead],
+  };
+
+  // Always increment sessions completed
+  updatedSlotProgress.sessionsCompleted += 1;
+
+  // Track companions collected (count from dropped companions)
+  if (droppedCompanions.length > 0) {
+    updatedSlotProgress.companionsCollected += droppedCompanions.length;
+  }
+
+  // Track unique genres read
+  for (const genre of bookGenres) {
+    if (!updatedSlotProgress.genresRead.includes(genre)) {
+      updatedSlotProgress.genresRead.push(genre);
+    }
+  }
+
+  // Track genres hitting level 10
+  for (const genre of bookGenres) {
+    const prevLevel = progress.genreLevels?.[genre] || 0;
+    const newLevel = updatedGenreLevels[genre] || 0;
+    if (prevLevel < 10 && newLevel >= 10) {
+      if (!updatedSlotProgress.genreLevelTens.includes(genre)) {
+        updatedSlotProgress.genreLevelTens.push(genre);
+      }
+    }
+  }
 
   const existingLootBoxesV3 = progress.lootBoxesV3 || [];
 
@@ -389,6 +435,7 @@ export function processSessionEnd(
     lootBoxesV3: [...existingLootBoxesV3, ...lootBoxes],
     activeConsumables: allConsumables,
     goldPityCounter: currentPityCounter,
+    slotProgress: updatedSlotProgress,
   };
 
   return {

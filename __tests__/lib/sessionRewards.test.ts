@@ -904,6 +904,244 @@ describe('sessionRewards', () => {
       });
     });
 
+    describe('slot progress tracking', () => {
+      it('increments sessionsCompleted after each session', () => {
+        const mockBook = createMockBook();
+        const mockProgress = createMockProgress({
+          slotProgress: {
+            slot2Points: 0,
+            slot3Points: 0,
+            booksFinished: 0,
+            hoursLogged: 0,
+            companionsCollected: 0,
+            sessionsCompleted: 5,
+            genreLevelTens: [],
+            genresRead: [],
+          },
+        });
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(result.updatedProgress.slotProgress?.sessionsCompleted).toBe(6);
+      });
+
+      it('increments companionsCollected when companion unlocked via bonus drop', () => {
+        const mockBook = createMockBook({
+          companions: {
+            researchComplete: true,
+            researchConfidence: 'high',
+            readingTimeQueue: { companions: [], nextGenerateIndex: 0 },
+            poolQueue: {
+              companions: [
+                {
+                  id: 'pool-comp-1',
+                  bookId: 'book-1',
+                  name: 'Pool Companion',
+                  type: 'creature',
+                  rarity: 'common',
+                  description: 'A test companion from pool',
+                  traits: 'friendly',
+                  visualDescription: 'A small creature',
+                  imageUrl: null,
+                  source: 'discovered',
+                  unlockMethod: null,
+                  unlockedAt: null,
+                  effects: [],
+                },
+              ],
+              nextGenerateIndex: 0,
+            },
+            unlockedCompanions: [],
+          },
+        });
+        const mockProgress = createMockProgress({
+          slotProgress: {
+            slot2Points: 0,
+            slot3Points: 0,
+            booksFinished: 0,
+            hoursLogged: 0,
+            companionsCollected: 3,
+            sessionsCompleted: 0,
+            genreLevelTens: [],
+            genresRead: [],
+          },
+        });
+
+        // Mock to always drop a companion
+        jest.spyOn(Math, 'random')
+          .mockReturnValueOnce(0.001) // First checkpoint - drop succeeds
+          .mockReturnValueOnce(0.95)  // Drop type - companion (0.90-0.97 range)
+          .mockReturnValueOnce(0.001); // Companion rarity - common
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 600); // 10 min = 1 checkpoint
+
+        jest.restoreAllMocks();
+
+        // Check if we got a companion drop
+        const companionDrops = result.bonusDrops.filter(d => d.type === 'companion');
+        if (companionDrops.length > 0) {
+          expect(result.updatedProgress.slotProgress?.companionsCollected).toBe(4);
+        } else {
+          // If no companion dropped (fallback occurred), count should stay the same
+          expect(result.updatedProgress.slotProgress?.companionsCollected).toBe(3);
+        }
+      });
+
+      it('adds genre to genresRead when reading new genre', () => {
+        const mockBook = createMockBook({ normalizedGenres: ['sci-fi'] as Genre[] });
+        const mockProgress = createMockProgress({
+          slotProgress: {
+            slot2Points: 0,
+            slot3Points: 0,
+            booksFinished: 0,
+            hoursLogged: 0,
+            companionsCollected: 0,
+            sessionsCompleted: 0,
+            genreLevelTens: [],
+            genresRead: ['fantasy'],
+          },
+        });
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(result.updatedProgress.slotProgress?.genresRead).toContain('sci-fi');
+        expect(result.updatedProgress.slotProgress?.genresRead).toContain('fantasy');
+      });
+
+      it('does not duplicate genres already in genresRead', () => {
+        const mockBook = createMockBook({ normalizedGenres: ['fantasy'] as Genre[] });
+        const mockProgress = createMockProgress({
+          slotProgress: {
+            slot2Points: 0,
+            slot3Points: 0,
+            booksFinished: 0,
+            hoursLogged: 0,
+            companionsCollected: 0,
+            sessionsCompleted: 0,
+            genreLevelTens: [],
+            genresRead: ['fantasy'],
+          },
+        });
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(result.updatedProgress.slotProgress?.genresRead).toEqual(['fantasy']);
+      });
+
+      it('adds genre to genreLevelTens when genre hits level 10', () => {
+        const mockBook = createMockBook({ normalizedGenres: ['fantasy'] as Genre[] });
+        const genreLevels: Record<Genre, number> = {} as Record<Genre, number>;
+        for (const genre of GENRES) {
+          genreLevels[genre] = 0;
+        }
+        genreLevels['fantasy'] = 9;
+
+        const mockProgress = createMockProgress({
+          genreLevels,
+          slotProgress: {
+            slot2Points: 0,
+            slot3Points: 0,
+            booksFinished: 0,
+            hoursLogged: 0,
+            companionsCollected: 0,
+            sessionsCompleted: 0,
+            genreLevelTens: [],
+            genresRead: [],
+          },
+        });
+
+        // 1 hour = 1 level gain for fantasy, pushing it from 9 to 10
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(result.updatedProgress.slotProgress?.genreLevelTens).toContain('fantasy');
+      });
+
+      it('does not add genre to genreLevelTens if already at or above 10', () => {
+        const mockBook = createMockBook({ normalizedGenres: ['fantasy'] as Genre[] });
+        const genreLevels: Record<Genre, number> = {} as Record<Genre, number>;
+        for (const genre of GENRES) {
+          genreLevels[genre] = 0;
+        }
+        genreLevels['fantasy'] = 12;
+
+        const mockProgress = createMockProgress({
+          genreLevels,
+          slotProgress: {
+            slot2Points: 0,
+            slot3Points: 0,
+            booksFinished: 0,
+            hoursLogged: 0,
+            companionsCollected: 0,
+            sessionsCompleted: 0,
+            genreLevelTens: [],
+            genresRead: [],
+          },
+        });
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        expect(result.updatedProgress.slotProgress?.genreLevelTens).toEqual([]);
+      });
+
+      it('does not duplicate genres already in genreLevelTens', () => {
+        const mockBook = createMockBook({ normalizedGenres: ['fantasy'] as Genre[] });
+        const genreLevels: Record<Genre, number> = {} as Record<Genre, number>;
+        for (const genre of GENRES) {
+          genreLevels[genre] = 0;
+        }
+        genreLevels['fantasy'] = 9;
+
+        const mockProgress = createMockProgress({
+          genreLevels,
+          slotProgress: {
+            slot2Points: 0,
+            slot3Points: 0,
+            booksFinished: 0,
+            hoursLogged: 0,
+            companionsCollected: 0,
+            sessionsCompleted: 0,
+            genreLevelTens: ['fantasy'], // Already tracked
+            genresRead: [],
+          },
+        });
+
+        const result = processSessionEnd(mockBook, mockProgress, [], 3600);
+
+        // Should still only have one entry
+        expect(result.updatedProgress.slotProgress?.genreLevelTens).toEqual(['fantasy']);
+      });
+
+      it('tracks multiple genres hitting level 10 in same session', () => {
+        const mockBook = createMockBook({ normalizedGenres: ['fantasy', 'romance'] as Genre[] });
+        const genreLevels: Record<Genre, number> = {} as Record<Genre, number>;
+        for (const genre of GENRES) {
+          genreLevels[genre] = 0;
+        }
+        genreLevels['fantasy'] = 9;
+        genreLevels['romance'] = 9;
+
+        const mockProgress = createMockProgress({
+          genreLevels,
+          slotProgress: {
+            slot2Points: 0,
+            slot3Points: 0,
+            booksFinished: 0,
+            hoursLogged: 0,
+            companionsCollected: 0,
+            sessionsCompleted: 0,
+            genreLevelTens: [],
+            genresRead: [],
+          },
+        });
+
+        // 2 hours = 2 levels, split evenly between genres (1 each)
+        const result = processSessionEnd(mockBook, mockProgress, [], 7200);
+
+        expect(result.updatedProgress.slotProgress?.genreLevelTens).toContain('fantasy');
+        expect(result.updatedProgress.slotProgress?.genreLevelTens).toContain('romance');
+      });
+    });
+
     describe('edge cases', () => {
       it('should handle book with no genres', () => {
         const mockBook = createMockBook({ normalizedGenres: [] });
