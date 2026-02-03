@@ -52,12 +52,17 @@ export default function CollectionScreen() {
   const targetBookId = paramBookId || defaultBookId;
   const targetSlotIndex = paramSlotIndex; // Only set when coming from book detail with specific slot
 
+  // Check if any books are currently being read
+  const hasAnyBooksReading = books.some(b => b.status === 'reading');
+
   // Get target book info for per-book equipping mode
   const targetBook = targetBookId ? books.find(b => b.id === targetBookId) : null;
+  // Only consider target book valid if it's still being read
+  const targetBookIsReading = targetBook?.status === 'reading';
   // Direct equip mode: has both book AND specific slot (from book detail)
   // Slot selector mode: has book but no specific slot (from tabs)
-  const isDirectEquipMode = targetBook !== null && targetSlotIndex !== null;
-  const hasBookContext = targetBook !== null;
+  const isDirectEquipMode = targetBook !== null && targetBookIsReading && targetSlotIndex !== null;
+  const hasBookContext = targetBook !== null && targetBookIsReading;
 
   useFocusEffect(
     useCallback(() => {
@@ -610,6 +615,7 @@ export default function CollectionScreen() {
               equippedSlot={equippedSlot}
               equipRequirements={equipRequirements}
               genreLevels={genreLevels}
+              hasAnyBooksReading={hasAnyBooksReading}
               onPress={companion.isLocked && debugMode ? () => handleDebugUnlock(companion) : undefined}
               onEquip={() => handleEquip(companion)}
               onUnequip={() => handleUnequip(companion)}
@@ -651,6 +657,7 @@ function CompanionCard({
   equippedSlot,
   equipRequirements,
   genreLevels,
+  hasAnyBooksReading,
   onPress,
   onEquip,
   onUnequip,
@@ -663,6 +670,7 @@ function CompanionCard({
   equippedSlot?: number;
   equipRequirements?: EquipRequirements | null;
   genreLevels?: Record<Genre, number> | null;
+  hasAnyBooksReading?: boolean;
   onPress?: () => void;
   onEquip?: () => void;
   onUnequip?: () => void;
@@ -682,7 +690,8 @@ function CompanionCard({
   // Determine if we can show equip button
   const showEquipButton = !companion.isLocked && !isEquipped;
   const showUnequipButton = !companion.isLocked && isEquipped;
-  const canEquip = equipRequirements?.canEquip ?? false;
+  // Can only equip if requirements are met AND there's at least one book being read
+  const canEquip = (equipRequirements?.canEquip ?? false) && (hasAnyBooksReading ?? false);
 
   return (
     <CardWrapper
