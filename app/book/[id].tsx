@@ -640,19 +640,19 @@ export default function BookDetailScreen() {
               <Text style={[styles.tierLabel, tier === 'common' && { color: colors.rarityCommon }]}>
                 {tier === 'common' ? '>' : ' '} common
               </Text>
-              <Text style={styles.tierHours}>lv 0-3 (0-3h)</Text>
+              <Text style={styles.tierHours}>lv 1-3 (0-2h)</Text>
             </View>
             <View style={styles.tierRow}>
               <Text style={[styles.tierLabel, tier === 'rare' && { color: colors.rarityRare }]}>
                 {tier === 'rare' ? '>' : ' '} rare
               </Text>
-              <Text style={styles.tierHours}>lv 4-6 (4-6h)</Text>
+              <Text style={styles.tierHours}>lv 4-6 (3-5h)</Text>
             </View>
             <View style={styles.tierRow}>
               <Text style={[styles.tierLabel, tier === 'legendary' && { color: colors.rarityLegendary }]}>
                 {tier === 'legendary' ? '>' : ' '} legendary
               </Text>
-              <Text style={styles.tierHours}>lv 7+ (7h+)</Text>
+              <Text style={styles.tierHours}>lv 7+ (6h+)</Text>
             </View>
 
             {/* Time to next tier */}

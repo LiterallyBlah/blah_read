@@ -367,10 +367,17 @@ export default function LootBoxScreen() {
             </View>
           )}
 
-          {/* Pity counter display */}
+          {/* Pity counter display - pity triggers at counter >= 24, so boxes until = 24 - counter */}
           {(() => {
-            const boxesUntilPity = PITY_HARD_CAP - goldPityCounter;
-            return boxesUntilPity > 0 && (
+            const boxesUntilPity = (PITY_HARD_CAP - 1) - goldPityCounter;
+            if (boxesUntilPity <= 0) {
+              return (
+                <Text style={[styles.pityText, { color: colors.rarityLegendary }]}>
+                  next box guaranteed gold!
+                </Text>
+              );
+            }
+            return (
               <Text style={[styles.pityText, { color: colors.textMuted }]}>
                 {boxesUntilPity} more until guaranteed gold
               </Text>

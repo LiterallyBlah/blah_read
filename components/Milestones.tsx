@@ -78,7 +78,7 @@ export function ReadingMilestones({ currentReadingMinutes }: Props) {
       <View style={styles.activeMilestone}>
         <View style={styles.milestoneHeader}>
           <Text style={styles.milestoneLabel}>
-            {isMaxed ? 'max reached' : currentMilestoneIndex === -1 ? 'next' : 'current'}
+            {isMaxed ? 'max reached' : currentMilestoneIndex === -1 ? 'next' : 'current tier'}
           </Text>
           <Text style={styles.milestoneName}>{activeMilestone.label}</Text>
         </View>

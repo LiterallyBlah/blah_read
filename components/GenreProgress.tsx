@@ -128,7 +128,7 @@ function GenreItem({ genre, level, styles, colors, isTop }: GenreItemProps) {
             <Text style={[styles.badge, { color: colors.rarityRare }]}>[rare]</Text>
           )}
           {legendaryUnlocked && (
-            <Text style={[styles.badge, { color: colors.rarityLegendary }]}>[leg]</Text>
+            <Text style={[styles.badge, { color: colors.rarityLegendary }]}>[legendary]</Text>
           )}
         </View>
       </View>
