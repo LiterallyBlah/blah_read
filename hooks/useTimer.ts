@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { timerPersistence, PersistedTimerState } from '@/lib/timerPersistence';
 import { backgroundService } from '@/lib/backgroundService';
+import { storage } from '@/lib/storage';
 
 const HEARTBEAT_INTERVAL = 30000; // 30 seconds
 
@@ -53,7 +54,11 @@ export function useTimer(options: UseTimerOptions = {}) {
     startTimeRef.current = Date.now() - elapsed * 1000;
     setIsRunning(true);
     persistState(true, elapsed);
-  }, [isRunning, elapsed, persistState]);
+    // Track this as the last active book for home screen card deck ordering
+    if (bookId) {
+      storage.setLastActiveBookId(bookId);
+    }
+  }, [isRunning, elapsed, persistState, bookId]);
 
   const pause = useCallback(() => {
     setIsRunning(false);

@@ -80,7 +80,7 @@ export default function TimerScreen() {
       if (!mounted) return;
 
       setBook(foundBook);
-      const loadout = progress.loadout || { slots: [null, null, null], unlockedSlots: 1 };
+      const loadout = foundBook?.loadout || { slots: [null, null, null], unlockedSlots: 1 };
       const equippedIds = getEquippedCompanionIds(loadout);
 
       // Gather all companions from all books
@@ -253,29 +253,40 @@ export default function TimerScreen() {
         hoursLogged: totalHours,
       };
 
-      // Check if slots should be unlocked
-      const currentUnlocked = updatedProgress.loadout?.unlockedSlots || 1;
-      let newUnlocked = currentUnlocked;
+      // Check if slots should be unlocked - derive current from slotProgress
+      const sp = updatedProgress.slotProgress;
+      let currentUnlocked: 1 | 2 | 3 = 1;
+      if (sp.slot2Points >= 100) currentUnlocked = 2;
+      if (currentUnlocked >= 2 && sp.slot3Points >= 300) currentUnlocked = 3;
 
-      if (currentUnlocked < 2 && shouldUnlockSlot2(updatedProgress.slotProgress)) {
+      let newUnlocked = currentUnlocked;
+      if (currentUnlocked < 2 && shouldUnlockSlot2(sp)) {
         newUnlocked = 2;
         debug.log('timer', 'Slot 2 unlocked!');
       }
-      if (newUnlocked >= 2 && currentUnlocked < 3 && shouldUnlockSlot3(updatedProgress.slotProgress)) {
+      if (newUnlocked >= 2 && currentUnlocked < 3 && shouldUnlockSlot3(sp)) {
         newUnlocked = 3;
         debug.log('timer', 'Slot 3 unlocked!');
       }
 
-      if (newUnlocked > currentUnlocked && updatedProgress.loadout) {
-        updatedProgress.loadout = {
-          ...updatedProgress.loadout,
-          unlockedSlots: newUnlocked,
-        };
+      // If slots unlocked, update all books' loadouts
+      if (newUnlocked > currentUnlocked) {
+        const allBooks = await storage.getBooks();
+        for (const b of allBooks) {
+          if (b.loadout && b.loadout.unlockedSlots < newUnlocked) {
+            b.loadout.unlockedSlots = newUnlocked;
+            await storage.saveBook(b);
+          }
+        }
+        // Update the current book as well
+        if (updatedBook.loadout) {
+          updatedBook.loadout.unlockedSlots = newUnlocked;
+        }
       }
 
       debug.log('timer', 'Slot progress updated', {
-        hoursLogged: updatedProgress.slotProgress.hoursLogged,
-        unlockedSlots: updatedProgress.loadout?.unlockedSlots,
+        hoursLogged: sp.hoursLogged,
+        unlockedSlots: newUnlocked,
       });
     }
 

@@ -163,7 +163,6 @@ export interface UserProgress {
   totalHoursRead: number;
   // Reward System V3 fields
   genreLevels?: GenreLevels; // Per-genre levels
-  loadout?: CompanionLoadout; // Equipped companions
   slotProgress?: SlotUnlockProgress; // Slot unlock tracking
   activeConsumables?: ActiveConsumable[]; // Active consumable effects
   lootBoxesV3?: LootBoxV3[]; // Tiered loot boxes

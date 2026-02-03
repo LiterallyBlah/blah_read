@@ -81,7 +81,6 @@ export async function clearProgress(): Promise<void> {
     totalHoursRead: 0,
     // V3 fields
     genreLevels: GENRES.reduce((acc, g) => ({ ...acc, [g]: 0 }), {} as GenreLevels),
-    loadout: { slots: [null, null, null], unlockedSlots: 1 },
     slotProgress: {
       slot2Points: 0,
       slot3Points: 0,

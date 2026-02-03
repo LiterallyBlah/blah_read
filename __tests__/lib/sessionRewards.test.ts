@@ -51,10 +51,6 @@ function createMockProgress(overrides: Partial<UserProgress> = {}): UserProgress
     booksAdded: 0,
     totalHoursRead: 0,
     genreLevels,
-    loadout: {
-      slots: [null, null, null],
-      unlockedSlots: 1,
-    },
     slotProgress: {
       slot2Points: 0,
       slot3Points: 0,

@@ -10,16 +10,30 @@ interface ReadingBookCardProps {
   book: Book;
   /** Optional: all companions for resolving loadout companion IDs to actual companions */
   allCompanions?: Companion[];
+  /** Override the default card press handler */
+  onCardPress?: () => void;
+  /** Card layout variant: 'horizontal' (default) or 'vertical' */
+  variant?: 'horizontal' | 'vertical';
 }
 
 /**
  * A card component for displaying a currently reading book.
  * Shows cover, title, author, level/tier, mini loadout preview, and reading time.
  * Includes a "Start Reading" button that navigates to the timer.
+ *
+ * Variants:
+ * - horizontal: Cover on left, info on right (default, for horizontal scrolling)
+ * - vertical: Cover on top, info below (for vertical card stack)
  */
-export function ReadingBookCard({ book, allCompanions = [] }: ReadingBookCardProps) {
+export function ReadingBookCard({
+  book,
+  allCompanions = [],
+  onCardPress,
+  variant = 'horizontal',
+}: ReadingBookCardProps) {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();
-  const styles = createStyles(colors, spacing, fontSize, letterSpacing);
+  const isVertical = variant === 'vertical';
+  const styles = createStyles(colors, spacing, fontSize, letterSpacing, isVertical);
 
   // Book level and tier
   const level = book.progression?.level || 1;
@@ -50,7 +64,11 @@ export function ReadingBookCard({ book, allCompanions = [] }: ReadingBookCardPro
   };
 
   const handleCardPress = () => {
-    router.push(`/book/${book.id}`);
+    if (onCardPress) {
+      onCardPress();
+    } else {
+      router.push(`/book/${book.id}`);
+    }
   };
 
   return (
@@ -93,18 +111,24 @@ export function ReadingBookCard({ book, allCompanions = [] }: ReadingBookCardPro
           </Text>
         )}
 
-        {/* Level and tier badge */}
-        <View style={styles.levelRow}>
-          <Text style={[styles.levelBadge, { color: tierColor }]}>
-            lv.{level}
-          </Text>
-          <Text style={[styles.tierBadge, { color: tierColor }]}>
-            [{tier}]
+        {/* Level, tier, and reading time row */}
+        <View style={styles.metaRow}>
+          <View style={styles.levelRow}>
+            <Text style={[styles.levelBadge, { color: tierColor }]}>
+              lv.{level}
+            </Text>
+            <Text style={[styles.tierBadge, { color: tierColor }]}>
+              [{tier}]
+            </Text>
+          </View>
+          <Text style={styles.readingTime}>
+            {hours}h {minutes}m
           </Text>
         </View>
 
         {/* Mini loadout preview */}
         <View style={styles.loadoutPreview}>
+          <Text style={styles.loadoutLabel}>loadout:</Text>
           {[0, 1, 2].map((slotIndex) => {
             const unlocked = isSlotUnlocked(loadout, slotIndex);
             const companionId = loadout.slots[slotIndex];
@@ -136,11 +160,6 @@ export function ReadingBookCard({ book, allCompanions = [] }: ReadingBookCardPro
           })}
         </View>
 
-        {/* Reading time */}
-        <Text style={styles.readingTime}>
-          {hours}h {minutes}m read
-        </Text>
-
         {/* Start Reading button */}
         <Pressable style={styles.startButton} onPress={handleStartReading}>
           <Text style={styles.startButtonText}>[ start reading ]</Text>
@@ -154,27 +173,32 @@ const createStyles = (
   colors: ReturnType<typeof useTheme>['colors'],
   spacing: ReturnType<typeof useTheme>['spacing'],
   fontSize: ReturnType<typeof useTheme>['fontSize'],
-  letterSpacing: ReturnType<typeof useTheme>['letterSpacing']
+  letterSpacing: ReturnType<typeof useTheme>['letterSpacing'],
+  isVertical: boolean
 ) =>
   StyleSheet.create({
     card: {
-      flexDirection: 'row',
+      flexDirection: isVertical ? 'column' : 'row',
       backgroundColor: colors.backgroundCard,
       borderWidth: 1,
       borderColor: colors.border,
-      padding: spacing(3),
-      marginBottom: spacing(3),
+      padding: spacing(4),
+      ...(isVertical && {
+        alignItems: 'center',
+      }),
     },
     coverSection: {
-      marginRight: spacing(3),
+      marginRight: isVertical ? 0 : spacing(4),
+      marginBottom: isVertical ? spacing(4) : 0,
+      alignItems: isVertical ? 'center' : 'flex-start',
     },
     coverBorder: {
       borderWidth: 2,
       shadowOffset: { width: 0, height: 0 },
     },
     coverImage: {
-      width: 80,
-      height: 120,
+      width: isVertical ? 120 : 80,
+      height: isVertical ? 180 : 120,
       backgroundColor: colors.surface,
     },
     coverPlaceholder: {
@@ -184,32 +208,41 @@ const createStyles = (
     coverPlaceholderText: {
       color: colors.textMuted,
       fontFamily: FONTS.mono,
-      fontSize: 32,
+      fontSize: isVertical ? 48 : 32,
     },
     infoSection: {
-      flex: 1,
+      flex: isVertical ? 0 : 1,
+      width: isVertical ? '100%' : undefined,
       justifyContent: 'space-between',
     },
     title: {
       color: colors.text,
       fontFamily: FONTS.mono,
       fontWeight: FONTS.monoBold,
-      fontSize: fontSize('body'),
+      fontSize: isVertical ? fontSize('large') : fontSize('body'),
       letterSpacing: letterSpacing('tight'),
       marginBottom: spacing(1),
+      textAlign: isVertical ? 'center' : 'left',
     },
     author: {
       color: colors.textMuted,
       fontFamily: FONTS.mono,
       fontSize: fontSize('small'),
       letterSpacing: letterSpacing('tight'),
-      marginBottom: spacing(2),
+      marginBottom: spacing(3),
+      textAlign: isVertical ? 'center' : 'left',
+    },
+    metaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: isVertical ? 'center' : 'space-between',
+      marginBottom: spacing(3),
+      gap: spacing(3),
     },
     levelRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing(1),
-      marginBottom: spacing(2),
     },
     levelBadge: {
       fontFamily: FONTS.mono,
@@ -221,14 +254,28 @@ const createStyles = (
       fontSize: fontSize('small'),
       letterSpacing: letterSpacing('tight'),
     },
+    readingTime: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+    },
     loadoutPreview: {
       flexDirection: 'row',
-      gap: spacing(1),
-      marginBottom: spacing(2),
+      alignItems: 'center',
+      justifyContent: isVertical ? 'center' : 'flex-start',
+      gap: spacing(2),
+      marginBottom: spacing(4),
+    },
+    loadoutLabel: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('micro'),
+      letterSpacing: letterSpacing('tight'),
     },
     loadoutSlot: {
-      width: 28,
-      height: 28,
+      width: isVertical ? 36 : 28,
+      height: isVertical ? 36 : 28,
       borderWidth: 1,
       borderColor: colors.border,
       justifyContent: 'center',
@@ -244,28 +291,23 @@ const createStyles = (
       fontSize: fontSize('micro'),
     },
     loadoutCompanionImage: {
-      width: 24,
-      height: 24,
-    },
-    readingTime: {
-      color: colors.textMuted,
-      fontFamily: FONTS.mono,
-      fontSize: fontSize('micro'),
-      letterSpacing: letterSpacing('tight'),
-      marginBottom: spacing(2),
+      width: isVertical ? 32 : 24,
+      height: isVertical ? 32 : 24,
     },
     startButton: {
       borderWidth: 1,
       borderColor: colors.text,
-      paddingVertical: spacing(2),
-      paddingHorizontal: spacing(3),
+      paddingVertical: spacing(3),
+      paddingHorizontal: spacing(4),
       alignItems: 'center',
+      alignSelf: isVertical ? 'center' : 'stretch',
+      minWidth: isVertical ? 200 : undefined,
     },
     startButtonText: {
       color: colors.text,
       fontFamily: FONTS.mono,
       fontWeight: FONTS.monoBold,
-      fontSize: fontSize('small'),
+      fontSize: fontSize('body'),
       letterSpacing: letterSpacing('tight'),
     },
   });

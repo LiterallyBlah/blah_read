@@ -3,6 +3,12 @@ import { GENRES, Genre, mapToCanonicalGenres } from './genres';
 
 export const CURRENT_VERSION = 4;
 
+// Legacy progress type that includes the old loadout field (for migration)
+type LegacyUserProgress = UserProgress & {
+  version?: number;
+  loadout?: CompanionLoadout; // Legacy field, removed in v4
+};
+
 // Default values for V3 fields
 const DEFAULT_GENRE_LEVELS: GenreLevels = GENRES.reduce((acc, genre) => {
   acc[genre] = 0;
@@ -27,11 +33,11 @@ const DEFAULT_SLOT_PROGRESS: SlotUnlockProgress = {
 
 export async function migrateData(
   books: Book[],
-  progress: UserProgress & { version?: number }
+  progress: LegacyUserProgress
 ): Promise<{ books: Book[]; progress: UserProgress & { version: number } }> {
   let version = progress.version || 1;
   let migratedBooks = books;
-  let migratedProgress = progress;
+  let migratedProgress: LegacyUserProgress = progress;
 
   // Migration v1 -> v2: Add companion collection fields
   if (version < 2) {
@@ -207,8 +213,11 @@ export async function migrateData(
     version = 4;
   }
 
+  // Strip the legacy loadout field from progress before returning
+  const { loadout: _legacyLoadout, ...cleanProgress } = migratedProgress;
+
   return {
     books: migratedBooks,
-    progress: { ...migratedProgress, version },
+    progress: { ...cleanProgress, version },
   };
 }

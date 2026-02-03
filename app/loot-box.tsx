@@ -59,18 +59,18 @@ export default function LootBoxScreen() {
       storage.getProgress(),
     ]);
 
-    // Get equipped companions
-    const loadout = progress.loadout ?? { slots: [null, null, null], unlockedSlots: 1 };
+    // Get current book for genre targeting and equipped companions
+    const currentBook = books
+      .filter(b => b.status === 'reading')
+      .sort((a, b) => b.totalReadingTime - a.totalReadingTime)[0];
+
+    // Get equipped companions from current book's loadout
+    const loadout = currentBook?.loadout ?? { slots: [null, null, null], unlockedSlots: 1 };
     const allCompanions = books.flatMap(b => b.companions?.unlockedCompanions ?? []);
     const equippedCompanions = (loadout.slots ?? [])
       .filter((id): id is string => id !== null)
       .map(id => allCompanions.find(c => c.id === id))
       .filter((c): c is Companion => c !== undefined);
-
-    // Get current book for genre targeting
-    const currentBook = books
-      .filter(b => b.status === 'reading')
-      .sort((a, b) => b.totalReadingTime - a.totalReadingTime)[0];
     const bookGenres = currentBook?.normalizedGenres ?? [];
 
     // Check if we have V3 boxes first

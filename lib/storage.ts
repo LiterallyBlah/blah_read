@@ -32,6 +32,7 @@ const KEYS = {
   BOOKS: 'blahread:books',
   SESSIONS: 'blahread:sessions',
   PROGRESS: 'blahread:progress',
+  LAST_ACTIVE_BOOK: 'blahread:lastActiveBookId',
 } as const;
 
 const defaultProgress: UserProgress = {
@@ -61,10 +62,6 @@ const defaultProgress: UserProgress = {
     'self-improvement': 0,
     'business-finance': 0,
     'philosophy-religion': 0,
-  },
-  loadout: {
-    slots: [null, null, null],
-    unlockedSlots: 1,
   },
   slotProgress: {
     slot2Points: 0,
@@ -238,18 +235,23 @@ export const storage = {
         }
       }
 
-      // Clean up loadout references
-      const progress = await this.getProgress();
-      if (progress.loadout) {
-        const cleanedSlots = progress.loadout.slots.map(slot =>
-          slot && companionIds.includes(slot) ? null : slot
-        ) as [string | null, string | null, string | null];
-        const hasOrphanedSlots = cleanedSlots.some((s, i) => s !== progress.loadout!.slots[i]);
-        if (hasOrphanedSlots) {
-          progress.loadout.slots = cleanedSlots;
-          await this.saveProgress(progress);
-          debug.log('storage', `Cleaned up ${companionIds.length} orphaned loadout references`);
+      // Clean up loadout references in other books that may reference these companions
+      const otherBooks = books.filter(b => b.id !== id);
+      let updatedBookCount = 0;
+      for (const otherBook of otherBooks) {
+        if (otherBook.loadout) {
+          const cleanedSlots = otherBook.loadout.slots.map(slot =>
+            slot && companionIds.includes(slot) ? null : slot
+          ) as [string | null, string | null, string | null];
+          const hasOrphanedSlots = cleanedSlots.some((s, i) => s !== otherBook.loadout!.slots[i]);
+          if (hasOrphanedSlots) {
+            otherBook.loadout.slots = cleanedSlots;
+            updatedBookCount++;
+          }
         }
+      }
+      if (updatedBookCount > 0) {
+        debug.log('storage', `Cleaned up orphaned loadout references in ${updatedBookCount} books`);
       }
 
       debug.log('storage', `Deleted book ${id} with ${companionIds.length} companions`);
@@ -310,15 +312,39 @@ export const storage = {
 
   /**
    * Get the default loadout for a new book.
-   * Uses the user's unlocked slot count but with empty slots.
+   * Uses the user's unlocked slot count (from slotProgress) but with empty slots.
    */
   async getDefaultLoadoutForNewBook(): Promise<CompanionLoadout> {
     const progress = await this.getProgress();
-    const unlockedSlots = progress.loadout?.unlockedSlots || 1;
+    // Determine unlocked slots from slot progress
+    const slotProgress = progress.slotProgress;
+    let unlockedSlots: 1 | 2 | 3 = 1;
+    if (slotProgress) {
+      if (slotProgress.slot2Points >= 100) {
+        unlockedSlots = 2;
+      }
+      if (unlockedSlots >= 2 && slotProgress.slot3Points >= 300) {
+        unlockedSlots = 3;
+      }
+    }
     return {
       slots: [null, null, null],
       unlockedSlots,
     };
+  },
+
+  /**
+   * Get the last active book ID (for home screen card deck persistence).
+   */
+  async getLastActiveBookId(): Promise<string | null> {
+    return await AsyncStorage.getItem(KEYS.LAST_ACTIVE_BOOK);
+  },
+
+  /**
+   * Set the last active book ID (called when starting a reading session).
+   */
+  async setLastActiveBookId(bookId: string): Promise<void> {
+    await AsyncStorage.setItem(KEYS.LAST_ACTIVE_BOOK, bookId);
   },
 
   async findDuplicateBook(query: DuplicateQuery): Promise<Book | null> {

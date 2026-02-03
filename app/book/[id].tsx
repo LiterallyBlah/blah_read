@@ -159,10 +159,12 @@ export default function BookDetailScreen() {
 
       // Load progress and equipped companions for V3 rewards
       const progress = await storage.getProgress();
-      const loadout = progress.loadout || { slots: [null, null, null], unlockedSlots: 1 };
+      const books = await storage.getBooks();
+
+      // Get loadout from the book being completed
+      const loadout = book.loadout || { slots: [null, null, null], unlockedSlots: 1 };
 
       // Get equipped companions
-      const books = await storage.getBooks();
       const allCompanions: Companion[] = [];
       for (const b of books) {
         if (b.companions?.unlockedCompanions) {

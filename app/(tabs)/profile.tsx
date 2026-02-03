@@ -229,7 +229,14 @@ export default function ProfileScreen() {
       {progress?.slotProgress && (
         <SlotProgress
           slotProgress={progress.slotProgress}
-          unlockedSlots={progress.loadout?.unlockedSlots || 1}
+          unlockedSlots={(() => {
+            // Derive unlocked slots from slotProgress
+            const sp = progress.slotProgress;
+            if (!sp) return 1;
+            if (sp.slot2Points >= 100 && sp.slot3Points >= 300) return 3;
+            if (sp.slot2Points >= 100) return 2;
+            return 1;
+          })()}
         />
       )}
     </ScrollView>

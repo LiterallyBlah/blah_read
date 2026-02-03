@@ -70,7 +70,6 @@ export default function CollectionScreen() {
     debug.log('collection', 'Data loaded', {
       bookCount: loadedBooks.length,
       debugMode: config.debugMode,
-      loadout: progress.loadout,
       booksWithCompanions: loadedBooks.filter(b => b.companions).length,
     });
 
@@ -124,7 +123,14 @@ export default function CollectionScreen() {
     setLootBoxes(progress.lootBoxes);
     setLootBoxesV3(progress.lootBoxesV3 || []);
     setDebugMode(config.debugMode);
-    setLoadout(progress.loadout || { slots: [null, null, null], unlockedSlots: 1 });
+    // Derive unlocked slots from slotProgress for global loadout fallback
+    const sp = progress.slotProgress;
+    let unlockedSlots: 1 | 2 | 3 = 1;
+    if (sp) {
+      if (sp.slot2Points >= 100) unlockedSlots = 2;
+      if (unlockedSlots >= 2 && sp.slot3Points >= 300) unlockedSlots = 3;
+    }
+    setLoadout({ slots: [null, null, null], unlockedSlots });
     setGenreLevels(progress.genreLevels || null);
     setConfig(config);
     debug.log('collection', 'loadData complete');
@@ -254,32 +260,10 @@ export default function CollectionScreen() {
       return;
     }
 
-    // Standard mode: equip to global loadout (backwards compatibility)
-    if (!loadout) {
-      debug.warn('collection', 'equipToSlot: no loadout state');
-      return;
-    }
-
-    try {
-      debug.log('collection', 'Calling equipCompanion', {
-        currentLoadout: loadout,
-        companionId,
-        slotIndex,
-      });
-      const newLoadout = equipCompanion(loadout, companionId, slotIndex);
-      debug.log('collection', 'equipCompanion returned', { newLoadout });
-
-      const progress = await storage.getProgress();
-      debug.log('collection', 'Saving progress with new loadout');
-      await storage.saveProgress({ ...progress, loadout: newLoadout });
-      debug.log('collection', 'Progress saved successfully');
-
-      setLoadout(newLoadout);
-      debug.log('collection', 'equipToSlot complete');
-    } catch (error) {
-      debug.error('collection', 'equipToSlot failed', error);
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to equip companion');
-    }
+    // Standard mode: should not be reached anymore since per-book mode is required
+    // This fallback is kept for edge cases but doesn't save to global progress
+    debug.warn('collection', 'equipToSlot: standard mode should not be used - use per-book equipping');
+    Alert.alert('Error', 'Please navigate to a book to equip companions');
   }
 
   // Handle unequip action - supports both per-book and global modes
@@ -310,29 +294,9 @@ export default function CollectionScreen() {
       return;
     }
 
-    // Global mode: unequip from global loadout
-    if (!loadout) return;
-
-    Alert.alert(
-      'Unequip Companion',
-      `Remove ${companion.name} from slot ${slotIndex + 1}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Unequip',
-          onPress: async () => {
-            try {
-              const newLoadout = unequipCompanion(loadout, slotIndex);
-              const progress = await storage.getProgress();
-              await storage.saveProgress({ ...progress, loadout: newLoadout });
-              setLoadout(newLoadout);
-            } catch (error) {
-              Alert.alert('Error', error instanceof Error ? error.message : 'Failed to unequip companion');
-            }
-          },
-        },
-      ]
-    );
+    // Global mode: should not be reached anymore since per-book mode is required
+    debug.warn('collection', 'handleUnequip: standard mode should not be used - use per-book equipping');
+    Alert.alert('Error', 'Please navigate to a book to unequip companions');
   }
 
   // Collect companions based on debug mode
