@@ -6,7 +6,7 @@ import { FONTS } from '@/lib/theme';
 import { storage } from '@/lib/storage';
 import { openLootBox, openLootBoxWithRarity, getPoolCompanions } from '@/lib/lootBox';
 import { openLootBoxV3 } from '@/lib/lootBoxV3';
-import { PITY_HARD_CAP } from '@/lib/lootV3';
+import { PITY_HARD_CAP, rollConsumable } from '@/lib/lootV3';
 import { LootBoxReveal } from '@/components/LootBoxReveal';
 import type { Companion, LootBoxV3, LootBoxTier } from '@/lib/types';
 import { ConsumableDefinition } from '@/lib/consumables';
@@ -16,7 +16,7 @@ import { maybeGenerateImages } from '@/lib/companionImageQueue';
 import { generateImageForCompanion } from '@/lib/imageGen';
 import { settings } from '@/lib/settings';
 import { debug } from '@/lib/debug';
-import { PixelSprite } from '@/components/dungeon/PixelSprite';
+import { TintedChest } from '@/components/dungeon/TintedChest';
 
 // Box tier visual styling
 const TIER_STYLES: Record<LootBoxTier, { label: string; emoji: string }> = {
@@ -54,15 +54,16 @@ export default function LootBoxScreen() {
     if (revealing || boxCount === 0) return;
     setRevealing(true);
 
-    const [books, progress] = await Promise.all([
-      storage.getBooks(),
-      storage.getProgress(),
-    ]);
+    try {
+      const [books, progress] = await Promise.all([
+        storage.getBooks(),
+        storage.getProgress(),
+      ]);
 
-    // Get current book for genre targeting and equipped companions
-    const currentBook = books
-      .filter(b => b.status === 'reading')
-      .sort((a, b) => b.totalReadingTime - a.totalReadingTime)[0];
+      // Get current book for genre targeting and equipped companions
+      const currentBook = books
+        .filter(b => b.status === 'reading')
+        .sort((a, b) => b.totalReadingTime - a.totalReadingTime)[0];
 
     // Get equipped companions from current book's loadout
     const loadout = currentBook?.loadout ?? { slots: [null, null, null], unlockedSlots: 1 };
@@ -188,21 +189,20 @@ export default function LootBoxScreen() {
           setRevealedTier(rolledTier);
           setRevealedConsumable(null);
         } else {
-          debug.log('lootBox', 'Pool empty - giving fallback consumable');
-          // No companion available - give a fallback consumable
-          const fallbackConsumable = {
-            id: 'weak_xp_1',
-            name: 'Minor XP Scroll',
-            description: '+10% XP boost',
-            tier: 'weak' as const,
-            effectType: 'xp_boost' as const,
-            magnitude: 0.10,
-            duration: 60,
-          };
-          updatedProgress.activeConsumables = addActiveConsumable(
-            updatedProgress.activeConsumables || [],
-            fallbackConsumable
-          );
+          debug.log('lootBox', 'Pool empty - rolling consumable instead');
+          // No companion available - roll a consumable using proper RNG based on box tier
+          const fallbackConsumable = rollConsumable(rolledTier);
+          if (fallbackConsumable.duration === 0) {
+            // Instant consumable - apply directly
+            const withInstant = applyInstantConsumable(updatedProgress, fallbackConsumable);
+            updatedProgress = { ...updatedProgress, ...withInstant };
+          } else {
+            // Duration-based consumable - add to active list
+            updatedProgress.activeConsumables = addActiveConsumable(
+              updatedProgress.activeConsumables || [],
+              fallbackConsumable
+            );
+          }
           await storage.saveProgress(updatedProgress);
 
           setRevealedConsumable(fallbackConsumable);
@@ -277,18 +277,47 @@ export default function LootBoxScreen() {
       setRevealedConsumable(null);
       setBoxCount(progress.lootBoxes.availableBoxes.length + (progress.lootBoxesV3?.length || 0));
     } else {
-      // No companion available (empty pool)
+      // No companion available (empty pool) - roll consumable using RNG
+      debug.log('lootBox', 'V2 pool empty - rolling consumable instead');
       const usedBox = progress.lootBoxes.availableBoxes.shift()!;
       progress.lootBoxes.openHistory.push({
         boxId: usedBox.id,
         openedAt: Date.now(),
         companionId: '',
       });
+
+      // V2 boxes don't have tiers, default to wood tier for consumable roll
+      const fallbackConsumable = rollConsumable('wood');
+      if (fallbackConsumable.duration === 0) {
+        // Instant consumable - apply directly
+        const withInstant = applyInstantConsumable(progress, fallbackConsumable);
+        Object.assign(progress, withInstant);
+      } else {
+        // Duration-based consumable - add to active list
+        progress.activeConsumables = addActiveConsumable(
+          progress.activeConsumables || [],
+          fallbackConsumable
+        );
+      }
       await storage.saveProgress(progress);
+
+      setRevealedConsumable(fallbackConsumable);
+      setRevealedTier(null);
+      setRevealedCompanion(null);
       setBoxCount(progress.lootBoxes.availableBoxes.length + (progress.lootBoxesV3?.length || 0));
     }
 
     setRevealing(false);
+    } catch (error) {
+      debug.error('lootBox', 'Error opening loot box', error);
+      // Ensure we exit revealing state even on error
+      setRevealing(false);
+      // Roll a consumable using RNG so user isn't stuck (default to wood tier)
+      const errorFallback = rollConsumable('wood');
+      setRevealedConsumable(errorFallback);
+      setRevealedTier('wood');
+      setRevealedCompanion(null);
+    }
   }
 
   function handleDismiss() {
@@ -343,7 +372,11 @@ export default function LootBoxScreen() {
       {boxCount > 0 ? (
         <>
           <View style={styles.boxCountRow}>
-            <PixelSprite tile="chest_wood_closed" scale={2} />
+            <TintedChest
+              tier={boxesV3[0]?.tier || 'wood'}
+              isOpen={false}
+              scale={2}
+            />
             <Text style={[styles.countText, { color: colors.textSecondary }]}>
               {boxCount} box{boxCount !== 1 ? 'es' : ''} available
             </Text>

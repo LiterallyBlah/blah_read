@@ -286,5 +286,131 @@ describe('lootBox', () => {
       const pool = getPoolCompanions(books);
       expect(pool).toHaveLength(0);
     });
+
+    it('excludes companions from books with to_read status', () => {
+      const books: Book[] = [
+        {
+          id: 'book-1',
+          title: 'To Read Book',
+          coverUrl: null,
+          synopsis: null,
+          sourceUrl: null,
+          status: 'to_read', // Not started yet
+          totalReadingTime: 0,
+          createdAt: Date.now(),
+          companions: {
+            researchComplete: true,
+            researchConfidence: 'high',
+            readingTimeQueue: { companions: [], nextGenerateIndex: 0 },
+            poolQueue: {
+              companions: [
+                {
+                  id: 'comp-1',
+                  bookId: 'book-1',
+                  name: 'Pool Companion',
+                  type: 'character',
+                  rarity: 'common',
+                  description: '',
+                  traits: '',
+                  visualDescription: '',
+                  imageUrl: 'http://example.com/image.png',
+                  source: 'discovered',
+                  unlockMethod: null,
+                  unlockedAt: null,
+                },
+              ],
+              nextGenerateIndex: 1,
+            },
+            unlockedCompanions: [],
+          },
+        },
+        {
+          id: 'book-2',
+          title: 'Reading Book',
+          coverUrl: null,
+          synopsis: null,
+          sourceUrl: null,
+          status: 'reading', // Currently reading
+          totalReadingTime: 0,
+          createdAt: Date.now(),
+          companions: {
+            researchComplete: true,
+            researchConfidence: 'high',
+            readingTimeQueue: { companions: [], nextGenerateIndex: 0 },
+            poolQueue: {
+              companions: [
+                {
+                  id: 'comp-2',
+                  bookId: 'book-2',
+                  name: 'Active Companion',
+                  type: 'character',
+                  rarity: 'rare',
+                  description: '',
+                  traits: '',
+                  visualDescription: '',
+                  imageUrl: 'http://example.com/image2.png',
+                  source: 'discovered',
+                  unlockMethod: null,
+                  unlockedAt: null,
+                },
+              ],
+              nextGenerateIndex: 1,
+            },
+            unlockedCompanions: [],
+          },
+        },
+      ];
+
+      const pool = getPoolCompanions(books);
+      // Should only include companion from the 'reading' book
+      expect(pool).toHaveLength(1);
+      expect(pool[0].id).toBe('comp-2');
+      expect(pool[0].bookId).toBe('book-2');
+    });
+
+    it('includes companions from finished books', () => {
+      const books: Book[] = [
+        {
+          id: 'book-1',
+          title: 'Finished Book',
+          coverUrl: null,
+          synopsis: null,
+          sourceUrl: null,
+          status: 'finished',
+          totalReadingTime: 3600,
+          createdAt: Date.now(),
+          finishedAt: Date.now(),
+          companions: {
+            researchComplete: true,
+            researchConfidence: 'high',
+            readingTimeQueue: { companions: [], nextGenerateIndex: 0 },
+            poolQueue: {
+              companions: [
+                {
+                  id: 'comp-1',
+                  bookId: 'book-1',
+                  name: 'Finished Book Companion',
+                  type: 'character',
+                  rarity: 'legendary',
+                  description: '',
+                  traits: '',
+                  visualDescription: '',
+                  imageUrl: 'http://example.com/image.png',
+                  source: 'discovered',
+                  unlockMethod: null,
+                  unlockedAt: null,
+                },
+              ],
+              nextGenerateIndex: 1,
+            },
+            unlockedCompanions: [],
+          },
+        },
+      ];
+
+      const pool = getPoolCompanions(books);
+      expect(pool).toHaveLength(1);
+      expect(pool[0].id).toBe('comp-1');
+    });
   });
 });

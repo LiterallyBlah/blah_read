@@ -140,7 +140,24 @@ export function LootBoxReveal({ companion, consumable, boxTier, onDismiss, hasMo
 
   // Handle companion reveal (original behavior)
   if (!companion) {
-    return null;
+    // Fallback: show empty state with dismiss button if somehow neither is set
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Text style={[styles.name, { color: colors.textMuted }]}>
+          nothing found_
+        </Text>
+        <View style={styles.buttons}>
+          <Pressable
+            style={[styles.secondaryButton, { borderColor: colors.border }]}
+            onPress={onDismiss}
+          >
+            <Text style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>
+              [done]
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    );
   }
 
   const rarityColor = rarityColors[companion.rarity] || colors.text;

@@ -185,8 +185,9 @@ export default function HomeScreen() {
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        // Only respond to vertical swipes with enough movement
+        // Only respond to vertical swipes when there's more than one book
         if (isAnimating.current) return false;
+        if (readingBooksRef.current.length <= 1) return false;
         return Math.abs(gestureState.dy) > 10 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx) * 1.2;
       },
       onPanResponderGrant: () => {

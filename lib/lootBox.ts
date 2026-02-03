@@ -107,12 +107,16 @@ export function checkLootBoxRewards(
 /**
  * Get all pool companions that are available for loot box pulls
  * (have generated images and haven't been unlocked)
+ * Only includes companions from books that are being read or finished,
+ * not from books in the "to read" queue.
  */
 export function getPoolCompanions(books: Book[]): Companion[] {
   const pool: Companion[] = [];
 
   for (const book of books) {
     if (!book.companions) continue;
+    // Skip books that haven't been started yet
+    if (book.status === 'to_read') continue;
 
     for (const companion of book.companions.poolQueue.companions) {
       // Only include if:
