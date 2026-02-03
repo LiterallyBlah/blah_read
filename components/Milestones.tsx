@@ -102,7 +102,7 @@ export function ReadingMilestones({ currentReadingMinutes }: Props) {
                   ]}>
                     {milestone.label}
                   </Text>
-                  {isReached && <Text style={styles.checkmark}>[ok]</Text>}
+                  <Text style={styles.checkmark}>{isReached ? '[x]' : '[ ]'}</Text>
                 </View>
                 <View style={styles.milestoneRowOdds}>
                   <Text style={[
