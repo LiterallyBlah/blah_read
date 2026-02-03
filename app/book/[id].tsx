@@ -16,6 +16,8 @@ import { useTheme } from '@/lib/ThemeContext';
 import { settings } from '@/lib/settings';
 import { generateCompanionsInBackground } from '@/lib/companionBackgroundGenerator';
 import { getBookTier, getTierColorKey, getTierGlow } from '@/lib/bookTier';
+import { SECONDS_PER_LEVEL } from '@/lib/bookLeveling';
+import { BOOK_LEVEL_REQUIREMENTS } from '@/lib/companionEffects';
 import { GENRES, Genre, GENRE_DISPLAY_NAMES } from '@/lib/genres';
 import { detectBookGenres } from '@/lib/genreDetection';
 
@@ -104,6 +106,7 @@ export default function BookDetailScreen() {
   const [selectedGenres, setSelectedGenres] = useState<Genre[]>([]);
   const [isSavingGenres, setIsSavingGenres] = useState(false);
   const [isDetectingGenres, setIsDetectingGenres] = useState(false);
+  const [tierLegendOpen, setTierLegendOpen] = useState(false);
 
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
@@ -621,6 +624,75 @@ export default function BookDetailScreen() {
       </Text>
       <Text style={styles.time}>{hours}h {minutes}m read</Text>
 
+      {/* Tier legend collapsible */}
+      <View style={styles.tierLegendSection}>
+        <Pressable onPress={() => setTierLegendOpen(!tierLegendOpen)}>
+          <Text style={styles.tierLegendToggle}>
+            level info {tierLegendOpen ? '[-]' : '[+]'}
+          </Text>
+        </Pressable>
+
+        {tierLegendOpen && (
+          <View style={styles.tierLegendContent}>
+            {/* Tier breakdown */}
+            <Text style={styles.tierLegendHeader}>book tiers_</Text>
+            <View style={styles.tierRow}>
+              <Text style={[styles.tierLabel, tier === 'common' && { color: colors.rarityCommon }]}>
+                {tier === 'common' ? '>' : ' '} common
+              </Text>
+              <Text style={styles.tierHours}>lv 0-3 (0-3h)</Text>
+            </View>
+            <View style={styles.tierRow}>
+              <Text style={[styles.tierLabel, tier === 'rare' && { color: colors.rarityRare }]}>
+                {tier === 'rare' ? '>' : ' '} rare
+              </Text>
+              <Text style={styles.tierHours}>lv 4-6 (4-6h)</Text>
+            </View>
+            <View style={styles.tierRow}>
+              <Text style={[styles.tierLabel, tier === 'legendary' && { color: colors.rarityLegendary }]}>
+                {tier === 'legendary' ? '>' : ' '} legendary
+              </Text>
+              <Text style={styles.tierHours}>lv 7+ (7h+)</Text>
+            </View>
+
+            {/* Time to next tier */}
+            {(() => {
+              const nextTierLevel = tier === 'common' ? 4 : tier === 'rare' ? 7 : null;
+              if (nextTierLevel === null) {
+                return (
+                  <Text style={styles.tierProgress}>max tier reached!</Text>
+                );
+              }
+              const hoursToNext = nextTierLevel - level;
+              const secondsToNext = (nextTierLevel * SECONDS_PER_LEVEL) - book.totalReadingTime;
+              const minutesToNext = Math.max(0, Math.ceil(secondsToNext / 60));
+              const hToNext = Math.floor(minutesToNext / 60);
+              const mToNext = minutesToNext % 60;
+              return (
+                <Text style={styles.tierProgress}>
+                  next tier in {hToNext > 0 ? `${hToNext}h ` : ''}{mToNext}m
+                </Text>
+              );
+            })()}
+
+            {/* Companion equip requirements */}
+            <Text style={[styles.tierLegendHeader, { marginTop: spacing(4) }]}>companion equip requirements_</Text>
+            <View style={styles.tierRow}>
+              <Text style={styles.tierLabel}>common</Text>
+              <Text style={styles.tierHours}>no requirement</Text>
+            </View>
+            <View style={styles.tierRow}>
+              <Text style={styles.tierLabel}>rare</Text>
+              <Text style={styles.tierHours}>lv {BOOK_LEVEL_REQUIREMENTS.rare}+ book</Text>
+            </View>
+            <View style={styles.tierRow}>
+              <Text style={styles.tierLabel}>legendary</Text>
+              <Text style={styles.tierHours}>lv {BOOK_LEVEL_REQUIREMENTS.legendary}+ book</Text>
+            </View>
+          </View>
+        )}
+      </View>
+
       {/* Synopsis */}
       {book.synopsis && (
         <Text style={styles.synopsis}>{book.synopsis}</Text>
@@ -949,6 +1021,52 @@ function createStyles(colors: any, spacing: any, fontSize: any, letterSpacing: a
       fontSize: fontSize('small'),
       letterSpacing: letterSpacing('tight'),
       marginBottom: spacing(2),
+    },
+    tierLegendSection: {
+      marginBottom: spacing(4),
+    },
+    tierLegendToggle: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+    },
+    tierLegendContent: {
+      marginTop: spacing(3),
+      paddingLeft: spacing(2),
+      borderLeftWidth: 1,
+      borderLeftColor: colors.border,
+    },
+    tierLegendHeader: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+      marginBottom: spacing(2),
+    },
+    tierRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: spacing(1),
+    },
+    tierLabel: {
+      color: colors.textSecondary,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+    },
+    tierHours: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+    },
+    tierProgress: {
+      color: colors.textSecondary,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+      marginTop: spacing(2),
     },
     synopsis: {
       color: colors.textSecondary,

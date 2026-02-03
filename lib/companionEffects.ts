@@ -31,7 +31,7 @@ const GENRE_LEVEL_REQUIREMENTS: Record<CompanionRarity, number> = {
   legendary: 20,
 };
 
-const BOOK_LEVEL_REQUIREMENTS: Record<CompanionRarity, number> = {
+export const BOOK_LEVEL_REQUIREMENTS: Record<CompanionRarity, number> = {
   common: 0,
   rare: 5,
   legendary: 10,
