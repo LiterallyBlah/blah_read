@@ -33,10 +33,11 @@ export default function CollectionScreen() {
 
   // Route params for per-book equipping flow
   const { bookId, slotIndex } = useLocalSearchParams<{ bookId?: string; slotIndex?: string }>();
-  const targetBookId = bookId || null;
-  const targetSlotIndex = slotIndex ? parseInt(slotIndex, 10) : null;
+  const paramBookId = bookId || null;
+  const paramSlotIndex = slotIndex ? parseInt(slotIndex, 10) : null;
 
   const [books, setBooks] = useState<Book[]>([]);
+  const [defaultBookId, setDefaultBookId] = useState<string | null>(null); // From lastActiveBookId
   const [lootBoxes, setLootBoxes] = useState<LootBoxState | null>(null);
   const [lootBoxesV3, setLootBoxesV3] = useState<LootBoxV3[]>([]);
   const [typeFilter, setTypeFilter] = useState<FilterType>('all');
@@ -47,9 +48,16 @@ export default function CollectionScreen() {
   const [config, setConfig] = useState<Settings | null>(null);
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
+  // Use param bookId if provided, otherwise fall back to defaultBookId (lastActiveBook)
+  const targetBookId = paramBookId || defaultBookId;
+  const targetSlotIndex = paramSlotIndex; // Only set when coming from book detail with specific slot
+
   // Get target book info for per-book equipping mode
   const targetBook = targetBookId ? books.find(b => b.id === targetBookId) : null;
-  const isPerBookEquipMode = targetBook !== null && targetSlotIndex !== null;
+  // Direct equip mode: has both book AND specific slot (from book detail)
+  // Slot selector mode: has book but no specific slot (from tabs)
+  const isDirectEquipMode = targetBook !== null && targetSlotIndex !== null;
+  const hasBookContext = targetBook !== null;
 
   useFocusEffect(
     useCallback(() => {
@@ -59,11 +67,17 @@ export default function CollectionScreen() {
 
   async function loadData() {
     debug.log('collection', 'loadData starting');
-    const [loadedBooks, progress, config] = await Promise.all([
+    const [loadedBooks, progress, config, lastActiveId] = await Promise.all([
       storage.getBooks(),
       storage.getProgress(),
       settings.get(),
+      storage.getLastActiveBookId(),
     ]);
+
+    // Set default book from lastActiveBookId (the current home screen top card)
+    if (lastActiveId) {
+      setDefaultBookId(lastActiveId);
+    }
 
     setDebugEnabled(config.debugMode);
 
@@ -136,8 +150,8 @@ export default function CollectionScreen() {
     debug.log('collection', 'loadData complete');
   }
 
-  // Get equipped companion IDs - use target book's loadout when in per-book mode
-  const activeLoadout = isPerBookEquipMode && targetBook
+  // Get equipped companion IDs - use target book's loadout when we have book context
+  const activeLoadout = hasBookContext && targetBook
     ? getBookLoadout(targetBook)
     : loadout;
   const equippedIds = activeLoadout ? getEquippedCompanionIds(activeLoadout) : [];
@@ -148,10 +162,10 @@ export default function CollectionScreen() {
     return activeLoadout.slots.findIndex(id => id === companionId);
   }
 
-  // Handle equip action - in per-book mode, equip directly to target slot
+  // Handle equip action
   async function handleEquip(companion: DisplayCompanion) {
-    // Per-book equip mode: equip directly to the target book's slot
-    if (isPerBookEquipMode && targetBook && targetSlotIndex !== null) {
+    // Direct equip mode: equip directly to the target book's specific slot
+    if (isDirectEquipMode && targetBook && targetSlotIndex !== null) {
       const targetBookLevel = targetBook.progression?.level || 1;
       const requirements = canEquipCompanion(companion.rarity, targetBookLevel);
 
@@ -177,11 +191,13 @@ export default function CollectionScreen() {
       return;
     }
 
-    // Standard mode: show slot selector (backwards compatibility)
+    // Slot selector mode: have book context but no specific slot, show slot selector
     if (!activeLoadout) return;
 
-    // Check if companion meets book level requirements
-    const bookLevel = companion.bookLevel;
+    // Check if companion meets book level requirements using target book or companion's book
+    const bookLevel = hasBookContext && targetBook
+      ? (targetBook.progression?.level || 1)
+      : companion.bookLevel;
 
     const requirements = canEquipCompanion(companion.rarity, bookLevel);
 
@@ -239,12 +255,12 @@ export default function CollectionScreen() {
     );
   }
 
-  // Actually equip to a slot - handles both global and per-book modes
+  // Actually equip to a slot - always uses per-book loadout
   async function equipToSlot(companionId: string, slotIndex: number) {
-    debug.log('collection', 'equipToSlot called', { companionId, slotIndex, isPerBookEquipMode });
+    debug.log('collection', 'equipToSlot called', { companionId, slotIndex, hasBookContext });
 
-    // Per-book mode: equip to target book's loadout
-    if (isPerBookEquipMode && targetBook) {
+    // Must have book context to equip
+    if (hasBookContext && targetBook) {
       try {
         await equipCompanionToBook(targetBook.id, companionId, slotIndex);
         debug.log('collection', 'Equipped to book loadout (slot selector)', {
@@ -252,7 +268,8 @@ export default function CollectionScreen() {
           companionId,
           slotIndex,
         });
-        router.back();
+        // Refresh data to show updated loadout
+        await loadData();
       } catch (error) {
         debug.error('collection', 'equipCompanionToBook failed', error);
         Alert.alert('Error', error instanceof Error ? error.message : 'Failed to equip companion');
@@ -260,19 +277,18 @@ export default function CollectionScreen() {
       return;
     }
 
-    // Standard mode: should not be reached anymore since per-book mode is required
-    // This fallback is kept for edge cases but doesn't save to global progress
-    debug.warn('collection', 'equipToSlot: standard mode should not be used - use per-book equipping');
-    Alert.alert('Error', 'Please navigate to a book to equip companions');
+    // No book context - shouldn't happen but handle gracefully
+    debug.warn('collection', 'equipToSlot: no book context available');
+    Alert.alert('Error', 'No book selected. Please start reading a book first.');
   }
 
-  // Handle unequip action - supports both per-book and global modes
+  // Handle unequip action
   async function handleUnequip(companion: DisplayCompanion) {
     const slotIndex = getEquippedSlot(companion.id);
     if (slotIndex === -1) return;
 
-    // Per-book mode: unequip from target book's loadout
-    if (isPerBookEquipMode && targetBook) {
+    // Must have book context to unequip
+    if (hasBookContext && targetBook) {
       Alert.alert(
         'Unequip Companion',
         `Remove ${companion.name} from slot ${slotIndex + 1}?`,
@@ -488,15 +504,17 @@ export default function CollectionScreen() {
         </Text>
       </View>
 
-      {/* Per-book equip mode banner */}
-      {isPerBookEquipMode && targetBook && (
+      {/* Book context banner - show which book companions will be equipped to */}
+      {hasBookContext && targetBook && (
         <View style={styles.equipModeBanner}>
           <Text style={styles.equipModeText}>
             equipping to: {targetBook.title}
           </Text>
-          <Text style={styles.equipModeSlot}>
-            slot {(targetSlotIndex ?? 0) + 1}
-          </Text>
+          {isDirectEquipMode && targetSlotIndex !== null && (
+            <Text style={styles.equipModeSlot}>
+              slot {targetSlotIndex + 1}
+            </Text>
+          )}
         </View>
       )}
 
