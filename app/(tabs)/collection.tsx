@@ -133,26 +133,13 @@ export default function CollectionScreen() {
   async function handleEquip(companion: DisplayCompanion) {
     if (!loadout) return;
 
-    // Check if companion meets requirements
-    const targetGenre = companion.effects?.[0]?.targetGenre;
-    const genreLevel = targetGenre && genreLevels ? genreLevels[targetGenre] : 0;
+    // Check if companion meets book level requirements
     const bookLevel = companion.bookLevel;
 
-    const requirements = canEquipCompanion(
-      companion.rarity,
-      targetGenre,
-      genreLevel,
-      bookLevel
-    );
+    const requirements = canEquipCompanion(companion.rarity, bookLevel);
 
     if (!requirements.canEquip) {
-      let message = 'Requirements not met:\n';
-      if (requirements.missingBookLevel) {
-        message += `- Book level ${requirements.requiredBookLevel} required (current: ${bookLevel})\n`;
-      }
-      if (requirements.missingGenreLevel && targetGenre) {
-        message += `- ${GENRE_DISPLAY_NAMES[targetGenre]} level ${requirements.requiredGenreLevel} required (current: ${genreLevel})`;
-      }
+      const message = `Book level ${requirements.requiredBookLevel} required (current: ${bookLevel})`;
       Alert.alert('Cannot Equip', message);
       return;
     }
@@ -526,17 +513,10 @@ export default function CollectionScreen() {
           const equippedSlot = getEquippedSlot(companion.id);
           const isEquipped = equippedSlot !== -1;
 
-          // Check equip requirements for unlocked companions
+          // Check equip requirements for unlocked companions (book level only)
           let equipRequirements: EquipRequirements | null = null;
           if (!companion.isLocked) {
-            const targetGenre = companion.effects?.[0]?.targetGenre;
-            const genreLevel = targetGenre && genreLevels ? genreLevels[targetGenre] : 0;
-            equipRequirements = canEquipCompanion(
-              companion.rarity,
-              targetGenre,
-              genreLevel,
-              companion.bookLevel
-            );
+            equipRequirements = canEquipCompanion(companion.rarity, companion.bookLevel);
           }
 
           return (
@@ -768,15 +748,6 @@ function CompanionCard({
               fontSize: 9,
             }}>
               book lv.{equipRequirements.requiredBookLevel}
-            </Text>
-          )}
-          {equipRequirements.missingGenreLevel !== undefined && companion.effects?.[0]?.targetGenre && (
-            <Text style={{
-              color: '#f59e0b',
-              fontFamily: FONTS.mono,
-              fontSize: 9,
-            }}>
-              {GENRE_DISPLAY_NAMES[companion.effects[0].targetGenre].toLowerCase()} lv.{equipRequirements.requiredGenreLevel}
             </Text>
           )}
         </View>

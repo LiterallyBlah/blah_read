@@ -50,41 +50,31 @@ const XP_BOOST_GENRE_TARGET_CHANCE = 0.5;
 
 export interface EquipRequirements {
   canEquip: boolean;
-  missingGenreLevel?: number;
   missingBookLevel?: number;
-  requiredGenreLevel: number;
   requiredBookLevel: number;
 }
 
+/**
+ * Check if a companion can be equipped based on book level requirements.
+ * Genre-level requirements have been removed to simplify the system.
+ *
+ * @param rarity - Companion rarity (determines required book level)
+ * @param currentBookLevel - Current level of the book being equipped to
+ * @returns EquipRequirements with canEquip flag and required levels
+ */
 export function canEquipCompanion(
   rarity: CompanionRarity,
-  targetGenre: Genre | undefined,
-  currentGenreLevel: number,
   currentBookLevel: number
 ): EquipRequirements {
-  const requiredGenreLevel = GENRE_LEVEL_REQUIREMENTS[rarity];
   const requiredBookLevel = BOOK_LEVEL_REQUIREMENTS[rarity];
 
-  let missingGenreLevel: number | undefined;
-  let missingBookLevel: number | undefined;
-
-  // For genre-targeted companions, check genre level requirement
-  if (targetGenre !== undefined && currentGenreLevel < requiredGenreLevel) {
-    missingGenreLevel = requiredGenreLevel - currentGenreLevel;
-  }
-
-  // Always check book level requirement
-  if (currentBookLevel < requiredBookLevel) {
-    missingBookLevel = requiredBookLevel - currentBookLevel;
-  }
-
-  const canEquip = missingGenreLevel === undefined && missingBookLevel === undefined;
+  const missingBookLevel = currentBookLevel < requiredBookLevel
+    ? requiredBookLevel - currentBookLevel
+    : undefined;
 
   return {
-    canEquip,
-    missingGenreLevel,
+    canEquip: missingBookLevel === undefined,
     missingBookLevel,
-    requiredGenreLevel,
     requiredBookLevel,
   };
 }
