@@ -1,4 +1,5 @@
 import type { Companion, CompanionType, CompanionRarity } from './types';
+import { generateBatchId } from './idGenerator';
 
 /**
  * Template for generating inspired companions when LLM research fails
@@ -253,7 +254,7 @@ export function generateInspiredCompanions(
 
   // Generate companions
   const companions: Companion[] = selectedTemplates.map((template, index) => ({
-    id: `${bookId}-inspired-${index}-${Date.now()}`,
+    id: generateBatchId(`${bookId}-inspired`, index),
     bookId,
     name: template.name,
     type: template.type,

@@ -2,6 +2,7 @@ import type { LootBoxTier } from './types';
 import type { ConsumableEffectType, ConsumableTier } from './consumables';
 
 // Tier color configuration for chest tinting and glow effects
+// Using subtle 35% opacity to preserve wood detail while showing tier color
 export const TIER_COLORS: Record<LootBoxTier, {
   tint: string | null;
   tintOpacity: number;
@@ -13,13 +14,13 @@ export const TIER_COLORS: Record<LootBoxTier, {
     glow: '#8B7355',      // Warm brown glow
   },
   silver: {
-    tint: '#A8B5C4',      // Desaturated gray-blue
-    tintOpacity: 0.6,
+    tint: '#B8C8D8',      // Light silver-blue
+    tintOpacity: 0.35,    // Subtle blend preserves wood detail
     glow: '#C0C0C0',      // Silver glow
   },
   gold: {
     tint: '#FFD700',      // Warm gold
-    tintOpacity: 0.5,
+    tintOpacity: 0.35,    // Subtle blend preserves wood detail
     glow: '#FFD700',      // Gold glow
   },
 };

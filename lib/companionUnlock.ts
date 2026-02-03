@@ -1,5 +1,6 @@
 import type { Book, BookCompanions, Companion, CompanionRarity, LootBox } from './types';
 import { debug } from './debug';
+import { generateBatchId } from './idGenerator';
 
 /**
  * Reading time milestones in seconds (front-loaded)
@@ -160,10 +161,17 @@ export function processReadingSession(
 
   if (!book.companions) {
     debug.warn('unlock', 'Book has no companions data');
+    // Return valid empty structure instead of undefined
     return {
       unlockedCompanions: [],
       earnedLootBoxes: [],
-      updatedCompanions: book.companions!,
+      updatedCompanions: {
+        researchComplete: false,
+        researchConfidence: 'low',
+        readingTimeQueue: { companions: [], nextGenerateIndex: 0 },
+        poolQueue: { companions: [], nextGenerateIndex: 0 },
+        unlockedCompanions: [],
+      },
     };
   }
 
@@ -233,7 +241,7 @@ export function processReadingSession(
   const earnedLootBoxes: LootBox[] = [];
   for (let i = 0; i < lootBoxCount; i++) {
     earnedLootBoxes.push({
-      id: `lootbox-${Date.now()}-${i}`,
+      id: generateBatchId('lootbox', i),
       earnedAt: Date.now(),
       source: 'reading_overflow',
     });

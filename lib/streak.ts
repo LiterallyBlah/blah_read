@@ -2,6 +2,19 @@ export function getDateString(date: Date = new Date()): string {
   return date.toISOString().split('T')[0];
 }
 
+/**
+ * Calculate day difference using UTC dates to avoid DST issues.
+ * Parses YYYY-MM-DD strings and compares using UTC to ensure
+ * consistent day boundaries regardless of timezone.
+ */
+function getDayDifference(dateStr1: string, dateStr2: string): number {
+  const [y1, m1, d1] = dateStr1.split('-').map(Number);
+  const [y2, m2, d2] = dateStr2.split('-').map(Number);
+  const date1 = Date.UTC(y1, m1 - 1, d1);
+  const date2 = Date.UTC(y2, m2 - 1, d2);
+  return Math.round((date2 - date1) / (1000 * 60 * 60 * 24));
+}
+
 export function updateStreak(
   lastReadDate: string | null,
   today: string,
@@ -16,9 +29,7 @@ export function updateStreak(
     return { currentStreak, longestStreak, lastReadDate: today };
   }
 
-  const last = new Date(lastReadDate);
-  const current = new Date(today);
-  const diffDays = Math.floor((current.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+  const diffDays = getDayDifference(lastReadDate, today);
 
   if (diffDays === 1) {
     const newStreak = currentStreak + 1;
@@ -72,9 +83,7 @@ export function updateStreakWithShield(
     };
   }
 
-  const last = new Date(lastReadDate);
-  const current = new Date(today);
-  const diffDays = Math.floor((current.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+  const diffDays = getDayDifference(lastReadDate, today);
 
   if (diffDays === 1) {
     const newStreak = currentStreak + 1;

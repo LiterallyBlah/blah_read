@@ -5,6 +5,7 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   withDelay,
+  cancelAnimation,
   Easing,
 } from 'react-native-reanimated';
 
@@ -42,7 +43,12 @@ function Particle({ index, total, active, color, size }: ParticleProps) {
     } else {
       progress.value = 0;
     }
-  }, [active, index]);
+
+    // Cleanup: cancel animation on unmount or when deps change
+    return () => {
+      cancelAnimation(progress);
+    };
+  }, [active, index, progress]);
 
   const animatedStyle = useAnimatedStyle(() => {
     const p = progress.value;

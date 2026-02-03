@@ -19,8 +19,14 @@ export default function SessionResultsRoute() {
     bookTitle: string;
   }>();
 
-  // Parse the serialized data
-  const data: SessionResultsData = JSON.parse(params.data || '{}');
+  // Parse the serialized data with safety fallback
+  let data: SessionResultsData;
+  try {
+    data = JSON.parse(params.data || '{}');
+  } catch (error) {
+    console.error('[session-results] Failed to parse data:', error);
+    data = {} as SessionResultsData;
+  }
   const bookTitle = params.bookTitle || 'Unknown Book';
 
   const handleContinue = () => {

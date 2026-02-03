@@ -9,12 +9,13 @@ import { settings } from '@/lib/settings';
 import { debug, setDebugEnabled } from '@/lib/debug';
 import { maybeGenerateImages, shouldGenerateMoreImages } from '@/lib/companionImageQueue';
 import { generateImageForCompanion } from '@/lib/imageGen';
-import type { Book, Companion, LootBoxState, CompanionLoadout, UserProgress, LootBoxV3 } from '@/lib/types';
+import type { Book, Companion, LootBoxState, CompanionLoadout, UserProgress, LootBoxV3, LootBoxTier } from '@/lib/types';
 import type { Settings } from '@/lib/settings';
 import { equipCompanion, unequipCompanion, getEquippedCompanionIds, isSlotUnlocked } from '@/lib/loadout';
 import { canEquipCompanion, EFFECT_TYPES, EquipRequirements, CompanionEffect } from '@/lib/companionEffects';
 import { GENRE_DISPLAY_NAMES, Genre } from '@/lib/genres';
 import { PixelSprite } from '@/components/dungeon';
+import { TintedChest } from '@/components/dungeon/TintedChest';
 
 type FilterType = 'all' | 'character' | 'creature' | 'object';
 type RarityFilter = 'all' | 'common' | 'rare' | 'legendary';
@@ -102,6 +103,8 @@ export default function CollectionScreen() {
           maybeGenerateImages(book, generateImage).then(async finalBook => {
             await storage.saveBook(finalBook);
             debug.log('collection', `Buffer refill complete for "${book.title}"`);
+          }).catch(error => {
+            debug.error('collection', `Buffer refill failed for "${book.title}"`, error);
           });
         }
       }
@@ -411,6 +414,8 @@ export default function CollectionScreen() {
                 await storage.saveBook(finalBook);
                 debug.log('collection', 'Background image generation complete');
                 await loadData(); // Refresh to show new images
+              }).catch(error => {
+                debug.error('collection', 'Background image generation failed', error);
               });
             }
 
@@ -462,7 +467,11 @@ export default function CollectionScreen() {
           style={styles.lootBoxBanner}
           onPress={() => router.push('/loot-box')}
         >
-          <PixelSprite tile="chest_wood_closed" scale={2} />
+          <TintedChest
+            tier={(lootBoxesV3[0]?.tier || 'wood') as LootBoxTier}
+            isOpen={false}
+            scale={2}
+          />
           <Text style={styles.lootBoxText}>
             {boxCount} box{boxCount !== 1 ? 'es' : ''} to open
           </Text>
@@ -562,7 +571,9 @@ function formatEffect(effect: CompanionEffect): string {
   const percentage = Math.round(effect.magnitude * 100);
   const typeLabels: Record<string, string> = {
     'xp_boost': 'XP',
-    'luck_boost': 'Luck',
+    'luck': 'Luck',
+    'rare_luck': 'Rare Luck',
+    'legendary_luck': 'Legendary Luck',
     'drop_rate_boost': 'Drop Rate',
     'completion_bonus': 'Completion',
   };

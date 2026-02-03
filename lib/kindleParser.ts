@@ -31,12 +31,16 @@ export function parseKindleShareText(text: string): KindleParsedData | null {
   }
   const title = titleMatch[1];
 
-  // Extract authors between "by " and "." (handle authors with periods like J.R.R. Tolkien)
-  const authorMatch = text.match(/[""][^""]+[""] by ([^\n]+?)\.(?:\s*\n|\s*Start)/);
+  // Extract authors between "by " and the URL/newline
+  // Must handle periods in names like "J.R.R. Tolkien", "John Smith Jr.", "Jane Doe Ph.D."
+  // Look for the pattern ending with newline or "Start reading" (case-insensitive)
+  const authorMatch = text.match(/[""][^""]+[""] by ([^\n]+?)(?:\.\s*(?:Start|$)|\s*\n)/i);
   if (!authorMatch) {
     return null;
   }
-  const authors = authorMatch[1].split(',').map(a => a.trim());
+  // Clean up trailing period if present
+  const authorText = authorMatch[1].replace(/\.$/, '').trim();
+  const authors = authorText.split(',').map(a => a.trim());
 
   // Extract ASIN from URL
   const asinMatch = text.match(/asin=([A-Z0-9]{10})/i);

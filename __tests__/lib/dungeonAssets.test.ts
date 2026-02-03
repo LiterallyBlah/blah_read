@@ -162,14 +162,14 @@ describe('dungeonAssets', () => {
       expect(TIER_COLORS.wood.tint).toBeNull();
     });
 
-    it('silver has gray-blue tint', () => {
-      expect(TIER_COLORS.silver.tint).toBe('#A8B5C4');
-      expect(TIER_COLORS.silver.tintOpacity).toBe(0.6);
+    it('silver has light silver-blue tint', () => {
+      expect(TIER_COLORS.silver.tint).toBe('#B8C8D8');
+      expect(TIER_COLORS.silver.tintOpacity).toBe(0.35);
     });
 
     it('gold has warm gold tint', () => {
       expect(TIER_COLORS.gold.tint).toBe('#FFD700');
-      expect(TIER_COLORS.gold.tintOpacity).toBe(0.5);
+      expect(TIER_COLORS.gold.tintOpacity).toBe(0.35);
     });
 
     it('defines glow colors for all tiers', () => {

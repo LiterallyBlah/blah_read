@@ -15,6 +15,7 @@ export interface ConsumableEffects {
 /**
  * Add a consumable to the active list.
  * Instant effects (duration 0) are not added.
+ * Consumables with the same effect type stack by extending duration.
  */
 export function addActiveConsumable(
   active: ActiveConsumable[],
@@ -25,6 +26,29 @@ export function addActiveConsumable(
     return active;
   }
 
+  // Find existing active consumable with the same effect type
+  const existingIndex = active.findIndex(ac => {
+    const existingConsumable = getConsumableById(ac.consumableId);
+    return existingConsumable?.effectType === consumable.effectType;
+  });
+
+  // If found, extend duration and combine magnitudes
+  if (existingIndex !== -1) {
+    return active.map((ac, index) => {
+      if (index === existingIndex) {
+        const existingConsumable = getConsumableById(ac.consumableId);
+        const existingMagnitude = ac.stackedMagnitude ?? existingConsumable?.magnitude ?? 0;
+        return {
+          ...ac,
+          remainingDuration: ac.remainingDuration + consumable.duration,
+          stackedMagnitude: existingMagnitude + consumable.magnitude,
+        };
+      }
+      return ac;
+    });
+  }
+
+  // Otherwise, add as new entry
   const newActive: ActiveConsumable = {
     consumableId: consumable.id,
     remainingDuration: consumable.duration,
@@ -55,24 +79,27 @@ export function getActiveEffects(active: ActiveConsumable[]): ConsumableEffects 
       continue;
     }
 
+    // Use stacked magnitude if available, otherwise fall back to consumable's base magnitude
+    const magnitude = activeConsumable.stackedMagnitude ?? consumable.magnitude;
+
     switch (consumable.effectType) {
       case 'xp_boost':
-        effects.xpBoost += consumable.magnitude;
+        effects.xpBoost += magnitude;
         break;
       case 'luck':
-        effects.luck += consumable.magnitude;
+        effects.luck += magnitude;
         break;
       case 'rare_luck':
-        effects.rareLuck += consumable.magnitude;
+        effects.rareLuck += magnitude;
         break;
       case 'legendary_luck':
-        effects.legendaryLuck += consumable.magnitude;
+        effects.legendaryLuck += magnitude;
         break;
       case 'drop_rate_boost':
-        effects.dropRateBoost += consumable.magnitude;
+        effects.dropRateBoost += magnitude;
         break;
       case 'streak_shield':
-        effects.streakShieldDays += consumable.magnitude;
+        effects.streakShieldDays += magnitude;
         break;
       case 'box_upgrade':
         effects.boxUpgrade = true;
@@ -121,4 +148,46 @@ export function removeUsedConsumable(
 
     return true;
   });
+}
+
+/**
+ * Consolidate active consumables by merging entries with the same effect type.
+ * This is a migration utility for existing data that has duplicate entries.
+ * Returns the consolidated list and the count of entries that were merged.
+ */
+export function consolidateActiveConsumables(
+  active: ActiveConsumable[]
+): { consolidated: ActiveConsumable[]; mergedCount: number } {
+  const effectTypeMap = new Map<string, ActiveConsumable>();
+  let mergedCount = 0;
+
+  for (const ac of active) {
+    const consumable = getConsumableById(ac.consumableId);
+    if (!consumable) continue;
+
+    const effectType = consumable.effectType;
+    const existing = effectTypeMap.get(effectType);
+
+    if (existing) {
+      // Merge: add durations and magnitudes
+      const existingConsumable = getConsumableById(existing.consumableId);
+      const existingMagnitude = existing.stackedMagnitude ?? existingConsumable?.magnitude ?? 0;
+      const currentMagnitude = ac.stackedMagnitude ?? consumable.magnitude;
+
+      effectTypeMap.set(effectType, {
+        ...existing,
+        remainingDuration: existing.remainingDuration + ac.remainingDuration,
+        stackedMagnitude: existingMagnitude + currentMagnitude,
+      });
+      mergedCount++;
+    } else {
+      // First of this effect type
+      effectTypeMap.set(effectType, { ...ac });
+    }
+  }
+
+  return {
+    consolidated: Array.from(effectTypeMap.values()),
+    mergedCount,
+  };
 }

@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { storage } from './storage';
 import { clearAllImages, deleteBookImages } from './imageStorage';
+import { GENRES } from './genres';
+import type { GenreLevels } from './types';
 
 const SETTINGS_KEY = 'blahread:settings';
 
@@ -40,7 +42,13 @@ export const defaultSettings: Settings = {
 export const settings = {
   async get(): Promise<Settings> {
     const data = await AsyncStorage.getItem(SETTINGS_KEY);
-    return data ? { ...defaultSettings, ...JSON.parse(data) } : defaultSettings;
+    if (!data) return defaultSettings;
+    try {
+      return { ...defaultSettings, ...JSON.parse(data) };
+    } catch (error) {
+      console.error('[settings] Failed to parse settings, using defaults:', error);
+      return defaultSettings;
+    }
   },
 
   async set(partial: Partial<Settings>): Promise<void> {
@@ -71,6 +79,25 @@ export async function clearProgress(): Promise<void> {
     booksFinished: 0,
     booksAdded: 0,
     totalHoursRead: 0,
+    // V3 fields
+    genreLevels: GENRES.reduce((acc, g) => ({ ...acc, [g]: 0 }), {} as GenreLevels),
+    loadout: { slots: [null, null, null], unlockedSlots: 1 },
+    slotProgress: {
+      slot2Points: 0,
+      slot3Points: 0,
+      booksFinished: 0,
+      hoursLogged: 0,
+      companionsCollected: 0,
+      sessionsCompleted: 0,
+      genreLevelTens: [],
+      genresRead: [],
+    },
+    activeConsumables: [],
+    lootBoxesV3: [],
+    streakShieldExpiry: null,
+    pendingBoxUpgrade: false,
+    pendingGuaranteedCompanion: false,
+    pendingInstantLevels: 0,
   });
 }
 

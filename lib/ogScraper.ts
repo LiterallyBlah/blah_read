@@ -28,9 +28,32 @@ export function parseOgTags(html: string): OgTags {
 }
 
 export async function fetchOgTags(url: string): Promise<OgTags> {
-  const response = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; BlahRead/1.0)' },
-  });
-  const html = await response.text();
-  return parseOgTags(html);
+  const emptyResult: OgTags = { title: null, image: null, description: null };
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const response = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; BlahRead/1.0)' },
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      console.warn(`[ogScraper] HTTP error: ${response.status}`);
+      return emptyResult;
+    }
+
+    const html = await response.text();
+    return parseOgTags(html);
+  } catch (error) {
+    if ((error as Error).name === 'AbortError') {
+      console.warn('[ogScraper] Request timed out');
+    } else {
+      console.error('[ogScraper] Fetch failed:', error);
+    }
+    return emptyResult;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }

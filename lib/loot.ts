@@ -30,8 +30,19 @@ export function rollLoot(): LootItem {
   else if (roll < RARITY_WEIGHTS.legendary + RARITY_WEIGHTS.epic + RARITY_WEIGHTS.rare) rarity = 'rare';
   else rarity = 'common';
 
-  const pool = LOOT_TABLE.filter(item => item.rarity === rarity);
+  let pool = LOOT_TABLE.filter(item => item.rarity === rarity);
+
+  // Fallback to common if pool is empty
+  if (pool.length === 0) {
+    pool = LOOT_TABLE.filter(item => item.rarity === 'common');
+  }
+
+  // Final safety check
+  if (pool.length === 0) {
+    throw new Error(`[loot] No items available for rarity: ${rarity}`);
+  }
+
   const item = pool[Math.floor(Math.random() * pool.length)];
 
-  return { ...item, id: Date.now().toString(), earnedAt: Date.now() };
+  return { ...item, id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, earnedAt: Date.now() };
 }

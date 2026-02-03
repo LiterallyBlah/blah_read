@@ -24,8 +24,8 @@ jest.mock('@/lib/dungeonAssets', () => ({
   },
   TIER_COLORS: {
     wood: { tint: null, tintOpacity: 0, glow: '#8B7355' },
-    silver: { tint: '#A8B5C4', tintOpacity: 0.6, glow: '#C0C0C0' },
-    gold: { tint: '#FFD700', tintOpacity: 0.5, glow: '#FFD700' },
+    silver: { tint: '#B8C8D8', tintOpacity: 0.35, glow: '#C0C0C0' },
+    gold: { tint: '#FFD700', tintOpacity: 0.35, glow: '#FFD700' },
   },
 }));
 

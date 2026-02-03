@@ -166,7 +166,7 @@ export async function migrateData(
       genreLevels: migratedProgress.genreLevels || genreLevels,
       loadout: migratedProgress.loadout || {
         ...DEFAULT_LOADOUT,
-        unlockedSlots,
+        unlockedSlots: unlockedSlots as 1 | 2 | 3,
       },
       slotProgress: migratedProgress.slotProgress || slotProgress,
       activeConsumables: migratedProgress.activeConsumables || [],

@@ -4,6 +4,24 @@ import { migrateData, CURRENT_VERSION } from './migrations';
 import { debug } from './debug';
 import { deleteCompanionImage } from './imageStorage';
 
+/**
+ * Safely parse JSON with fallback.
+ * Prevents crashes from corrupted AsyncStorage data.
+ */
+function safeJsonParse<T>(data: string | null, defaultValue: T, context: string): T {
+  if (!data) return defaultValue;
+  try {
+    return JSON.parse(data);
+  } catch (error) {
+    console.error(`[storage] JSON parse failed (${context}):`, error);
+    debug.error('storage', `JSON parse failed (${context})`, error);
+    return defaultValue;
+  }
+}
+
+// Mutex for saveBook to prevent race conditions
+let saveBookLock: Promise<void> | null = null;
+
 export interface DuplicateQuery {
   asin?: string;
   title?: string;
@@ -94,7 +112,7 @@ export const storage = {
       }
       throw error;
     }
-    const books = data ? JSON.parse(data) : [];
+    const books = safeJsonParse<Book[]>(data, [], 'getBooks');
     debug.log('storage', `Parsed ${books.length} books`);
 
     // Log companion counts for each book
@@ -115,7 +133,11 @@ export const storage = {
     if (!migrationComplete) {
       debug.log('storage', 'Checking for migration...');
       const progressData = await AsyncStorage.getItem(KEYS.PROGRESS);
-      const parsedProgress = progressData ? JSON.parse(progressData) : defaultProgress;
+      const parsedProgress = safeJsonParse<UserProgress & { version?: number }>(
+        progressData,
+        { ...defaultProgress, version: undefined },
+        'migration-progress'
+      );
 
       if (!parsedProgress.version || parsedProgress.version < CURRENT_VERSION) {
         debug.log('storage', `Migration needed: ${parsedProgress.version || 'none'} -> ${CURRENT_VERSION}`);
@@ -133,38 +155,53 @@ export const storage = {
   },
 
   async saveBook(book: Book): Promise<void> {
-    debug.log('storage', 'saveBook called', {
-      bookId: book.id,
-      title: book.title,
-      hasCompanions: !!book.companions,
+    // Wait for any pending save to complete (mutex pattern)
+    if (saveBookLock) {
+      await saveBookLock;
+    }
+
+    let unlock: () => void;
+    saveBookLock = new Promise<void>(resolve => {
+      unlock = resolve;
     });
 
-    if (book.companions) {
-      debug.log('storage', 'Book companions state', {
-        unlockedCount: book.companions.unlockedCompanions.length,
-        unlockedWithImages: book.companions.unlockedCompanions.filter(c => c.imageUrl).length,
-        readingTimeQueueCount: book.companions.readingTimeQueue.companions.length,
-        rtWithImages: book.companions.readingTimeQueue.companions.filter(c => c.imageUrl).length,
-        poolQueueCount: book.companions.poolQueue.companions.length,
-        poolWithImages: book.companions.poolQueue.companions.filter(c => c.imageUrl).length,
-        poolAvailable: book.companions.poolQueue.companions.filter(c => c.imageUrl && c.unlockMethod === null).length,
+    try {
+      debug.log('storage', 'saveBook called', {
+        bookId: book.id,
+        title: book.title,
+        hasCompanions: !!book.companions,
       });
-    }
 
-    const books = await this.getBooks();
-    const index = books.findIndex(b => b.id === book.id);
-    if (index >= 0) {
-      debug.log('storage', `Updating existing book at index ${index}`);
-      books[index] = book;
-    } else {
-      debug.log('storage', 'Adding new book');
-      books.push(book);
-    }
+      if (book.companions) {
+        debug.log('storage', 'Book companions state', {
+          unlockedCount: book.companions.unlockedCompanions.length,
+          unlockedWithImages: book.companions.unlockedCompanions.filter(c => c.imageUrl).length,
+          readingTimeQueueCount: book.companions.readingTimeQueue.companions.length,
+          rtWithImages: book.companions.readingTimeQueue.companions.filter(c => c.imageUrl).length,
+          poolQueueCount: book.companions.poolQueue.companions.length,
+          poolWithImages: book.companions.poolQueue.companions.filter(c => c.imageUrl).length,
+          poolAvailable: book.companions.poolQueue.companions.filter(c => c.imageUrl && c.unlockMethod === null).length,
+        });
+      }
 
-    const json = JSON.stringify(books);
-    debug.log('storage', `Saving ${books.length} books (${json.length} bytes)`);
-    await AsyncStorage.setItem(KEYS.BOOKS, json);
-    debug.log('storage', 'saveBook complete');
+      const books = await this.getBooks();
+      const index = books.findIndex(b => b.id === book.id);
+      if (index >= 0) {
+        debug.log('storage', `Updating existing book at index ${index}`);
+        books[index] = book;
+      } else {
+        debug.log('storage', 'Adding new book');
+        books.push(book);
+      }
+
+      const json = JSON.stringify(books);
+      debug.log('storage', `Saving ${books.length} books (${json.length} bytes)`);
+      await AsyncStorage.setItem(KEYS.BOOKS, json);
+      debug.log('storage', 'saveBook complete');
+    } finally {
+      unlock!();
+      saveBookLock = null;
+    }
   },
 
   async deleteBook(id: string): Promise<void> {
@@ -206,7 +243,7 @@ export const storage = {
       if (progress.loadout) {
         const cleanedSlots = progress.loadout.slots.map(slot =>
           slot && companionIds.includes(slot) ? null : slot
-        );
+        ) as [string | null, string | null, string | null];
         const hasOrphanedSlots = cleanedSlots.some((s, i) => s !== progress.loadout!.slots[i]);
         if (hasOrphanedSlots) {
           progress.loadout.slots = cleanedSlots;
@@ -223,18 +260,25 @@ export const storage = {
 
   async getSessions(): Promise<ReadingSession[]> {
     const data = await AsyncStorage.getItem(KEYS.SESSIONS);
-    return data ? JSON.parse(data) : [];
+    return safeJsonParse<ReadingSession[]>(data, [], 'getSessions');
   },
 
   async saveSession(session: ReadingSession): Promise<void> {
-    const sessions = await this.getSessions();
+    let sessions = await this.getSessions();
     sessions.push(session);
+
+    // Prune old sessions to prevent unbounded growth (keep last 1000)
+    const MAX_SESSIONS = 1000;
+    if (sessions.length > MAX_SESSIONS) {
+      sessions = sessions.slice(-MAX_SESSIONS);
+    }
+
     await AsyncStorage.setItem(KEYS.SESSIONS, JSON.stringify(sessions));
   },
 
   async getProgress(): Promise<UserProgress> {
     const data = await AsyncStorage.getItem(KEYS.PROGRESS);
-    const progress = data ? JSON.parse(data) : defaultProgress;
+    const progress = safeJsonParse<UserProgress>(data, defaultProgress, 'getProgress');
 
     // Ensure all required fields exist (defensive)
     return {

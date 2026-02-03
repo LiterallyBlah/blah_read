@@ -6,6 +6,7 @@ import type {
 } from './types';
 import type { Genre } from './genres';
 import { rollCompanionEffects } from './companionEffects';
+import { generateBatchId } from './idGenerator';
 
 /**
  * Structured output schema for OpenRouter
@@ -99,7 +100,7 @@ export function parseResearchResponse(
     const effects = rollCompanionEffects(item.rarity, bookGenres);
 
     return {
-      id: `${bookId}-companion-${index}-${Date.now()}`,
+      id: generateBatchId(`${bookId}-companion`, index),
       bookId,
       name: item.name,
       type: item.type,
@@ -168,18 +169,23 @@ export function assignCompanionQueues(companions: Companion[]): {
   // Allocate legendaries with clear designation:
   // - completionLegendary: First legendary, awarded when user finishes the book
   // - poolLegendary: Second legendary, available in gold loot boxes
-  // - readingTimeLegendary: Third legendary (or reuse), for reading time milestones
+  // - readingTimeLegendary: Third legendary, for reading time milestones
+  // IMPORTANT: Each queue gets a UNIQUE legendary to prevent duplication
   let completionLegendary: Companion | null = null;
   let poolLegendary: Companion | null = null;
   let readingTimeLegendary: Companion | null = null;
 
-  if (shuffledLegendaries.length >= 2) {
-    // First legendary is completion reward
+  if (shuffledLegendaries.length >= 3) {
+    // All three queues get unique legendaries
     completionLegendary = shuffledLegendaries[0];
-    // Second legendary goes to loot pool
     poolLegendary = shuffledLegendaries[1];
-    // Third (or second) for reading time
-    readingTimeLegendary = shuffledLegendaries[2] || shuffledLegendaries[1];
+    readingTimeLegendary = shuffledLegendaries[2];
+  } else if (shuffledLegendaries.length === 2) {
+    // Two legendaries: completion and pool get them, reading-time gets none
+    completionLegendary = shuffledLegendaries[0];
+    poolLegendary = shuffledLegendaries[1];
+    // No reading time legendary - ensures no duplication
+    readingTimeLegendary = null;
   } else if (shuffledLegendaries.length === 1) {
     // If only one legendary, prioritize completion reward
     completionLegendary = shuffledLegendaries[0];

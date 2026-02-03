@@ -46,11 +46,26 @@ export async function searchOpenLibrary(
     params.set('author', author);
   }
 
-  const response = await fetch(`${SEARCH_URL}?${params}`);
-  if (!response.ok) {
-    return null;
-  }
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-  const data = await response.json();
-  return parseOpenLibraryResponse(data);
+  try {
+    const response = await fetch(`${SEARCH_URL}?${params}`, { signal: controller.signal });
+    if (!response.ok) {
+      console.warn(`[openLibrary] API error: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    return parseOpenLibraryResponse(data);
+  } catch (error) {
+    if ((error as Error).name === 'AbortError') {
+      console.warn('[openLibrary] Request timed out');
+    } else {
+      console.error('[openLibrary] Search failed:', error);
+    }
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }

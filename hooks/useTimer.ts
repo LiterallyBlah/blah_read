@@ -17,6 +17,9 @@ export function useTimer(options: UseTimerOptions = {}) {
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  // Use ref to avoid stale closure in AppState handler
+  const isRunningRef = useRef(isRunning);
+  isRunningRef.current = isRunning;
 
   // Persist state whenever running state changes
   const persistState = useCallback(async (running: boolean, currentElapsed: number) => {
@@ -113,17 +116,17 @@ export function useTimer(options: UseTimerOptions = {}) {
     };
   }, [isRunning]);
 
-  // Handle app state changes
+  // Handle app state changes - uses isRunningRef to avoid stale closure
   useEffect(() => {
     const subscription = AppState.addEventListener('change', async (nextAppState) => {
       if (appStateRef.current === 'active' && nextAppState.match(/inactive|background/)) {
         // App going to background - save current state
-        if (isRunning) {
+        if (isRunningRef.current) {
           await timerPersistence.updateHeartbeat(Date.now());
         }
       } else if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
         // App coming to foreground - recalculate elapsed if running
-        if (isRunning && startTimeRef.current > 0) {
+        if (isRunningRef.current && startTimeRef.current > 0) {
           setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
         }
       }
@@ -133,7 +136,7 @@ export function useTimer(options: UseTimerOptions = {}) {
     return () => {
       subscription.remove();
     };
-  }, [isRunning]);
+  }, []); // No isRunning dependency - using ref instead
 
   return { elapsed, isRunning, start, pause, reset };
 }

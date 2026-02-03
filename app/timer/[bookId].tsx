@@ -37,84 +37,107 @@ export default function TimerScreen() {
   const { elapsed, isRunning, start, pause, reset } = useTimer({ bookId });
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
+  // Load book data with abort pattern to prevent memory leaks
   useEffect(() => {
-    loadBookAndCompanions();
-    activateKeepAwakeAsync();
+    let mounted = true;
+
+    async function load() {
+      const books = await storage.getBooks();
+      let foundBook = books.find(b => b.id === bookId) || null;
+
+      // Load equipped companions and calculate active effects
+      const progress = await storage.getProgress();
+
+      // Check for pending instant levels
+      if (foundBook && progress.pendingInstantLevels && progress.pendingInstantLevels > 0) {
+        debug.log('timer', `Applying ${progress.pendingInstantLevels} instant level(s) to book`);
+
+        // Apply instant levels to book
+        const currentLevel = foundBook.progression?.level || 1;
+        const newLevel = currentLevel + progress.pendingInstantLevels;
+
+        foundBook = {
+          ...foundBook,
+          progression: {
+            ...foundBook.progression,
+            level: newLevel,
+            totalSeconds: foundBook.progression?.totalSeconds || foundBook.totalReadingTime,
+            levelUps: [...(foundBook.progression?.levelUps || []), ...Array(progress.pendingInstantLevels).fill(Date.now())],
+          },
+        };
+
+        // Clear the pending instant levels
+        progress.pendingInstantLevels = 0;
+
+        // Save both
+        await storage.saveBook(foundBook);
+        await storage.saveProgress(progress);
+
+        debug.log('timer', `Book leveled up to ${newLevel}`);
+      }
+
+      // Only update state if still mounted
+      if (!mounted) return;
+
+      setBook(foundBook);
+      const loadout = progress.loadout || { slots: [null, null, null], unlockedSlots: 1 };
+      const equippedIds = getEquippedCompanionIds(loadout);
+
+      // Gather all companions from all books
+      const allCompanions: Companion[] = [];
+      for (const b of books) {
+        if (b.companions?.unlockedCompanions) {
+          allCompanions.push(...b.companions.unlockedCompanions);
+        }
+      }
+
+      // Resolve equipped companion IDs to actual companion objects
+      const equipped = equippedIds
+        .map(id => allCompanions.find(c => c.id === id))
+        .filter((c): c is Companion => c !== undefined);
+
+      if (!mounted) return;
+      setEquippedCompanions(equipped);
+
+      // Calculate combined active effects (companion + consumable)
+      const bookGenres = foundBook?.normalizedGenres || [];
+      const companionEffects = calculateActiveEffects(equipped, bookGenres);
+      const consumableEffects = getConsumableEffects(progress.activeConsumables || []);
+
+      const combined: ActiveEffects = {
+        xpBoost: companionEffects.xpBoost + consumableEffects.xpBoost,
+        luck: companionEffects.luck + consumableEffects.luck,
+        rareLuck: companionEffects.rareLuck + consumableEffects.rareLuck,
+        legendaryLuck: companionEffects.legendaryLuck + consumableEffects.legendaryLuck,
+        dropRateBoost: companionEffects.dropRateBoost + consumableEffects.dropRateBoost,
+        completionBonus: companionEffects.completionBonus,
+      };
+
+      if (!mounted) return;
+      setActiveEffects(combined);
+
+      debug.log('timer', 'Active effects calculated', combined);
+    }
+
+    load();
+
+    return () => {
+      mounted = false;
+    };
+  }, [bookId]);
+
+  // Keep screen awake only when timer is running
+  useEffect(() => {
+    if (isRunning) {
+      activateKeepAwakeAsync();
+    } else {
+      deactivateKeepAwake();
+    }
     return () => {
       deactivateKeepAwake();
     };
-  }, []);
+  }, [isRunning]);
 
-  async function loadBookAndCompanions() {
-    const books = await storage.getBooks();
-    let foundBook = books.find(b => b.id === bookId) || null;
-
-    // Load equipped companions and calculate active effects
-    const progress = await storage.getProgress();
-
-    // Check for pending instant levels
-    if (foundBook && progress.pendingInstantLevels && progress.pendingInstantLevels > 0) {
-      debug.log('timer', `Applying ${progress.pendingInstantLevels} instant level(s) to book`);
-
-      // Apply instant levels to book
-      const currentLevel = foundBook.progression?.level || 1;
-      const newLevel = currentLevel + progress.pendingInstantLevels;
-
-      foundBook = {
-        ...foundBook,
-        progression: {
-          ...foundBook.progression,
-          level: newLevel,
-          totalSeconds: foundBook.progression?.totalSeconds || foundBook.totalReadingTime,
-          levelUps: [...(foundBook.progression?.levelUps || []), ...Array(progress.pendingInstantLevels).fill(Date.now())],
-        },
-      };
-
-      // Clear the pending instant levels
-      progress.pendingInstantLevels = 0;
-
-      // Save both
-      await storage.saveBook(foundBook);
-      await storage.saveProgress(progress);
-
-      debug.log('timer', `Book leveled up to ${newLevel}`);
-    }
-
-    setBook(foundBook);
-    const loadout = progress.loadout || { slots: [null, null, null], unlockedSlots: 1 };
-    const equippedIds = getEquippedCompanionIds(loadout);
-
-    // Gather all companions from all books
-    const allCompanions: Companion[] = [];
-    for (const b of books) {
-      if (b.companions?.unlockedCompanions) {
-        allCompanions.push(...b.companions.unlockedCompanions);
-      }
-    }
-
-    // Resolve equipped companion IDs to actual companion objects
-    const equipped = equippedIds
-      .map(id => allCompanions.find(c => c.id === id))
-      .filter((c): c is Companion => c !== undefined);
-    setEquippedCompanions(equipped);
-
-    // Calculate combined active effects (companion + consumable)
-    const bookGenres = foundBook?.normalizedGenres || [];
-    const companionEffects = calculateActiveEffects(equipped, bookGenres);
-    const consumableEffects = getConsumableEffects(progress.activeConsumables || []);
-
-    const combined: ActiveEffects = {
-      xpBoost: companionEffects.xpBoost + consumableEffects.xpBoost,
-      luck: companionEffects.luck + consumableEffects.luck,
-      rareLuck: companionEffects.rareLuck + consumableEffects.rareLuck,
-      legendaryLuck: companionEffects.legendaryLuck + consumableEffects.legendaryLuck,
-      dropRateBoost: companionEffects.dropRateBoost + consumableEffects.dropRateBoost,
-      completionBonus: companionEffects.completionBonus,
-    };
-    setActiveEffects(combined);
-
-    debug.log('timer', 'Active effects calculated', combined);
-  }
 
   function formatTime(seconds: number): string {
     const h = Math.floor(seconds / 3600);
@@ -334,6 +357,8 @@ export default function TimerScreen() {
       maybeGenerateImages(updatedBook, generateImage).then(async finalBook => {
         await storage.saveBook(finalBook);
         debug.log('timer', 'Background image generation complete');
+      }).catch(error => {
+        debug.error('timer', 'Background image generation failed', error);
       });
     }
 

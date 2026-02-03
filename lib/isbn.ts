@@ -87,6 +87,12 @@ export function asinToIsbn13(asin: string): string | null {
   const isValidChecksum = validateIsbn10(asin);
   console.log('[asinToIsbn13] ISBN-10 checksum valid:', isValidChecksum);
 
+  // Only convert if checksum is valid
+  if (!isValidChecksum) {
+    console.warn('[asinToIsbn13] Invalid ISBN-10 checksum, skipping conversion');
+    return null;
+  }
+
   const isbn13 = isbn10ToIsbn13(asin);
   console.log('[asinToIsbn13] Converted to ISBN-13:', isbn13);
 

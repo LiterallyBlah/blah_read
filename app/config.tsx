@@ -13,6 +13,7 @@ import { storage } from '@/lib/storage';
 import { backfillAllCompanionEffects } from '@/lib/companionEffects';
 import { generateBufferedImages } from '@/lib/companionImageQueue';
 import { generateImageForCompanion } from '@/lib/imageGen';
+import { consolidateActiveConsumables } from '@/lib/consumableManager';
 import type { Genre } from '@/lib/genres';
 import { FONTS } from '@/lib/theme';
 import type { LootBoxV3, LootBoxTier, Companion } from '@/lib/types';
@@ -564,6 +565,42 @@ export default function ConfigScreen() {
                 </Pressable>
               </View>
               <Text style={styles.hint}>adds loot boxes for testing rewards</Text>
+
+              <View style={styles.divider} />
+
+              <Text style={[styles.label, { color: '#f59e0b' }]}>consolidate active effects_</Text>
+              <Pressable
+                style={[styles.actionButton, { borderColor: '#f59e0b' }]}
+                onPress={async () => {
+                  const progress = await storage.getProgress();
+                  const activeConsumables = progress.activeConsumables || [];
+
+                  if (activeConsumables.length === 0) {
+                    Alert.alert('No Effects', 'No active consumable effects to consolidate.');
+                    return;
+                  }
+
+                  const { consolidated, mergedCount } = consolidateActiveConsumables(activeConsumables);
+
+                  if (mergedCount === 0) {
+                    Alert.alert('Already Consolidated', 'All active effects are already consolidated (no duplicates found).');
+                    return;
+                  }
+
+                  await storage.saveProgress({
+                    ...progress,
+                    activeConsumables: consolidated,
+                  });
+
+                  Alert.alert(
+                    'Effects Consolidated',
+                    `Merged ${mergedCount} duplicate entries.\n\nBefore: ${activeConsumables.length} entries\nAfter: ${consolidated.length} entries\n\nDurations and magnitudes have been combined.`
+                  );
+                }}
+              >
+                <Text style={[styles.actionButtonText, { color: '#f59e0b' }]}>[consolidate effects]</Text>
+              </Pressable>
+              <Text style={styles.hint}>merges duplicate active effects by combining their durations and magnitudes</Text>
 
               <View style={styles.divider} />
 

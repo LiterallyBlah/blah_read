@@ -111,12 +111,13 @@ export interface ActiveConsumable {
   consumableId: string;
   remainingDuration: number; // Minutes remaining
   appliedAt: number; // Timestamp
+  stackedMagnitude?: number; // Combined magnitude when multiple consumables are stacked
 }
 
 // Loadout system
 export interface CompanionLoadout {
-  slots: (string | null)[]; // Companion IDs, null = empty slot
-  unlockedSlots: number; // 1, 2, or 3
+  slots: [string | null, string | null, string | null]; // Companion IDs, null = empty slot
+  unlockedSlots: 1 | 2 | 3;
 }
 
 // Slot unlock progress

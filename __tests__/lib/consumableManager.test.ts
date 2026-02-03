@@ -6,6 +6,7 @@ import {
   getActiveEffects,
   tickConsumables,
   removeUsedConsumable,
+  consolidateActiveConsumables,
 } from '@/lib/consumableManager';
 
 describe('addActiveConsumable', () => {
@@ -17,10 +18,34 @@ describe('addActiveConsumable', () => {
     expect(result[0].remainingDuration).toBe(60); // 60 minutes
   });
 
-  it('should stack same consumables additively', () => {
-    const consumable = CONSUMABLES.find(c => c.id === 'weak_xp_1')!;
+  it('should stack same consumable by extending duration', () => {
+    const consumable = CONSUMABLES.find(c => c.id === 'weak_xp_1')!; // 60 min duration
     let active = addActiveConsumable([], consumable);
     active = addActiveConsumable(active, consumable);
+    // Should merge into one entry with combined duration
+    expect(active.length).toBe(1);
+    expect(active[0].consumableId).toBe('weak_xp_1');
+    expect(active[0].remainingDuration).toBe(120); // 60 + 60
+  });
+
+  it('should stack same effect type by extending duration', () => {
+    // Two different luck consumables should merge into one entry
+    const luckyPenny = CONSUMABLES.find(c => c.id === 'weak_luck_1')!; // 120 min, 0.05 magnitude
+    const clover = CONSUMABLES.find(c => c.id === 'med_luck_1')!; // 180 min, 0.10 magnitude
+    let active = addActiveConsumable([], luckyPenny);
+    active = addActiveConsumable(active, clover);
+    // Should merge since both are 'luck' effect type
+    expect(active.length).toBe(1);
+    expect(active[0].remainingDuration).toBe(300); // 120 + 180
+    expect(active[0].stackedMagnitude).toBeCloseTo(0.15); // 0.05 + 0.10
+  });
+
+  it('should not merge different effect types', () => {
+    const xpConsumable = CONSUMABLES.find(c => c.id === 'weak_xp_1')!;
+    const luckConsumable = CONSUMABLES.find(c => c.id === 'weak_luck_1')!;
+    let active = addActiveConsumable([], xpConsumable);
+    active = addActiveConsumable(active, luckConsumable);
+    // Different effect types should remain separate
     expect(active.length).toBe(2);
   });
 
@@ -72,6 +97,15 @@ describe('getActiveEffects', () => {
     ];
     const effects = getActiveEffects(active);
     expect(effects.xpBoost).toBeCloseTo(0.35); // 0.10 + 0.25
+  });
+
+  it('should use stackedMagnitude when present', () => {
+    // Simulates a stacked consumable with combined magnitude
+    const active: ActiveConsumable[] = [
+      { consumableId: 'weak_luck_1', remainingDuration: 300, appliedAt: Date.now(), stackedMagnitude: 0.15 },
+    ];
+    const effects = getActiveEffects(active);
+    expect(effects.luck).toBeCloseTo(0.15); // Uses stacked magnitude, not base 0.05
   });
 
   it('should sum luck boosts', () => {
@@ -261,5 +295,71 @@ describe('getActiveEffects with new luck types', () => {
     expect(effects.luck).toBe(0.05);
     expect(effects.rareLuck).toBe(0.10);
     expect(effects.legendaryLuck).toBe(0.15);
+  });
+});
+
+describe('consolidateActiveConsumables', () => {
+  it('should merge duplicate effect types into single entries', () => {
+    // Simulate existing data with 3 separate Lucky Pennies
+    const active: ActiveConsumable[] = [
+      { consumableId: 'weak_luck_1', remainingDuration: 30, appliedAt: Date.now() },
+      { consumableId: 'weak_luck_1', remainingDuration: 120, appliedAt: Date.now() },
+      { consumableId: 'weak_luck_1', remainingDuration: 120, appliedAt: Date.now() },
+    ];
+
+    const { consolidated, mergedCount } = consolidateActiveConsumables(active);
+
+    expect(consolidated.length).toBe(1);
+    expect(mergedCount).toBe(2); // 2 entries were merged into the first
+    expect(consolidated[0].remainingDuration).toBe(270); // 30 + 120 + 120
+    expect(consolidated[0].stackedMagnitude).toBeCloseTo(0.15); // 0.05 * 3
+  });
+
+  it('should merge different consumables of same effect type', () => {
+    // Lucky Penny (luck, 0.05) + Four-Leaf Clover (luck, 0.10)
+    const active: ActiveConsumable[] = [
+      { consumableId: 'weak_luck_1', remainingDuration: 120, appliedAt: Date.now() },
+      { consumableId: 'med_luck_1', remainingDuration: 180, appliedAt: Date.now() },
+    ];
+
+    const { consolidated, mergedCount } = consolidateActiveConsumables(active);
+
+    expect(consolidated.length).toBe(1);
+    expect(mergedCount).toBe(1);
+    expect(consolidated[0].remainingDuration).toBe(300); // 120 + 180
+    expect(consolidated[0].stackedMagnitude).toBeCloseTo(0.15); // 0.05 + 0.10
+  });
+
+  it('should keep different effect types separate', () => {
+    const active: ActiveConsumable[] = [
+      { consumableId: 'weak_luck_1', remainingDuration: 120, appliedAt: Date.now() },
+      { consumableId: 'weak_xp_1', remainingDuration: 60, appliedAt: Date.now() },
+    ];
+
+    const { consolidated, mergedCount } = consolidateActiveConsumables(active);
+
+    expect(consolidated.length).toBe(2);
+    expect(mergedCount).toBe(0);
+  });
+
+  it('should handle empty array', () => {
+    const { consolidated, mergedCount } = consolidateActiveConsumables([]);
+
+    expect(consolidated.length).toBe(0);
+    expect(mergedCount).toBe(0);
+  });
+
+  it('should preserve existing stackedMagnitude when consolidating', () => {
+    // Already partially stacked entry + new entry
+    const active: ActiveConsumable[] = [
+      { consumableId: 'weak_luck_1', remainingDuration: 200, appliedAt: Date.now(), stackedMagnitude: 0.10 },
+      { consumableId: 'weak_luck_1', remainingDuration: 120, appliedAt: Date.now() },
+    ];
+
+    const { consolidated } = consolidateActiveConsumables(active);
+
+    expect(consolidated.length).toBe(1);
+    expect(consolidated[0].remainingDuration).toBe(320);
+    expect(consolidated[0].stackedMagnitude).toBeCloseTo(0.15); // 0.10 + 0.05
   });
 });

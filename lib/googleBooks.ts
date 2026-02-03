@@ -57,9 +57,28 @@ export async function searchGoogleBooks(
   if (apiKey) {
     url += `&key=${encodeURIComponent(apiKey)}`;
   }
-  const response = await fetch(url);
-  const data = await response.json();
-  return parseGoogleBooksResponse(data);
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) {
+      debug.warn('googleBooks', `API error: ${response.status}`);
+      return null;
+    }
+    const data = await response.json();
+    return parseGoogleBooksResponse(data);
+  } catch (error) {
+    if ((error as Error).name === 'AbortError') {
+      debug.warn('googleBooks', 'Request timed out');
+    } else {
+      debug.error('googleBooks', 'Search failed', error);
+    }
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 /**
@@ -73,7 +92,26 @@ export async function searchGoogleBooksByIsbn(
   if (apiKey) {
     url += `&key=${encodeURIComponent(apiKey)}`;
   }
-  const response = await fetch(url);
-  const data = await response.json();
-  return parseGoogleBooksResponse(data);
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) {
+      debug.warn('googleBooks', `ISBN API error: ${response.status}`);
+      return null;
+    }
+    const data = await response.json();
+    return parseGoogleBooksResponse(data);
+  } catch (error) {
+    if ((error as Error).name === 'AbortError') {
+      debug.warn('googleBooks', 'ISBN request timed out');
+    } else {
+      debug.error('googleBooks', 'ISBN search failed', error);
+    }
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }

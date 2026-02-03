@@ -50,18 +50,20 @@ export function TintedChest({
         resizeMode="stretch"
       />
 
-      {/* Tint overlay for silver/gold */}
-      {tierConfig.tint && !isOpen && (
-        <View
+      {/* Tint overlay for silver/gold - uses tintColor which respects transparency */}
+      {tierConfig.tint && (
+        <Image
+          source={source}
           style={[
             styles.tintOverlay,
             {
-              backgroundColor: tierConfig.tint,
-              opacity: tierConfig.tintOpacity,
               width: size,
               height: size,
+              tintColor: tierConfig.tint,
+              opacity: tierConfig.tintOpacity,
             },
           ]}
+          resizeMode="stretch"
         />
       )}
     </View>

@@ -4,6 +4,7 @@ import { storage } from './storage';
 import { settings } from './settings';
 import { Book } from './types';
 import { debug, setDebugEnabled } from './debug';
+import { generateId } from './idGenerator';
 
 export type ProcessingStep = 'parsing' | 'checking-duplicate' | 'enriching' | 'saving';
 
@@ -86,7 +87,7 @@ export async function processKindleShare(
 
   // Step 4: Create book object
   const book: Book = {
-    id: Date.now().toString(),
+    id: generateId('book'),
     title: parsed.title,
     authors: parsed.authors,
     asin: parsed.asin,
