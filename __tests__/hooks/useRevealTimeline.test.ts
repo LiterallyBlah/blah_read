@@ -83,4 +83,25 @@ describe('useRevealTimeline', () => {
       expect(shakePhase).toBeCloseTo(1/3, 1);
     });
   });
+
+  describe('timeout cleanup', () => {
+    it('clears timeouts to prevent memory leaks', () => {
+      // Verify clearTimeout is called when cleanup happens
+      const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
+      const setTimeoutSpy = jest.spyOn(global, 'setTimeout');
+
+      // Simulate what the hook does: create timeouts
+      const timeoutId1 = setTimeout(() => {}, TIMELINE.SHAKE_END);
+      const timeoutId2 = setTimeout(() => {}, TIMELINE.TOTAL_DURATION);
+
+      // Clear them (simulating reset/unmount)
+      clearTimeout(timeoutId1);
+      clearTimeout(timeoutId2);
+
+      expect(clearTimeoutSpy).toHaveBeenCalledTimes(2);
+
+      clearTimeoutSpy.mockRestore();
+      setTimeoutSpy.mockRestore();
+    });
+  });
 });

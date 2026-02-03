@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   useSharedValue,
   withTiming,
   withSequence,
   Easing,
+  cancelAnimation,
 } from 'react-native-reanimated';
 
 // Timeline events in milliseconds
@@ -26,8 +27,26 @@ export type RevealState = 'idle' | 'shaking' | 'revealing' | 'complete';
 export function useRevealTimeline() {
   const [state, setState] = useState<RevealState>('idle');
   const progress = useSharedValue(0);
+  const timeoutIds = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // Clear all pending timeouts
+  const clearTimeouts = useCallback(() => {
+    timeoutIds.current.forEach(clearTimeout);
+    timeoutIds.current = [];
+  }, []);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      clearTimeouts();
+      cancelAnimation(progress);
+    };
+  }, []);
 
   const start = useCallback(() => {
+    // Clear any existing timeouts from previous animation
+    clearTimeouts();
+
     setState('shaking');
 
     // Animate progress from 0 to 1 over the total duration
@@ -44,20 +63,26 @@ export function useRevealTimeline() {
       })
     );
 
-    // Update state at key points
-    setTimeout(() => {
-      setState('revealing');
-    }, TIMELINE.SHAKE_END);
+    // Update state at key points (store IDs for cleanup)
+    timeoutIds.current.push(
+      setTimeout(() => {
+        setState('revealing');
+      }, TIMELINE.SHAKE_END)
+    );
 
-    setTimeout(() => {
-      setState('complete');
-    }, TIMELINE.TOTAL_DURATION);
-  }, []);
+    timeoutIds.current.push(
+      setTimeout(() => {
+        setState('complete');
+      }, TIMELINE.TOTAL_DURATION)
+    );
+  }, [clearTimeouts]);
 
   const reset = useCallback(() => {
+    clearTimeouts();
+    cancelAnimation(progress);
     progress.value = 0;
     setState('idle');
-  }, []);
+  }, [clearTimeouts]);
 
   return {
     state,
