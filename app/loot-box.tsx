@@ -65,249 +65,249 @@ export default function LootBoxScreen() {
         .filter(b => b.status === 'reading')
         .sort((a, b) => b.totalReadingTime - a.totalReadingTime)[0];
 
-    // Get equipped companions from current book's loadout
-    const loadout = currentBook?.loadout ?? { slots: [null, null, null], unlockedSlots: 1 };
-    const allCompanions = books.flatMap(b => b.companions?.unlockedCompanions ?? []);
-    const equippedCompanions = (loadout.slots ?? [])
-      .filter((id): id is string => id !== null)
-      .map(id => allCompanions.find(c => c.id === id))
-      .filter((c): c is Companion => c !== undefined);
-    const bookGenres = currentBook?.normalizedGenres ?? [];
+      // Get equipped companions from current book's loadout
+      const loadout = currentBook?.loadout ?? { slots: [null, null, null], unlockedSlots: 1 };
+      const allCompanions = books.flatMap(b => b.companions?.unlockedCompanions ?? []);
+      const equippedCompanions = (loadout.slots ?? [])
+        .filter((id): id is string => id !== null)
+        .map(id => allCompanions.find(c => c.id === id))
+        .filter((c): c is Companion => c !== undefined);
+      const bookGenres = currentBook?.normalizedGenres ?? [];
 
-    // Check if we have V3 boxes first
-    const v3Boxes = progress.lootBoxesV3 || [];
-    if (v3Boxes.length > 0) {
-      const boxToOpen = v3Boxes[0];
+      // Check if we have V3 boxes first
+      const v3Boxes = progress.lootBoxesV3 || [];
+      if (v3Boxes.length > 0) {
+        const boxToOpen = v3Boxes[0];
 
-      // Check pool availability to avoid companion roll when pool is empty
-      const pool = getPoolCompanions(books);
-
-      // Open using new system with tier rolling and pity
-      const { rolledTier, lootResult, updatedProgress: initialProgress } = openLootBoxV3(
-        boxToOpen,
-        progress,
-        equippedCompanions,
-        bookGenres,
-        { companionPoolSize: pool.length }
-      );
-      let updatedProgress = initialProgress;
-
-      debug.log('lootBox', 'V3 box opened', {
-        poolSize: pool.length,
-        rolledTier,
-        category: lootResult.category,
-        companionRarity: lootResult.companionRarity,
-        consumable: lootResult.consumable?.name,
-        pityCounter: updatedProgress.goldPityCounter,
-      });
-
-      // Remove the opened box
-      updatedProgress.lootBoxesV3 = v3Boxes.slice(1);
-
-      if (lootResult.category === 'consumable' && lootResult.consumable) {
-        // Handle consumable drop
-        if (lootResult.consumable.duration === 0) {
-          // Instant consumable - apply directly
-          const withInstant = applyInstantConsumable(updatedProgress, lootResult.consumable);
-          updatedProgress = { ...updatedProgress, ...withInstant };
-        } else {
-          // Duration-based consumable - add to active list
-          updatedProgress.activeConsumables = addActiveConsumable(
-            updatedProgress.activeConsumables || [],
-            lootResult.consumable
-          );
-        }
-        await storage.saveProgress(updatedProgress);
-
-        setRevealedConsumable(lootResult.consumable);
-        setRevealedTier(rolledTier);
-        setRevealedCompanion(null);
-      } else if (lootResult.category === 'companion' && lootResult.companionRarity) {
-        // Handle companion drop - get from pool with rarity-aware selection
+        // Check pool availability to avoid companion roll when pool is empty
         const pool = getPoolCompanions(books);
-        debug.log('lootBox', 'Companion drop - checking pool', {
-          poolSize: pool.length,
-          targetRarity: lootResult.companionRarity,
-          poolByRarity: {
-            common: pool.filter(c => c.rarity === 'common').length,
-            rare: pool.filter(c => c.rarity === 'rare').length,
-            legendary: pool.filter(c => c.rarity === 'legendary').length,
-          },
-        });
-        const { companion, actualRarity } = openLootBoxWithRarity(
-          pool,
-          currentBook?.id || null,
-          lootResult.companionRarity
+
+        // Open using new system with tier rolling and pity
+        const { rolledTier, lootResult, updatedProgress: initialProgress } = openLootBoxV3(
+          boxToOpen,
+          progress,
+          equippedCompanions,
+          bookGenres,
+          { companionPoolSize: pool.length }
         );
+        let updatedProgress = initialProgress;
 
-        if (companion) {
-          debug.log('lootBox', 'Companion selected from pool', {
-            name: companion.name,
-            targetRarity: lootResult.companionRarity,
-            actualRarity: actualRarity,
-            companionRarity: companion.rarity,
-            bookId: companion.bookId,
-          });
-          // Update book's companion state
-          const book = books.find(b => b.id === companion.bookId);
-          if (book?.companions) {
-            const poolIndex = book.companions.poolQueue.companions.findIndex(
-              c => c.id === companion.id
-            );
-            if (poolIndex !== -1) {
-              book.companions.poolQueue.companions[poolIndex] = companion;
-              book.companions.unlockedCompanions.push(companion);
-              await storage.saveBook(book);
-              debug.log('lootBox', 'Companion unlocked, triggering image generation');
+        debug.log('lootBox', 'V3 box opened', {
+          poolSize: pool.length,
+          rolledTier,
+          category: lootResult.category,
+          companionRarity: lootResult.companionRarity,
+          consumable: lootResult.consumable?.name,
+          pityCounter: updatedProgress.goldPityCounter,
+        });
 
-              // Trigger background image generation to refill pool buffer
-              const config = await settings.get();
-              if (config.apiKey) {
-                const generateImage = async (c: Companion) => {
-                  try {
-                    return await generateImageForCompanion(c, config.apiKey!, {
-                      model: config.imageModel,
-                    });
-                  } catch {
-                    return null;
-                  }
-                };
-                maybeGenerateImages(book, generateImage).then(async finalBook => {
-                  debug.log('lootBox', 'Image generation complete, saving book');
-                  await storage.saveBook(finalBook);
-                }).catch(error => {
-                  debug.error('lootBox', 'Image generation failed', error);
-                });
-              } else {
-                debug.log('lootBox', 'No API key, skipping image generation');
-              }
-            }
-          }
+        // Remove the opened box
+        updatedProgress.lootBoxesV3 = v3Boxes.slice(1);
 
-          await storage.saveProgress(updatedProgress);
-          setRevealedCompanion(companion);
-          setRevealedTier(rolledTier);
-          setRevealedConsumable(null);
-        } else {
-          debug.log('lootBox', 'Pool empty - rolling consumable instead');
-          // No companion available - roll a consumable using proper RNG based on box tier
-          const fallbackConsumable = rollConsumable(rolledTier);
-          if (fallbackConsumable.duration === 0) {
+        if (lootResult.category === 'consumable' && lootResult.consumable) {
+          // Handle consumable drop
+          if (lootResult.consumable.duration === 0) {
             // Instant consumable - apply directly
-            const withInstant = applyInstantConsumable(updatedProgress, fallbackConsumable);
+            const withInstant = applyInstantConsumable(updatedProgress, lootResult.consumable);
             updatedProgress = { ...updatedProgress, ...withInstant };
           } else {
             // Duration-based consumable - add to active list
             updatedProgress.activeConsumables = addActiveConsumable(
               updatedProgress.activeConsumables || [],
-              fallbackConsumable
+              lootResult.consumable
             );
           }
           await storage.saveProgress(updatedProgress);
 
-          setRevealedConsumable(fallbackConsumable);
+          setRevealedConsumable(lootResult.consumable);
           setRevealedTier(rolledTier);
           setRevealedCompanion(null);
-        }
-      }
+        } else if (lootResult.category === 'companion' && lootResult.companionRarity) {
+          // Handle companion drop - get from pool with rarity-aware selection
+          const pool = getPoolCompanions(books);
+          debug.log('lootBox', 'Companion drop - checking pool', {
+            poolSize: pool.length,
+            targetRarity: lootResult.companionRarity,
+            poolByRarity: {
+              common: pool.filter(c => c.rarity === 'common').length,
+              rare: pool.filter(c => c.rarity === 'rare').length,
+              legendary: pool.filter(c => c.rarity === 'legendary').length,
+            },
+          });
+          const { companion, actualRarity } = openLootBoxWithRarity(
+            pool,
+            currentBook?.id || null,
+            lootResult.companionRarity
+          );
 
-      const newV3Count = updatedProgress.lootBoxesV3?.length || 0;
-      const v2Count = progress.lootBoxes?.availableBoxes?.length || 0;
-      setBoxCount(v2Count + newV3Count);
-      setBoxesV3(updatedProgress.lootBoxesV3 || []);
-      setGoldPityCounter(updatedProgress.goldPityCounter ?? 0);
-      setRevealing(false);
-      return;
-    }
-
-    // Fallback to V2 boxes if no V3 boxes
-    if (progress.lootBoxes.availableBoxes.length === 0) {
-      setRevealing(false);
-      return;
-    }
-
-    // Get pool and open box (currentBook already defined above)
-    const pool = getPoolCompanions(books);
-    const { companion } = openLootBox(pool, currentBook?.id || null);
-
-    if (companion) {
-      // Update book's companion state
-      const book = books.find(b => b.id === companion.bookId);
-      if (book?.companions) {
-        const poolIndex = book.companions.poolQueue.companions.findIndex(
-          c => c.id === companion.id
-        );
-        if (poolIndex !== -1) {
-          book.companions.poolQueue.companions[poolIndex] = companion;
-          book.companions.unlockedCompanions.push(companion);
-          await storage.saveBook(book);
-
-          // Trigger background image generation to refill pool buffer
-          const config = await settings.get();
-          if (config.apiKey) {
-            const generateImage = async (c: Companion) => {
-              try {
-                return await generateImageForCompanion(c, config.apiKey!, {
-                  model: config.imageModel,
-                });
-              } catch {
-                return null;
-              }
-            };
-            maybeGenerateImages(book, generateImage).then(async finalBook => {
-              await storage.saveBook(finalBook);
-            }).catch(error => {
-              debug.error('lootBox', 'Image generation failed', error);
+          if (companion) {
+            debug.log('lootBox', 'Companion selected from pool', {
+              name: companion.name,
+              targetRarity: lootResult.companionRarity,
+              actualRarity: actualRarity,
+              companionRarity: companion.rarity,
+              bookId: companion.bookId,
             });
+            // Update book's companion state
+            const book = books.find(b => b.id === companion.bookId);
+            if (book?.companions) {
+              const poolIndex = book.companions.poolQueue.companions.findIndex(
+                c => c.id === companion.id
+              );
+              if (poolIndex !== -1) {
+                book.companions.poolQueue.companions[poolIndex] = companion;
+                book.companions.unlockedCompanions.push(companion);
+                await storage.saveBook(book);
+                debug.log('lootBox', 'Companion unlocked, triggering image generation');
+
+                // Trigger background image generation to refill pool buffer
+                const config = await settings.get();
+                if (config.apiKey) {
+                  const generateImage = async (c: Companion) => {
+                    try {
+                      return await generateImageForCompanion(c, config.apiKey!, {
+                        model: config.imageModel,
+                      });
+                    } catch {
+                      return null;
+                    }
+                  };
+                  maybeGenerateImages(book, generateImage).then(async finalBook => {
+                    debug.log('lootBox', 'Image generation complete, saving book');
+                    await storage.saveBook(finalBook);
+                  }).catch(error => {
+                    debug.error('lootBox', 'Image generation failed', error);
+                  });
+                } else {
+                  debug.log('lootBox', 'No API key, skipping image generation');
+                }
+              }
+            }
+
+            await storage.saveProgress(updatedProgress);
+            setRevealedCompanion(companion);
+            setRevealedTier(rolledTier);
+            setRevealedConsumable(null);
+          } else {
+            debug.log('lootBox', 'Pool empty - rolling consumable instead');
+            // No companion available - roll a consumable using proper RNG based on box tier
+            const fallbackConsumable = rollConsumable(rolledTier);
+            if (fallbackConsumable.duration === 0) {
+              // Instant consumable - apply directly
+              const withInstant = applyInstantConsumable(updatedProgress, fallbackConsumable);
+              updatedProgress = { ...updatedProgress, ...withInstant };
+            } else {
+              // Duration-based consumable - add to active list
+              updatedProgress.activeConsumables = addActiveConsumable(
+                updatedProgress.activeConsumables || [],
+                fallbackConsumable
+              );
+            }
+            await storage.saveProgress(updatedProgress);
+
+            setRevealedConsumable(fallbackConsumable);
+            setRevealedTier(rolledTier);
+            setRevealedCompanion(null);
           }
         }
+
+        const newV3Count = updatedProgress.lootBoxesV3?.length || 0;
+        const v2Count = progress.lootBoxes?.availableBoxes?.length || 0;
+        setBoxCount(v2Count + newV3Count);
+        setBoxesV3(updatedProgress.lootBoxesV3 || []);
+        setGoldPityCounter(updatedProgress.goldPityCounter ?? 0);
+        setRevealing(false);
+        return;
       }
 
-      // Remove used box and record history
-      const usedBox = progress.lootBoxes.availableBoxes.shift()!;
-      progress.lootBoxes.openHistory.push({
-        boxId: usedBox.id,
-        openedAt: Date.now(),
-        companionId: companion.id,
-      });
-      await storage.saveProgress(progress);
+      // Fallback to V2 boxes if no V3 boxes
+      if (progress.lootBoxes.availableBoxes.length === 0) {
+        setRevealing(false);
+        return;
+      }
 
-      setRevealedCompanion(companion);
-      setRevealedTier(null); // V2 boxes don't have tiers
-      setRevealedConsumable(null);
-      setBoxCount(progress.lootBoxes.availableBoxes.length + (progress.lootBoxesV3?.length || 0));
-    } else {
-      // No companion available (empty pool) - roll consumable using RNG
-      debug.log('lootBox', 'V2 pool empty - rolling consumable instead');
-      const usedBox = progress.lootBoxes.availableBoxes.shift()!;
-      progress.lootBoxes.openHistory.push({
-        boxId: usedBox.id,
-        openedAt: Date.now(),
-        companionId: '',
-      });
+      // Get pool and open box (currentBook already defined above)
+      const pool = getPoolCompanions(books);
+      const { companion } = openLootBox(pool, currentBook?.id || null);
 
-      // V2 boxes don't have tiers, default to wood tier for consumable roll
-      const fallbackConsumable = rollConsumable('wood');
-      if (fallbackConsumable.duration === 0) {
-        // Instant consumable - apply directly
-        const withInstant = applyInstantConsumable(progress, fallbackConsumable);
-        Object.assign(progress, withInstant);
+      if (companion) {
+        // Update book's companion state
+        const book = books.find(b => b.id === companion.bookId);
+        if (book?.companions) {
+          const poolIndex = book.companions.poolQueue.companions.findIndex(
+            c => c.id === companion.id
+          );
+          if (poolIndex !== -1) {
+            book.companions.poolQueue.companions[poolIndex] = companion;
+            book.companions.unlockedCompanions.push(companion);
+            await storage.saveBook(book);
+
+            // Trigger background image generation to refill pool buffer
+            const config = await settings.get();
+            if (config.apiKey) {
+              const generateImage = async (c: Companion) => {
+                try {
+                  return await generateImageForCompanion(c, config.apiKey!, {
+                    model: config.imageModel,
+                  });
+                } catch {
+                  return null;
+                }
+              };
+              maybeGenerateImages(book, generateImage).then(async finalBook => {
+                await storage.saveBook(finalBook);
+              }).catch(error => {
+                debug.error('lootBox', 'Image generation failed', error);
+              });
+            }
+          }
+        }
+
+        // Remove used box and record history
+        const usedBox = progress.lootBoxes.availableBoxes.shift()!;
+        progress.lootBoxes.openHistory.push({
+          boxId: usedBox.id,
+          openedAt: Date.now(),
+          companionId: companion.id,
+        });
+        await storage.saveProgress(progress);
+
+        setRevealedCompanion(companion);
+        setRevealedTier(null); // V2 boxes don't have tiers
+        setRevealedConsumable(null);
+        setBoxCount(progress.lootBoxes.availableBoxes.length + (progress.lootBoxesV3?.length || 0));
       } else {
-        // Duration-based consumable - add to active list
-        progress.activeConsumables = addActiveConsumable(
-          progress.activeConsumables || [],
-          fallbackConsumable
-        );
+        // No companion available (empty pool) - roll consumable using RNG
+        debug.log('lootBox', 'V2 pool empty - rolling consumable instead');
+        const usedBox = progress.lootBoxes.availableBoxes.shift()!;
+        progress.lootBoxes.openHistory.push({
+          boxId: usedBox.id,
+          openedAt: Date.now(),
+          companionId: '',
+        });
+
+        // V2 boxes don't have tiers, default to wood tier for consumable roll
+        const fallbackConsumable = rollConsumable('wood');
+        if (fallbackConsumable.duration === 0) {
+          // Instant consumable - apply directly
+          const withInstant = applyInstantConsumable(progress, fallbackConsumable);
+          Object.assign(progress, withInstant);
+        } else {
+          // Duration-based consumable - add to active list
+          progress.activeConsumables = addActiveConsumable(
+            progress.activeConsumables || [],
+            fallbackConsumable
+          );
+        }
+        await storage.saveProgress(progress);
+
+        setRevealedConsumable(fallbackConsumable);
+        setRevealedTier(null);
+        setRevealedCompanion(null);
+        setBoxCount(progress.lootBoxes.availableBoxes.length + (progress.lootBoxesV3?.length || 0));
       }
-      await storage.saveProgress(progress);
 
-      setRevealedConsumable(fallbackConsumable);
-      setRevealedTier(null);
-      setRevealedCompanion(null);
-      setBoxCount(progress.lootBoxes.availableBoxes.length + (progress.lootBoxesV3?.length || 0));
-    }
-
-    setRevealing(false);
+      setRevealing(false);
     } catch (error) {
       debug.error('lootBox', 'Error opening loot box', error);
       // Ensure we exit revealing state even on error
