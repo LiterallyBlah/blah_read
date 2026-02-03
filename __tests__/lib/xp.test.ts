@@ -1,4 +1,4 @@
-import { calculateXp, getStreakMultiplier, calculateLevel, xpProgress } from '@/lib/xp';
+import { calculateXp, getStreakMultiplier, getStreakMultiplierInfo, calculateLevel, xpProgress } from '@/lib/xp';
 
 describe('xp', () => {
   it('calculates base XP as 10 per minute', () => {
@@ -22,6 +22,22 @@ describe('xp', () => {
     expect(getStreakMultiplier(6)).toBe(1.2);
     expect(getStreakMultiplier(7)).toBe(1.5);
     expect(getStreakMultiplier(100)).toBe(1.5);
+  });
+
+  it('getStreakMultiplierInfo returns current multiplier and next threshold info', () => {
+    // 0-2 days: 1.0x, next is 1.2x at 3 days
+    expect(getStreakMultiplierInfo(0)).toEqual({ current: 1.0, next: 1.2, daysToNext: 3 });
+    expect(getStreakMultiplierInfo(1)).toEqual({ current: 1.0, next: 1.2, daysToNext: 2 });
+    expect(getStreakMultiplierInfo(2)).toEqual({ current: 1.0, next: 1.2, daysToNext: 1 });
+
+    // 3-6 days: 1.2x, next is 1.5x at 7 days
+    expect(getStreakMultiplierInfo(3)).toEqual({ current: 1.2, next: 1.5, daysToNext: 4 });
+    expect(getStreakMultiplierInfo(5)).toEqual({ current: 1.2, next: 1.5, daysToNext: 2 });
+    expect(getStreakMultiplierInfo(6)).toEqual({ current: 1.2, next: 1.5, daysToNext: 1 });
+
+    // 7+ days: 1.5x, no next threshold
+    expect(getStreakMultiplierInfo(7)).toEqual({ current: 1.5, next: null, daysToNext: 0 });
+    expect(getStreakMultiplierInfo(100)).toEqual({ current: 1.5, next: null, daysToNext: 0 });
   });
 
   it('calculates level from total XP', () => {

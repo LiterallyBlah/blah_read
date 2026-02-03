@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Image, StyleSheet, Pressable } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, router } from 'expo-router';
 import { storage } from '@/lib/storage';
-import { calculateLevel, xpProgress } from '@/lib/xp';
+import { calculateLevel, xpProgress, getStreakMultiplierInfo } from '@/lib/xp';
 import { Book, UserProgress, Companion } from '@/lib/types';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
@@ -35,6 +35,7 @@ export default function ProfileScreen() {
 
   const level = progress ? calculateLevel(progress.totalXp) : 1;
   const xp = progress ? xpProgress(progress.totalXp) : { current: 0, needed: 1000 };
+  const streakInfo = getStreakMultiplierInfo(progress?.currentStreak || 0);
   const companions = books.flatMap(b => b.companions?.unlockedCompanions || []);
   const totalTime = books.reduce((sum, b) => sum + b.totalReadingTime, 0);
   const hours = Math.floor(totalTime / 3600);
@@ -72,7 +73,7 @@ export default function ProfileScreen() {
           </View>
           <View style={styles.statBox}>
             <Text style={styles.statValue}>{progress?.currentStreak || 0}</Text>
-            <Text style={styles.statLabel}>streak</Text>
+            <Text style={styles.statLabel}>streak ({streakInfo.current}x)</Text>
           </View>
           <View style={styles.statBox}>
             <Text style={styles.statValue}>{progress?.longestStreak || 0}</Text>
@@ -83,6 +84,13 @@ export default function ProfileScreen() {
             <Text style={styles.statLabel}>hours</Text>
           </View>
         </View>
+
+        {/* Streak multiplier progress */}
+        {streakInfo.next && (
+          <Text style={styles.streakProgress}>
+            {streakInfo.daysToNext} more day{streakInfo.daysToNext !== 1 ? 's' : ''} for {streakInfo.next}x xp
+          </Text>
+        )}
 
         {/* XP progress */}
         <View style={styles.xpSection}>
@@ -402,6 +410,14 @@ function createStyles(colors: any, spacing: (n: number) => number, fontSize: (si
       fontFamily: FONTS.mono,
       fontSize: fontSize('micro'),
       letterSpacing: letterSpacing('tight'),
+    },
+    streakProgress: {
+      color: colors.textMuted,
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('micro'),
+      letterSpacing: letterSpacing('tight'),
+      textAlign: 'center',
+      marginTop: spacing(1),
     },
     xpSection: {
       marginTop: spacing(2),

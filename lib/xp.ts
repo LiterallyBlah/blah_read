@@ -7,6 +7,18 @@ export function getStreakMultiplier(streak: number): number {
   return 1.0;
 }
 
+export interface StreakMultiplierInfo {
+  current: number;
+  next: number | null;
+  daysToNext: number;
+}
+
+export function getStreakMultiplierInfo(streak: number): StreakMultiplierInfo {
+  if (streak >= 7) return { current: 1.5, next: null, daysToNext: 0 };
+  if (streak >= 3) return { current: 1.2, next: 1.5, daysToNext: 7 - streak };
+  return { current: 1.0, next: 1.2, daysToNext: 3 - streak };
+}
+
 export function calculateXp(durationSeconds: number, streak: number): number {
   const minutes = durationSeconds / 60;
   const baseXp = minutes * XP_PER_MINUTE;
