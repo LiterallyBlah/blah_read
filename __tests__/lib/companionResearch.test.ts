@@ -186,9 +186,9 @@ describe('companionResearch', () => {
         };
 
         const result = parseResearchResponse(response, 'book-123');
-        // Legendary magnitude range is 0.25 to 0.35
-        expect(result.companions[0].effects![0].magnitude).toBeGreaterThanOrEqual(0.25);
-        expect(result.companions[0].effects![0].magnitude).toBeLessThanOrEqual(0.35);
+        // Legendary global effect magnitude range is 0.18 to 0.25 (genre-targeted would be 0.30-0.40)
+        expect(result.companions[0].effects![0].magnitude).toBeGreaterThanOrEqual(0.18);
+        expect(result.companions[0].effects![0].magnitude).toBeLessThanOrEqual(0.25);
       });
 
       it('can use book genres for xp_boost targeting', () => {

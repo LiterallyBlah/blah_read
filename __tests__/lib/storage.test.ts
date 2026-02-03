@@ -83,9 +83,18 @@ describe('storage', () => {
   });
 
   describe('getDefaultLoadoutForNewBook', () => {
-    it('uses unlockedSlots from user progress', async () => {
+    it('uses unlockedSlots derived from slotProgress', async () => {
       const progress = {
-        loadout: { slots: ['comp-1', null, null], unlockedSlots: 2 },
+        slotProgress: {
+          booksFinished: 3,
+          hoursLogged: 10,
+          companionsCollected: 5,
+          sessionsCompleted: 20,
+          genreLevelTens: [],
+          genresRead: ['fantasy'],
+          slot2Points: 150, // >= 100, so slot 2 unlocked
+          slot3Points: 200, // < 300, so slot 3 locked
+        },
       };
       (AsyncStorage.getItem as jest.Mock).mockImplementation((key) => {
         if (key === 'blahread:progress') return JSON.stringify(progress);
@@ -95,7 +104,31 @@ describe('storage', () => {
       const defaultLoadout = await storage.getDefaultLoadoutForNewBook();
 
       expect(defaultLoadout.slots).toEqual([null, null, null]); // Empty slots
-      expect(defaultLoadout.unlockedSlots).toBe(2); // Same unlocked count as user
+      expect(defaultLoadout.unlockedSlots).toBe(2); // Derived from slotProgress
+    });
+
+    it('unlocks all 3 slots when slotProgress thresholds met', async () => {
+      const progress = {
+        slotProgress: {
+          booksFinished: 10,
+          hoursLogged: 50,
+          companionsCollected: 20,
+          sessionsCompleted: 100,
+          genreLevelTens: ['fantasy', 'sci-fi'],
+          genresRead: ['fantasy', 'sci-fi', 'mystery'],
+          slot2Points: 150, // >= 100
+          slot3Points: 350, // >= 300
+        },
+      };
+      (AsyncStorage.getItem as jest.Mock).mockImplementation((key) => {
+        if (key === 'blahread:progress') return JSON.stringify(progress);
+        return null;
+      });
+
+      const defaultLoadout = await storage.getDefaultLoadoutForNewBook();
+
+      expect(defaultLoadout.slots).toEqual([null, null, null]);
+      expect(defaultLoadout.unlockedSlots).toBe(3); // All slots unlocked
     });
 
     it('defaults to 1 unlocked slot when no progress exists', async () => {
