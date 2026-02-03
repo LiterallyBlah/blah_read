@@ -43,22 +43,22 @@ describe('companionEffects', () => {
     expect(EFFECT_TYPES.length).toBe(6);
   });
 
-  it('should calculate magnitude within rarity range', () => {
+  it('should calculate magnitude within global common range', () => {
     const magnitude = calculateEffectMagnitude('common');
-    expect(magnitude).toBeGreaterThanOrEqual(0.03);
-    expect(magnitude).toBeLessThanOrEqual(0.07);
+    expect(magnitude).toBeGreaterThanOrEqual(0.02);
+    expect(magnitude).toBeLessThanOrEqual(0.05);
   });
 
-  it('should calculate higher magnitude for legendary', () => {
+  it('should calculate magnitude within global legendary range', () => {
     const magnitude = calculateEffectMagnitude('legendary');
-    expect(magnitude).toBeGreaterThanOrEqual(0.25);
-    expect(magnitude).toBeLessThanOrEqual(0.35);
+    expect(magnitude).toBeGreaterThanOrEqual(0.18);
+    expect(magnitude).toBeLessThanOrEqual(0.25);
   });
 
-  it('should calculate magnitude within rare range', () => {
+  it('should calculate magnitude within global rare range', () => {
     const magnitude = calculateEffectMagnitude('rare');
-    expect(magnitude).toBeGreaterThanOrEqual(0.12);
-    expect(magnitude).toBeLessThanOrEqual(0.18);
+    expect(magnitude).toBeGreaterThanOrEqual(0.08);
+    expect(magnitude).toBeLessThanOrEqual(0.12);
   });
 
   describe('getAvailableEffectTypes', () => {
@@ -420,10 +420,37 @@ describe('companionEffects', () => {
       }
     });
 
-    it('should calculate magnitude in correct range for rarity', () => {
-      const effects = rollCompanionEffects('legendary');
-      expect(effects[0].magnitude).toBeGreaterThanOrEqual(0.25);
-      expect(effects[0].magnitude).toBeLessThanOrEqual(0.35);
+    it('should calculate magnitude in global range for non-targeted effects', () => {
+      // Roll until we get a non-targeted xp_boost or other effect
+      let foundGlobalEffect = false;
+      for (let i = 0; i < 50; i++) {
+        const effects = rollCompanionEffects('legendary');
+        const globalEffect = effects.find(e => !e.targetGenre);
+        if (globalEffect) {
+          expect(globalEffect.magnitude).toBeGreaterThanOrEqual(0.18);
+          expect(globalEffect.magnitude).toBeLessThanOrEqual(0.25);
+          foundGlobalEffect = true;
+          break;
+        }
+      }
+      expect(foundGlobalEffect).toBe(true);
+    });
+
+    it('should calculate higher magnitude for genre-targeted effects', () => {
+      // Roll until we get a genre-targeted effect
+      let foundTargetedEffect = false;
+      for (let i = 0; i < 100; i++) {
+        const effects = rollCompanionEffects('legendary', ['fantasy']);
+        const targetedEffect = effects.find(e => e.targetGenre === 'fantasy');
+        if (targetedEffect) {
+          // Genre-targeted legendary should be 30-40%
+          expect(targetedEffect.magnitude).toBeGreaterThanOrEqual(0.30);
+          expect(targetedEffect.magnitude).toBeLessThanOrEqual(0.40);
+          foundTargetedEffect = true;
+          break;
+        }
+      }
+      expect(foundTargetedEffect).toBe(true);
     });
 
     it('should sometimes target genres when provided', () => {

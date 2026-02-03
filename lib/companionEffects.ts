@@ -19,11 +19,22 @@ export interface CompanionEffect {
   targetGenre?: Genre; // undefined = global
 }
 
-const EFFECT_MAGNITUDES: Record<CompanionRarity, { min: number; max: number }> = {
-  common: { min: 0.03, max: 0.07 },
-  rare: { min: 0.12, max: 0.18 },
-  legendary: { min: 0.25, max: 0.35 },
+// Global effects (apply to all books) - lower magnitudes
+const GLOBAL_EFFECT_MAGNITUDES: Record<CompanionRarity, { min: number; max: number }> = {
+  common: { min: 0.02, max: 0.05 },     // 2-5%
+  rare: { min: 0.08, max: 0.12 },       // 8-12%
+  legendary: { min: 0.18, max: 0.25 },  // 18-25%
 };
+
+// Genre-targeted effects (only apply to matching genres) - higher magnitudes
+const GENRE_TARGETED_MAGNITUDES: Record<CompanionRarity, { min: number; max: number }> = {
+  common: { min: 0.05, max: 0.10 },     // 5-10%
+  rare: { min: 0.15, max: 0.22 },       // 15-22%
+  legendary: { min: 0.30, max: 0.40 },  // 30-40%
+};
+
+// Legacy magnitude constant for backwards compatibility
+const EFFECT_MAGNITUDES = GLOBAL_EFFECT_MAGNITUDES;
 
 const GENRE_LEVEL_REQUIREMENTS: Record<CompanionRarity, number> = {
   common: 0,
@@ -106,7 +117,8 @@ export function getAvailableEffectTypes(rarity: CompanionRarity): EffectType[] {
 }
 
 /**
- * Roll a single effect, excluding specified types
+ * Roll a single effect, excluding specified types.
+ * Genre-targeted effects get higher magnitudes as a trade-off for limited applicability.
  */
 function rollSingleEffect(
   rarity: CompanionRarity,
@@ -117,7 +129,6 @@ function rollSingleEffect(
     .filter(t => !excludeTypes.includes(t));
 
   const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
-  const magnitude = calculateEffectMagnitude(rarity);
 
   // For xp_boost, optionally target a genre
   let targetGenre: Genre | undefined;
@@ -126,6 +137,12 @@ function rollSingleEffect(
       targetGenre = bookGenres[Math.floor(Math.random() * bookGenres.length)];
     }
   }
+
+  // Use higher magnitudes for genre-targeted effects (trade-off for limited applicability)
+  const magnitudeRange = targetGenre
+    ? GENRE_TARGETED_MAGNITUDES[rarity]
+    : GLOBAL_EFFECT_MAGNITUDES[rarity];
+  const magnitude = magnitudeRange.min + Math.random() * (magnitudeRange.max - magnitudeRange.min);
 
   return { type, magnitude, targetGenre };
 }
