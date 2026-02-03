@@ -1,7 +1,7 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { View, ScrollView, StyleSheet, Text, Pressable, Image, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
 import { storage } from '@/lib/storage';
@@ -11,7 +11,7 @@ import { maybeGenerateImages, shouldGenerateMoreImages } from '@/lib/companionIm
 import { generateImageForCompanion } from '@/lib/imageGen';
 import type { Book, Companion, LootBoxState, CompanionLoadout, UserProgress, LootBoxV3, LootBoxTier } from '@/lib/types';
 import type { Settings } from '@/lib/settings';
-import { equipCompanion, unequipCompanion, getEquippedCompanionIds, isSlotUnlocked } from '@/lib/loadout';
+import { equipCompanion, unequipCompanion, getEquippedCompanionIds, isSlotUnlocked, equipCompanionToBook, getBookLoadout, getBookEquippedCompanionIds } from '@/lib/loadout';
 import { canEquipCompanion, EFFECT_TYPES, EquipRequirements, CompanionEffect } from '@/lib/companionEffects';
 import { GENRE_DISPLAY_NAMES, Genre } from '@/lib/genres';
 import { PixelSprite } from '@/components/dungeon';
@@ -30,6 +30,12 @@ interface DisplayCompanion extends Companion {
 export default function CollectionScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();
   const insets = useSafeAreaInsets();
+
+  // Route params for per-book equipping flow
+  const { bookId, slotIndex } = useLocalSearchParams<{ bookId?: string; slotIndex?: string }>();
+  const targetBookId = bookId || null;
+  const targetSlotIndex = slotIndex ? parseInt(slotIndex, 10) : null;
+
   const [books, setBooks] = useState<Book[]>([]);
   const [lootBoxes, setLootBoxes] = useState<LootBoxState | null>(null);
   const [lootBoxesV3, setLootBoxesV3] = useState<LootBoxV3[]>([]);
@@ -40,6 +46,10 @@ export default function CollectionScreen() {
   const [genreLevels, setGenreLevels] = useState<Record<Genre, number> | null>(null);
   const [config, setConfig] = useState<Settings | null>(null);
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
+
+  // Get target book info for per-book equipping mode
+  const targetBook = targetBookId ? books.find(b => b.id === targetBookId) : null;
+  const isPerBookEquipMode = targetBook !== null && targetSlotIndex !== null;
 
   useFocusEffect(
     useCallback(() => {
@@ -120,18 +130,49 @@ export default function CollectionScreen() {
     debug.log('collection', 'loadData complete');
   }
 
-  // Get equipped companion IDs
-  const equippedIds = loadout ? getEquippedCompanionIds(loadout) : [];
+  // Get equipped companion IDs - use target book's loadout when in per-book mode
+  const activeLoadout = isPerBookEquipMode && targetBook
+    ? getBookLoadout(targetBook)
+    : loadout;
+  const equippedIds = activeLoadout ? getEquippedCompanionIds(activeLoadout) : [];
 
   // Find which slot a companion is in (returns -1 if not equipped)
   function getEquippedSlot(companionId: string): number {
-    if (!loadout) return -1;
-    return loadout.slots.findIndex(id => id === companionId);
+    if (!activeLoadout) return -1;
+    return activeLoadout.slots.findIndex(id => id === companionId);
   }
 
-  // Handle equip action - shows slot selector
+  // Handle equip action - in per-book mode, equip directly to target slot
   async function handleEquip(companion: DisplayCompanion) {
-    if (!loadout) return;
+    // Per-book equip mode: equip directly to the target book's slot
+    if (isPerBookEquipMode && targetBook && targetSlotIndex !== null) {
+      const targetBookLevel = targetBook.progression?.level || 1;
+      const requirements = canEquipCompanion(companion.rarity, targetBookLevel);
+
+      if (!requirements.canEquip) {
+        const message = `Book level ${requirements.requiredBookLevel} required (current: ${targetBookLevel})`;
+        Alert.alert('Cannot Equip', message);
+        return;
+      }
+
+      try {
+        await equipCompanionToBook(targetBook.id, companion.id, targetSlotIndex);
+        debug.log('collection', 'Equipped to book loadout', {
+          bookId: targetBook.id,
+          companionId: companion.id,
+          slotIndex: targetSlotIndex,
+        });
+        // Navigate back to book detail
+        router.back();
+      } catch (error) {
+        debug.error('collection', 'equipCompanionToBook failed', error);
+        Alert.alert('Error', error instanceof Error ? error.message : 'Failed to equip companion');
+      }
+      return;
+    }
+
+    // Standard mode: show slot selector (backwards compatibility)
+    if (!activeLoadout) return;
 
     // Check if companion meets book level requirements
     const bookLevel = companion.bookLevel;
@@ -148,8 +189,8 @@ export default function CollectionScreen() {
     const slotOptions: { text: string; onPress?: () => void; style?: 'cancel' | 'destructive' }[] = [];
 
     for (let i = 0; i < 3; i++) {
-      const isUnlocked = isSlotUnlocked(loadout, i);
-      const currentOccupant = loadout.slots[i];
+      const isUnlocked = isSlotUnlocked(activeLoadout, i);
+      const currentOccupant = activeLoadout.slots[i];
 
       if (!isUnlocked) {
         slotOptions.push({
@@ -192,9 +233,28 @@ export default function CollectionScreen() {
     );
   }
 
-  // Actually equip to a slot
+  // Actually equip to a slot - handles both global and per-book modes
   async function equipToSlot(companionId: string, slotIndex: number) {
-    debug.log('collection', 'equipToSlot called', { companionId, slotIndex });
+    debug.log('collection', 'equipToSlot called', { companionId, slotIndex, isPerBookEquipMode });
+
+    // Per-book mode: equip to target book's loadout
+    if (isPerBookEquipMode && targetBook) {
+      try {
+        await equipCompanionToBook(targetBook.id, companionId, slotIndex);
+        debug.log('collection', 'Equipped to book loadout (slot selector)', {
+          bookId: targetBook.id,
+          companionId,
+          slotIndex,
+        });
+        router.back();
+      } catch (error) {
+        debug.error('collection', 'equipCompanionToBook failed', error);
+        Alert.alert('Error', error instanceof Error ? error.message : 'Failed to equip companion');
+      }
+      return;
+    }
+
+    // Standard mode: equip to global loadout (backwards compatibility)
     if (!loadout) {
       debug.warn('collection', 'equipToSlot: no loadout state');
       return;
@@ -437,6 +497,18 @@ export default function CollectionScreen() {
           {unlockedCount}/{totalPossible} collected
         </Text>
       </View>
+
+      {/* Per-book equip mode banner */}
+      {isPerBookEquipMode && targetBook && (
+        <View style={styles.equipModeBanner}>
+          <Text style={styles.equipModeText}>
+            equipping to: {targetBook.title}
+          </Text>
+          <Text style={styles.equipModeSlot}>
+            slot {(targetSlotIndex ?? 0) + 1}
+          </Text>
+        </View>
+      )}
 
       {/* Debug mode banner */}
       {debugMode && (
@@ -844,6 +916,27 @@ function createStyles(
       fontWeight: FONTS.monoBold,
       fontSize: fontSize('body'),
       color: colors.text,
+    },
+    equipModeBanner: {
+      marginHorizontal: spacing(6),
+      marginBottom: spacing(4),
+      padding: spacing(4),
+      borderWidth: 1,
+      borderColor: colors.primary,
+      backgroundColor: colors.surface,
+    },
+    equipModeText: {
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('body'),
+      letterSpacing: letterSpacing('tight'),
+      color: colors.text,
+    },
+    equipModeSlot: {
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      letterSpacing: letterSpacing('tight'),
+      color: colors.textSecondary,
+      marginTop: spacing(1),
     },
     filterRow: {
       flexDirection: 'row',
