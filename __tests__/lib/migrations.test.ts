@@ -89,6 +89,184 @@ describe('migrations', () => {
     });
   });
 
+  describe('v3 to v4 migration - per-book loadouts', () => {
+    const v3Progress = {
+      ...baseProgress,
+      version: 3,
+      genreLevels: {} as any,
+      loadout: {
+        slots: ['companion-1', 'companion-2', null] as [string | null, string | null, string | null],
+        unlockedSlots: 2 as 1 | 2 | 3,
+      },
+      slotProgress: {
+        slot2Points: 150,
+        slot3Points: 80,
+        booksFinished: 1,
+        hoursLogged: 5,
+        companionsCollected: 3,
+        sessionsCompleted: 10,
+        genreLevelTens: [],
+        genresRead: ['fantasy'],
+      },
+      activeConsumables: [],
+      lootBoxesV3: [],
+    };
+
+    it('copies global loadout to the reading book', async () => {
+      const readingBook: Book = {
+        id: 'reading-book',
+        title: 'Currently Reading',
+        coverUrl: null,
+        synopsis: null,
+        sourceUrl: null,
+        status: 'reading',
+        totalReadingTime: 3600,
+        createdAt: Date.now(),
+      };
+      const finishedBook: Book = {
+        id: 'finished-book',
+        title: 'Finished Book',
+        coverUrl: null,
+        synopsis: null,
+        sourceUrl: null,
+        status: 'finished',
+        totalReadingTime: 7200,
+        createdAt: Date.now() - 86400000,
+      };
+
+      const result = await migrateData([readingBook, finishedBook], v3Progress as any);
+
+      // Reading book gets the global loadout
+      expect(result.books[0].loadout).toBeDefined();
+      expect(result.books[0].loadout?.slots).toEqual(['companion-1', 'companion-2', null]);
+      expect(result.books[0].loadout?.unlockedSlots).toBe(2);
+
+      // Finished book gets empty loadout with same unlocked slots
+      expect(result.books[1].loadout).toBeDefined();
+      expect(result.books[1].loadout?.slots).toEqual([null, null, null]);
+      expect(result.books[1].loadout?.unlockedSlots).toBe(2);
+    });
+
+    it('gives empty loadout to all books when no book is reading', async () => {
+      const toReadBook: Book = {
+        id: 'to-read-book',
+        title: 'To Read',
+        coverUrl: null,
+        synopsis: null,
+        sourceUrl: null,
+        status: 'to_read',
+        totalReadingTime: 0,
+        createdAt: Date.now(),
+      };
+
+      const result = await migrateData([toReadBook], v3Progress as any);
+
+      // No reading book, so all books get empty loadout
+      expect(result.books[0].loadout).toBeDefined();
+      expect(result.books[0].loadout?.slots).toEqual([null, null, null]);
+      expect(result.books[0].loadout?.unlockedSlots).toBe(2);
+    });
+
+    it('picks most recent reading book when multiple books are reading', async () => {
+      const olderReadingBook: Book = {
+        id: 'older-reading',
+        title: 'Older Reading',
+        coverUrl: null,
+        synopsis: null,
+        sourceUrl: null,
+        status: 'reading',
+        totalReadingTime: 3600,
+        createdAt: Date.now() - 86400000, // 1 day ago
+      };
+      const newerReadingBook: Book = {
+        id: 'newer-reading',
+        title: 'Newer Reading',
+        coverUrl: null,
+        synopsis: null,
+        sourceUrl: null,
+        status: 'reading',
+        totalReadingTime: 1800,
+        createdAt: Date.now(), // Now
+      };
+
+      const result = await migrateData([olderReadingBook, newerReadingBook], v3Progress as any);
+
+      // Newer reading book gets the global loadout
+      const newerBook = result.books.find(b => b.id === 'newer-reading');
+      expect(newerBook?.loadout?.slots).toEqual(['companion-1', 'companion-2', null]);
+
+      // Older reading book gets empty loadout
+      const olderBook = result.books.find(b => b.id === 'older-reading');
+      expect(olderBook?.loadout?.slots).toEqual([null, null, null]);
+    });
+
+    it('preserves existing per-book loadouts', async () => {
+      const bookWithLoadout: Book = {
+        id: 'book-with-loadout',
+        title: 'Has Loadout',
+        coverUrl: null,
+        synopsis: null,
+        sourceUrl: null,
+        status: 'reading',
+        totalReadingTime: 3600,
+        createdAt: Date.now(),
+        loadout: {
+          slots: ['existing-companion', null, null],
+          unlockedSlots: 1,
+        },
+      };
+
+      const result = await migrateData([bookWithLoadout], v3Progress as any);
+
+      // Should preserve existing loadout, not overwrite
+      expect(result.books[0].loadout?.slots).toEqual(['existing-companion', null, null]);
+      expect(result.books[0].loadout?.unlockedSlots).toBe(1);
+    });
+
+    it('uses default loadout when global loadout is missing', async () => {
+      const progressWithoutLoadout = {
+        ...baseProgress,
+        version: 3,
+        genreLevels: {} as any,
+        // No loadout field
+        slotProgress: {
+          slot2Points: 0,
+          slot3Points: 0,
+          booksFinished: 0,
+          hoursLogged: 0,
+          companionsCollected: 0,
+          sessionsCompleted: 0,
+          genreLevelTens: [],
+          genresRead: [],
+        },
+        activeConsumables: [],
+        lootBoxesV3: [],
+      };
+
+      const readingBook: Book = {
+        id: 'reading-book',
+        title: 'Reading',
+        coverUrl: null,
+        synopsis: null,
+        sourceUrl: null,
+        status: 'reading',
+        totalReadingTime: 0,
+        createdAt: Date.now(),
+      };
+
+      const result = await migrateData([readingBook], progressWithoutLoadout as any);
+
+      // Should use default loadout (1 slot unlocked, empty)
+      expect(result.books[0].loadout?.slots).toEqual([null, null, null]);
+      expect(result.books[0].loadout?.unlockedSlots).toBe(1);
+    });
+
+    it('updates version to 4', async () => {
+      const result = await migrateData([], v3Progress as any);
+      expect(result.progress.version).toBe(4);
+    });
+  });
+
   describe('version checks', () => {
     it('skips migration if already at current version', async () => {
       const bookWithCompanions: Book = {

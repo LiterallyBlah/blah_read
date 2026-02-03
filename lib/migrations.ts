@@ -1,7 +1,7 @@
 import type { Book, UserProgress, Companion, GenreLevels, CompanionLoadout, SlotUnlockProgress } from './types';
 import { GENRES, Genre, mapToCanonicalGenres } from './genres';
 
-export const CURRENT_VERSION = 3;
+export const CURRENT_VERSION = 4;
 
 // Default values for V3 fields
 const DEFAULT_GENRE_LEVELS: GenreLevels = GENRES.reduce((acc, genre) => {
@@ -174,6 +174,37 @@ export async function migrateData(
     };
 
     version = 3;
+  }
+
+  // Migration v3 -> v4: Per-book loadouts
+  if (version < 4) {
+    // Get the global loadout (default if not present)
+    const globalLoadout = migratedProgress.loadout || DEFAULT_LOADOUT;
+
+    // Find the current "reading" book, or most recently created reading book
+    const readingBooks = migratedBooks
+      .filter(b => b.status === 'reading')
+      .sort((a, b) => b.createdAt - a.createdAt);
+    const activeBook = readingBooks[0];
+
+    // Migrate books: add per-book loadouts
+    migratedBooks = migratedBooks.map(book => {
+      // Skip if book already has a loadout
+      if (book.loadout) return book;
+
+      // Active reading book gets the global loadout
+      // Other books get empty slots but same unlocked count
+      const loadout = book.id === activeBook?.id
+        ? { ...globalLoadout }
+        : {
+            slots: [null, null, null] as [string | null, string | null, string | null],
+            unlockedSlots: globalLoadout.unlockedSlots,
+          };
+
+      return { ...book, loadout };
+    });
+
+    version = 4;
   }
 
   return {
