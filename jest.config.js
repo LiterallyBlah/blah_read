@@ -7,6 +7,7 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
     '\\.(png|jpg|jpeg|gif|webp|svg)$': '<rootDir>/__mocks__/fileMock.js',
+    '^react-native-reanimated$': '<rootDir>/__mocks__/react-native-reanimated.js',
   },
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
