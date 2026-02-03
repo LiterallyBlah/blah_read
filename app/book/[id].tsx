@@ -22,6 +22,7 @@ import { GENRES, Genre, GENRE_DISPLAY_NAMES } from '@/lib/genres';
 import { detectBookGenres } from '@/lib/genreDetection';
 import { getBookLoadout, isSlotUnlocked } from '@/lib/loadout';
 import { EffectBadgeList } from '@/components/EffectBadge';
+import { ReadingMilestones } from '@/components/Milestones';
 
 const STATUS_OPTIONS: { label: string; value: BookStatus }[] = [
   { label: 'to read', value: 'to_read' },
@@ -875,6 +876,9 @@ export default function BookDetailScreen() {
           tap slot to equip from collection
         </Text>
       </View>
+
+      {/* Reading Milestones section */}
+      <ReadingMilestones currentReadingMinutes={Math.floor(book.totalReadingTime / 60)} />
 
       {/* Companion section */}
       <View style={styles.section}>
