@@ -4,8 +4,15 @@ import {
   unequipCompanion,
   getEquippedCompanionIds,
   isSlotUnlocked,
+  getBookLoadout,
+  equipCompanionToBook,
+  unequipCompanionFromBook,
+  getBookEquippedCompanionIds,
 } from '@/lib/loadout';
-import { CompanionLoadout } from '@/lib/types';
+import { storage } from '@/lib/storage';
+import { CompanionLoadout, Book } from '@/lib/types';
+
+jest.mock('@/lib/storage');
 
 describe('createDefaultLoadout', () => {
   it('should create loadout with 1 unlocked slot', () => {
@@ -117,5 +124,130 @@ describe('isSlotUnlocked', () => {
     expect(isSlotUnlocked(loadout, 0)).toBe(true);
     expect(isSlotUnlocked(loadout, 1)).toBe(true);
     expect(isSlotUnlocked(loadout, 2)).toBe(true);
+  });
+});
+
+// ============================================
+// Per-Book Loadout Functions Tests
+// ============================================
+
+describe('getBookLoadout', () => {
+  it('returns book loadout when present', () => {
+    const book: Partial<Book> = {
+      id: 'book-1',
+      loadout: { slots: ['comp-1', null, null], unlockedSlots: 2 },
+    };
+    const loadout = getBookLoadout(book as Book);
+    expect(loadout.slots).toEqual(['comp-1', null, null]);
+    expect(loadout.unlockedSlots).toBe(2);
+  });
+
+  it('returns default loadout when book has no loadout', () => {
+    const book: Partial<Book> = {
+      id: 'book-1',
+      // no loadout field
+    };
+    const loadout = getBookLoadout(book as Book);
+    expect(loadout.slots).toEqual([null, null, null]);
+    expect(loadout.unlockedSlots).toBe(1);
+  });
+});
+
+describe('equipCompanionToBook', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('equips companion to book and saves', async () => {
+    const book: Partial<Book> = {
+      id: 'book-1',
+      title: 'Test Book',
+      loadout: { slots: [null, null, null], unlockedSlots: 2 },
+    };
+    (storage.getBooks as jest.Mock).mockResolvedValue([book]);
+    (storage.saveBook as jest.Mock).mockResolvedValue(undefined);
+
+    const result = await equipCompanionToBook('book-1', 'companion-1', 0);
+
+    expect(result.loadout?.slots[0]).toBe('companion-1');
+    expect(storage.saveBook).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'book-1',
+        loadout: { slots: ['companion-1', null, null], unlockedSlots: 2 },
+      })
+    );
+  });
+
+  it('throws error when book not found', async () => {
+    (storage.getBooks as jest.Mock).mockResolvedValue([]);
+
+    await expect(equipCompanionToBook('non-existent', 'companion-1', 0)).rejects.toThrow(
+      'Book not found: non-existent'
+    );
+  });
+
+  it('throws error when slot is locked', async () => {
+    const book: Partial<Book> = {
+      id: 'book-1',
+      loadout: { slots: [null, null, null], unlockedSlots: 1 },
+    };
+    (storage.getBooks as jest.Mock).mockResolvedValue([book]);
+
+    await expect(equipCompanionToBook('book-1', 'companion-1', 1)).rejects.toThrow(
+      'Slot 2 is locked'
+    );
+  });
+});
+
+describe('unequipCompanionFromBook', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('unequips companion from book and saves', async () => {
+    const book: Partial<Book> = {
+      id: 'book-1',
+      title: 'Test Book',
+      loadout: { slots: ['companion-1', null, null], unlockedSlots: 2 },
+    };
+    (storage.getBooks as jest.Mock).mockResolvedValue([book]);
+    (storage.saveBook as jest.Mock).mockResolvedValue(undefined);
+
+    const result = await unequipCompanionFromBook('book-1', 0);
+
+    expect(result.loadout?.slots[0]).toBeNull();
+    expect(storage.saveBook).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'book-1',
+        loadout: { slots: [null, null, null], unlockedSlots: 2 },
+      })
+    );
+  });
+
+  it('throws error when book not found', async () => {
+    (storage.getBooks as jest.Mock).mockResolvedValue([]);
+
+    await expect(unequipCompanionFromBook('non-existent', 0)).rejects.toThrow(
+      'Book not found: non-existent'
+    );
+  });
+});
+
+describe('getBookEquippedCompanionIds', () => {
+  it('returns equipped companion IDs from book loadout', () => {
+    const book: Partial<Book> = {
+      id: 'book-1',
+      loadout: { slots: ['comp-1', null, 'comp-3'], unlockedSlots: 3 },
+    };
+    const ids = getBookEquippedCompanionIds(book as Book);
+    expect(ids).toEqual(['comp-1', 'comp-3']);
+  });
+
+  it('returns empty array when book has no loadout', () => {
+    const book: Partial<Book> = {
+      id: 'book-1',
+    };
+    const ids = getBookEquippedCompanionIds(book as Book);
+    expect(ids).toEqual([]);
   });
 });

@@ -1,4 +1,5 @@
-import { CompanionLoadout } from './types';
+import { CompanionLoadout, Book } from './types';
+import { storage } from './storage';
 import { debug } from './debug';
 
 /**
@@ -90,4 +91,98 @@ export function getEquippedCompanionIds(loadout: CompanionLoadout): string[] {
  */
 export function isSlotUnlocked(loadout: CompanionLoadout, slotIndex: number): boolean {
   return slotIndex < loadout.unlockedSlots;
+}
+
+// ============================================
+// Per-Book Loadout Functions
+// ============================================
+
+/**
+ * Get a book's loadout, falling back to a default if not set.
+ */
+export function getBookLoadout(book: Book): CompanionLoadout {
+  if (book.loadout) {
+    return book.loadout;
+  }
+  // Fallback for books without loadout (pre-migration)
+  return createDefaultLoadout();
+}
+
+/**
+ * Equips a companion to a specific book's loadout slot and persists the change.
+ * @param bookId - The book to update
+ * @param companionId - The companion to equip
+ * @param slotIndex - The slot to equip to (0-2)
+ * @returns The updated book
+ * @throws Error if book not found, slot index invalid, or slot locked
+ */
+export async function equipCompanionToBook(
+  bookId: string,
+  companionId: string,
+  slotIndex: number
+): Promise<Book> {
+  debug.log('loadout', 'equipCompanionToBook called', { bookId, companionId, slotIndex });
+
+  const books = await storage.getBooks();
+  const book = books.find(b => b.id === bookId);
+  if (!book) {
+    throw new Error(`Book not found: ${bookId}`);
+  }
+
+  const currentLoadout = getBookLoadout(book);
+  const newLoadout = equipCompanion(currentLoadout, companionId, slotIndex);
+
+  const updatedBook = { ...book, loadout: newLoadout };
+  await storage.saveBook(updatedBook);
+
+  debug.log('loadout', 'equipCompanionToBook complete', {
+    bookId,
+    companionId,
+    slotIndex,
+    newSlots: newLoadout.slots,
+  });
+
+  return updatedBook;
+}
+
+/**
+ * Unequips a companion from a specific book's loadout slot and persists the change.
+ * @param bookId - The book to update
+ * @param slotIndex - The slot to clear (0-2)
+ * @returns The updated book
+ * @throws Error if book not found or slot index invalid
+ */
+export async function unequipCompanionFromBook(
+  bookId: string,
+  slotIndex: number
+): Promise<Book> {
+  debug.log('loadout', 'unequipCompanionFromBook called', { bookId, slotIndex });
+
+  const books = await storage.getBooks();
+  const book = books.find(b => b.id === bookId);
+  if (!book) {
+    throw new Error(`Book not found: ${bookId}`);
+  }
+
+  const currentLoadout = getBookLoadout(book);
+  const newLoadout = unequipCompanion(currentLoadout, slotIndex);
+
+  const updatedBook = { ...book, loadout: newLoadout };
+  await storage.saveBook(updatedBook);
+
+  debug.log('loadout', 'unequipCompanionFromBook complete', {
+    bookId,
+    slotIndex,
+    newSlots: newLoadout.slots,
+  });
+
+  return updatedBook;
+}
+
+/**
+ * Get the equipped companion IDs for a specific book.
+ */
+export function getBookEquippedCompanionIds(book: Book): string[] {
+  const loadout = getBookLoadout(book);
+  return getEquippedCompanionIds(loadout);
 }
