@@ -302,13 +302,46 @@ describe('sessionRewards', () => {
         const mockProgress = createMockProgress();
 
         // 2 levels with 3 genres = floor(2/3) = 0 each, remainder 2
-        // Distribute remainder: fantasy gets 1, romance gets 1, horror gets 0
+        // Remainder is randomly distributed to 2 of the 3 genres
         const result = processSessionEnd(mockBook, mockProgress, [], 7200);
 
         const total = result.genreLevelIncreases.fantasy +
                       result.genreLevelIncreases.romance +
                       result.genreLevelIncreases.horror;
         expect(total).toBe(2); // Total levels preserved
+      });
+
+      it('should randomly distribute remainder levels across genres', () => {
+        const mockBook = createMockBook({
+          normalizedGenres: ['fantasy', 'romance', 'horror'],
+        });
+        const mockProgress = createMockProgress();
+
+        // Run multiple times to verify randomness (not always same genre)
+        // 1 level with 3 genres = 0 base, 1 remainder goes to random genre
+        const genresWithRemainder = new Set<string>();
+
+        for (let i = 0; i < 30; i++) {
+          const result = processSessionEnd(mockBook, mockProgress, [], 3600); // 1 hour = 1 level
+
+          // Exactly one genre should have 1, others should have 0
+          const increases = [
+            result.genreLevelIncreases.fantasy,
+            result.genreLevelIncreases.romance,
+            result.genreLevelIncreases.horror,
+          ];
+          expect(increases.filter(x => x === 1).length).toBe(1);
+          expect(increases.filter(x => x === 0).length).toBe(2);
+
+          // Track which genre got the level
+          if (result.genreLevelIncreases.fantasy === 1) genresWithRemainder.add('fantasy');
+          if (result.genreLevelIncreases.romance === 1) genresWithRemainder.add('romance');
+          if (result.genreLevelIncreases.horror === 1) genresWithRemainder.add('horror');
+        }
+
+        // Over 30 runs, should see at least 2 different genres get the remainder
+        // (probability of always same genre is (1/3)^29 ≈ 0, so this is safe)
+        expect(genresWithRemainder.size).toBeGreaterThanOrEqual(2);
       });
     });
 

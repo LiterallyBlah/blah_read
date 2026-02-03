@@ -217,13 +217,25 @@ export function processSessionEnd(
 
   if (bookGenres.length > 0 && levelsGained > 0) {
     const basePerGenre = Math.floor(levelsGained / bookGenres.length);
-    let remainder = levelsGained % bookGenres.length;
+    const remainder = levelsGained % bookGenres.length;
 
+    // First, give everyone the base amount
     for (const genre of bookGenres) {
       genreLevelIncreases[genre] = basePerGenre;
-      if (remainder > 0) {
-        genreLevelIncreases[genre]++;
-        remainder--;
+    }
+
+    // Then randomly distribute the remainder
+    // Pick random indices to receive the extra levels
+    if (remainder > 0) {
+      const shuffledIndices = [...Array(bookGenres.length).keys()];
+      // Fisher-Yates shuffle to randomize which genres get remainder
+      for (let i = shuffledIndices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledIndices[i], shuffledIndices[j]] = [shuffledIndices[j], shuffledIndices[i]];
+      }
+      // Give extra level to the first 'remainder' genres after shuffle
+      for (let i = 0; i < remainder; i++) {
+        genreLevelIncreases[bookGenres[shuffledIndices[i]]]++;
       }
     }
   }
