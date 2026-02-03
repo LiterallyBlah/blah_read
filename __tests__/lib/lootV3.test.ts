@@ -499,5 +499,60 @@ describe('lootV3', () => {
 
       expect(goldCountHigh).toBeGreaterThan(goldCount0);
     });
+
+    describe('pity counter order', () => {
+      afterEach(() => {
+        jest.restoreAllMocks();
+      });
+
+      it('triggers pity on exactly the 25th non-gold box', () => {
+        const pityState: PityState = { goldPityCounter: 24 };
+        // Force non-gold roll by making Math.random return 0.99 (high value = wood)
+        jest.spyOn(Math, 'random').mockReturnValue(0.99);
+
+        const result = rollBoxTierWithPity(0, 0, 0, pityState);
+
+        // Should trigger pity, not increment to 25 and roll again
+        expect(result.tier).toBe('gold');
+        expect(result.newPityCounter).toBe(0); // Reset after pity
+      });
+
+      it('increments counter only after non-gold roll', () => {
+        const pityState: PityState = { goldPityCounter: 0 };
+        // Force wood roll
+        jest.spyOn(Math, 'random').mockReturnValue(0.99);
+
+        const result = rollBoxTierWithPity(0, 0, 0, pityState);
+
+        expect(result.tier).toBe('wood');
+        expect(result.newPityCounter).toBe(1);
+      });
+
+      it('does not increment counter when gold is rolled naturally', () => {
+        const pityState: PityState = { goldPityCounter: 5 };
+        // Force gold roll by making Math.random return very low value
+        jest.spyOn(Math, 'random').mockReturnValue(0.01);
+
+        const result = rollBoxTierWithPity(0, 0, 0, pityState);
+
+        expect(result.tier).toBe('gold');
+        expect(result.newPityCounter).toBe(0); // Reset, not incremented
+      });
+
+      it('triggers pity at counter 24 before any roll happens', () => {
+        // This tests that with counter at 24, the 25th box (this one) gives gold
+        // regardless of what the random roll would have been
+        const pityState: PityState = { goldPityCounter: 24 };
+
+        // Even with a roll that would give wood, pity should override
+        jest.spyOn(Math, 'random').mockReturnValue(0.999);
+
+        const result = rollBoxTierWithPity(0, 0, 0, pityState);
+
+        // The 25th consecutive non-gold should trigger pity
+        expect(result.tier).toBe('gold');
+        expect(result.newPityCounter).toBe(0);
+      });
+    });
   });
 });

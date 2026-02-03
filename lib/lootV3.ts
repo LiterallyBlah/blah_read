@@ -75,7 +75,7 @@ function weightedRandom<T extends string>(weights: Record<T, number>): T {
 
   for (const [item, weight] of entries) {
     random -= weight;
-    if (random <= 0) {
+    if (random < 0) {
       return item;
     }
   }
@@ -141,7 +141,17 @@ export function rollCompanionRarity(boxTier: LootBoxTier): CompanionRarity {
  */
 export function rollConsumable(boxTier: LootBoxTier): ConsumableDefinition {
   const tier = rollConsumableTier(boxTier);
-  const consumables = getConsumablesByTier(tier);
+  let consumables = getConsumablesByTier(tier);
+
+  // Fallback to weak tier if empty
+  if (consumables.length === 0) {
+    consumables = getConsumablesByTier('weak');
+  }
+
+  // Final safety check
+  if (consumables.length === 0) {
+    throw new Error(`[lootV3] No consumables available for tier: ${tier}`);
+  }
 
   // Pick random consumable from the tier
   const index = Math.floor(Math.random() * consumables.length);
@@ -209,7 +219,7 @@ export function rollBonusDropType(availableRarities?: AvailableRarities): BonusD
   let selectedKey: BonusDropKey = 'consumable_weak'; // default fallback
   for (const [key, weight] of entries) {
     random -= weight;
-    if (random <= 0) {
+    if (random < 0) {
       selectedKey = key;
       break;
     }
@@ -218,7 +228,17 @@ export function rollBonusDropType(availableRarities?: AvailableRarities): BonusD
   // Parse the selected key into a drop result
   if (selectedKey.startsWith('consumable_')) {
     const tier = selectedKey.replace('consumable_', '') as ConsumableTier;
-    const consumables = getConsumablesByTier(tier);
+    let consumables = getConsumablesByTier(tier);
+
+    // Fallback to weak tier if empty
+    if (consumables.length === 0) {
+      consumables = getConsumablesByTier('weak');
+    }
+
+    if (consumables.length === 0) {
+      throw new Error(`[lootV3] No consumables available for tier: ${tier}`);
+    }
+
     const consumable = consumables[Math.floor(Math.random() * consumables.length)];
     return { type: 'consumable', tier, consumable };
   } else if (selectedKey.startsWith('lootbox_')) {
@@ -363,8 +383,14 @@ export interface TierRollResult {
  * Roll for box tier using layered luck system with pity.
  *
  * Layer 1: luck reduces wood chance
- * Layer 2: rare_luck and legendary_luck distribute non-wood between silver/gold
+ * Layer 2: rare_luck boosts silver share of non-wood, legendary_luck boosts gold share
  * Pity: +3% gold per miss, guaranteed at 25
+ *
+ * Pity counter logic:
+ * - Counter tracks consecutive non-gold boxes
+ * - At counter 24, the next roll (25th attempt) guarantees gold
+ * - Counter resets to 0 when gold is obtained (naturally or via pity)
+ * - Counter increments only AFTER a non-gold roll
  */
 export function rollBoxTierWithPity(
   luck: number,
@@ -372,37 +398,45 @@ export function rollBoxTierWithPity(
   legendaryLuck: number,
   pityState: PityState
 ): TierRollResult {
-  // Hard cap: guaranteed gold at 25 misses
-  if (pityState.goldPityCounter >= PITY_HARD_CAP) {
+  // Check pity FIRST with current counter
+  // Counter of 24 means we've had 24 non-gold boxes, this is the 25th attempt
+  if (pityState.goldPityCounter >= PITY_HARD_CAP - 1) {
     return { tier: 'gold', newPityCounter: 0 };
   }
 
   // Clamp inputs
   const clampedLuck = Math.max(0, Math.min(1, luck));
+  const clampedRareLuck = Math.max(0, Math.min(1, rareLuck));
   const clampedLegendaryLuck = Math.max(0, Math.min(1, legendaryLuck));
 
   // Calculate pity bonus
   const pityBonus = pityState.goldPityCounter * PITY_BONUS_PER_MISS;
 
   // Layer 1: Wood vs non-wood
+  // luck reduces wood chance (more luck = fewer wood boxes)
   const woodChance = BOX_TIER_ODDS.wood * (1 - clampedLuck);
   const nonWoodChance = 1 - woodChance;
 
   // Layer 2: Distribute non-wood between silver and gold
   // Base ratio: 25:5 = 83.3% silver, 16.7% gold
   const baseGoldShare = BOX_TIER_ODDS.gold / (BOX_TIER_ODDS.silver + BOX_TIER_ODDS.gold);
+  const baseSilverShare = 1 - baseGoldShare;
 
-  // legendary_luck triples gold's share per point
+  // legendary_luck triples gold's share per point, plus pity bonus
   let goldShare = baseGoldShare * (1 + clampedLegendaryLuck * 3) + pityBonus;
   goldShare = Math.min(goldShare, 1); // Cap at 100%
 
-  const silverShare = 1 - goldShare;
+  // rare_luck boosts silver's share of the remaining non-gold chance
+  // +50% bonus to silver share per point of rareLuck
+  const remainingShare = 1 - goldShare;
+  let silverShare = baseSilverShare * (1 + clampedRareLuck * 0.5);
+  silverShare = Math.min(silverShare, remainingShare); // Can't exceed remaining
 
   // Calculate final probabilities
   const goldChance = nonWoodChance * goldShare;
   const silverChance = nonWoodChance * silverShare;
 
-  // Roll
+  // Roll the tier
   const roll = Math.random();
 
   let tier: LootBoxTier;
@@ -414,7 +448,8 @@ export function rollBoxTierWithPity(
     tier = 'wood';
   }
 
-  // Update pity counter
+  // Update pity counter AFTER roll
+  // Reset to 0 on gold, increment only on non-gold
   const newPityCounter = tier === 'gold' ? 0 : pityState.goldPityCounter + 1;
 
   return { tier, newPityCounter };
