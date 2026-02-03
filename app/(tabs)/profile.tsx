@@ -1,10 +1,10 @@
 import { useCallback, useState } from 'react';
-import { View, Text, ScrollView, Image, StyleSheet, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, router } from 'expo-router';
 import { storage } from '@/lib/storage';
 import { calculateLevel, xpProgress, getStreakMultiplierInfo } from '@/lib/xp';
-import { Book, UserProgress, Companion } from '@/lib/types';
+import { Book, UserProgress } from '@/lib/types';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 import { getConsumableById, formatDuration } from '@/lib/consumables';
@@ -35,7 +35,6 @@ export default function ProfileScreen() {
   const level = progress ? calculateLevel(progress.totalXp) : 1;
   const xp = progress ? xpProgress(progress.totalXp) : { current: 0, needed: 1000 };
   const streakInfo = getStreakMultiplierInfo(progress?.currentStreak || 0);
-  const companions = books.flatMap(b => b.companions?.unlockedCompanions || []);
   const totalTime = books.reduce((sum, b) => sum + b.totalReadingTime, 0);
   const hours = Math.floor(totalTime / 3600);
 
@@ -96,56 +95,7 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* Loadout section - moved to top */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>loadout_</Text>
-        {progress?.loadout ? (
-          <View style={styles.loadoutContainer}>
-            {progress.loadout.slots.map((companionId, index) => {
-              const isUnlocked = index < (progress.loadout?.unlockedSlots || 1);
-              const equippedCompanion = companionId
-                ? companions.find(c => c.id === companionId)
-                : null;
-
-              return (
-                <View
-                  key={index}
-                  style={[
-                    styles.slotBox,
-                    !isUnlocked && styles.slotLocked
-                  ]}
-                >
-                  {isUnlocked ? (
-                    equippedCompanion ? (
-                      <>
-                        {equippedCompanion.imageUrl ? (
-                          <Image
-                            source={{ uri: equippedCompanion.imageUrl }}
-                            style={styles.slotImage}
-                          />
-                        ) : (
-                          <Text style={styles.slotIcon}>?</Text>
-                        )}
-                        <Text style={styles.slotName} numberOfLines={1}>
-                          {equippedCompanion.name?.toLowerCase() || 'companion'}
-                        </Text>
-                      </>
-                    ) : (
-                      <Text style={styles.slotEmpty}>empty</Text>
-                    )
-                  ) : (
-                    <Text style={styles.slotLockText}>locked</Text>
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        ) : (
-          <Text style={styles.emptyText}>loadout not initialized_</Text>
-        )}
-      </View>
-
-      {/* Active Effects section - right after loadout */}
+      {/* Active Effects section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>active effects_</Text>
         {progress?.activeConsumables && progress.activeConsumables.length > 0 ? (
@@ -425,50 +375,6 @@ function createStyles(colors: any, spacing: (n: number) => number, fontSize: (si
       color: colors.textSecondary,
       fontFamily: FONTS.mono,
       fontSize: fontSize('small'),
-    },
-    // Loadout styles
-    loadoutContainer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      gap: spacing(3),
-    },
-    slotBox: {
-      flex: 1,
-      aspectRatio: 1,
-      borderWidth: 1,
-      borderColor: colors.border,
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: spacing(2),
-    },
-    slotLocked: {
-      backgroundColor: colors.backgroundCard,
-      opacity: 0.5,
-    },
-    slotImage: {
-      width: 40,
-      height: 40,
-      marginBottom: spacing(1),
-    },
-    slotIcon: {
-      fontSize: 24,
-      color: colors.textMuted,
-    },
-    slotName: {
-      color: colors.textSecondary,
-      fontFamily: FONTS.mono,
-      fontSize: fontSize('micro'),
-      textAlign: 'center',
-    },
-    slotEmpty: {
-      color: colors.textMuted,
-      fontFamily: FONTS.mono,
-      fontSize: fontSize('micro'),
-    },
-    slotLockText: {
-      color: colors.textMuted,
-      fontFamily: FONTS.mono,
-      fontSize: fontSize('micro'),
     },
     // Active consumables styles
     consumablesList: {
