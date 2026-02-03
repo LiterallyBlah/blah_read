@@ -11,6 +11,7 @@ import { GENRES, GENRE_DISPLAY_NAMES, Genre } from '@/lib/genres';
 import { getConsumableById, formatDuration } from '@/lib/consumables';
 import { calculateSlot2Progress, calculateSlot3Progress, SLOT_2_POINTS, SLOT_3_POINTS } from '@/lib/slotProgress';
 import { DungeonBar, DungeonCard, ConsumableIcon } from '@/components/dungeon';
+import { ReadingMilestones } from '@/components/Milestones';
 
 export default function ProfileScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();
@@ -264,6 +265,9 @@ export default function ProfileScreen() {
           <Text style={styles.emptyText}>no loot boxes - keep reading!_</Text>
         )}
       </View>
+
+      {/* Reading Milestones section */}
+      <ReadingMilestones currentReadingMinutes={Math.floor(totalTime / 60)} />
 
       {/* Genre Levels section - collapsible */}
       <View style={styles.section}>
