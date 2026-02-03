@@ -1,17 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
+import { READING_TIME_MILESTONES, MILESTONE_RARITY_ODDS } from '@/lib/companionUnlock';
 
-const READING_MILESTONES = [
-  { minutes: 30, label: '30 min', common: 80, rare: 18, legendary: 2 },
-  { minutes: 60, label: '1 hour', common: 70, rare: 27, legendary: 3 },
-  { minutes: 120, label: '2 hours', common: 60, rare: 35, legendary: 5 },
-  { minutes: 240, label: '4 hours', common: 50, rare: 42, legendary: 8 },
-  { minutes: 360, label: '6 hours', common: 40, rare: 48, legendary: 12 },
-  { minutes: 480, label: '8 hours', common: 30, rare: 52, legendary: 18 },
-  { minutes: 600, label: '10 hours', common: 20, rare: 55, legendary: 25 },
-];
+/**
+ * Format seconds into a human-readable label
+ */
+function formatMilestoneLabel(seconds: number): string {
+  const minutes = seconds / 60;
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
+  const hours = minutes / 60;
+  if (hours === Math.floor(hours)) {
+    return hours === 1 ? '1 hour' : `${hours} hours`;
+  }
+  return `${hours} hours`;
+}
+
+/**
+ * Transform canonical milestone data into display format
+ */
+function buildMilestoneData() {
+  return READING_TIME_MILESTONES.map((timeSeconds, index) => {
+    const odds = MILESTONE_RARITY_ODDS[index];
+    return {
+      minutes: timeSeconds / 60,
+      label: formatMilestoneLabel(timeSeconds),
+      common: Math.round(odds.common * 100),
+      rare: Math.round(odds.rare * 100),
+      legendary: Math.round(odds.legendary * 100),
+    };
+  });
+}
 
 interface Props {
   currentReadingMinutes: number;
@@ -23,10 +45,13 @@ export function ReadingMilestones({ currentReadingMinutes }: Props) {
 
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
+  // Build milestone data from canonical source (memoized since it's derived from constants)
+  const milestones = useMemo(() => buildMilestoneData(), []);
+
   // Find the current milestone index (the highest milestone the user has reached)
-  const currentMilestoneIndex = READING_MILESTONES.findIndex(
+  const currentMilestoneIndex = milestones.findIndex(
     (m, i) => {
-      const nextMilestone = READING_MILESTONES[i + 1];
+      const nextMilestone = milestones[i + 1];
       return currentReadingMinutes >= m.minutes &&
              (!nextMilestone || currentReadingMinutes < nextMilestone.minutes);
     }
@@ -34,10 +59,10 @@ export function ReadingMilestones({ currentReadingMinutes }: Props) {
 
   // If user hasn't reached any milestone, show first one as target
   const activeMilestoneIndex = currentMilestoneIndex === -1 ? 0 : currentMilestoneIndex;
-  const activeMilestone = READING_MILESTONES[activeMilestoneIndex];
+  const activeMilestone = milestones[activeMilestoneIndex];
 
   // Check if user has maxed out milestones
-  const isMaxed = currentReadingMinutes >= READING_MILESTONES[READING_MILESTONES.length - 1].minutes;
+  const isMaxed = currentReadingMinutes >= milestones[milestones.length - 1].minutes;
 
   return (
     <View style={styles.container}>
@@ -82,7 +107,7 @@ export function ReadingMilestones({ currentReadingMinutes }: Props) {
       {/* Expanded view shows all milestones */}
       {expanded && (
         <View style={styles.allMilestones}>
-          {READING_MILESTONES.map((milestone, index) => {
+          {milestones.map((milestone, index) => {
             const isReached = currentReadingMinutes >= milestone.minutes;
             const isCurrent = index === activeMilestoneIndex;
 
