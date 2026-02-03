@@ -7,18 +7,17 @@ import { calculateLevel, xpProgress, getStreakMultiplierInfo } from '@/lib/xp';
 import { Book, UserProgress, Companion } from '@/lib/types';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
-import { GENRES, GENRE_DISPLAY_NAMES, Genre } from '@/lib/genres';
 import { getConsumableById, formatDuration } from '@/lib/consumables';
 import { DungeonBar, DungeonCard, ConsumableIcon } from '@/components/dungeon';
 import { ReadingMilestones } from '@/components/Milestones';
 import { SlotProgress } from '@/components/SlotProgress';
+import { GenreProgress } from '@/components/GenreProgress';
 
 export default function ProfileScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();
   const insets = useSafeAreaInsets();
   const [progress, setProgress] = useState<UserProgress | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
-  const [genresExpanded, setGenresExpanded] = useState(false);
 
   const styles = createStyles(colors, spacing, fontSize, letterSpacing);
 
@@ -47,13 +46,6 @@ export default function ProfileScreen() {
   const woodCount = v3Boxes.filter(b => b.tier === 'wood').length;
   const silverCount = v3Boxes.filter(b => b.tier === 'silver').length;
   const goldCount = v3Boxes.filter(b => b.tier === 'gold').length;
-
-  // Sort genres by level (highest first)
-  const sortedGenres = GENRES
-    .map(genre => ({ genre, level: progress?.genreLevels?.[genre] || 0 }))
-    .sort((a, b) => b.level - a.level);
-  const topGenre = sortedGenres[0];
-  const remainingGenres = sortedGenres.slice(1);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={[styles.contentContainer, { paddingBottom: spacing(6) + insets.bottom }]}>
@@ -277,36 +269,10 @@ export default function ProfileScreen() {
       {/* Reading Milestones section */}
       <ReadingMilestones currentReadingMinutes={Math.floor(totalTime / 60)} />
 
-      {/* Genre Levels section - collapsible */}
-      <View style={styles.section}>
-        <Pressable
-          style={styles.genreHeader}
-          onPress={() => setGenresExpanded(!genresExpanded)}
-        >
-          <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>genre levels_</Text>
-          <Text style={styles.expandIcon}>{genresExpanded ? '[-]' : '[+]'}</Text>
-        </Pressable>
-
-        {/* Always show top genre */}
-        {topGenre && (
-          <View style={styles.genreItem}>
-            <Text style={styles.genreLevel}>{topGenre.level}</Text>
-            <Text style={styles.genreName}>{GENRE_DISPLAY_NAMES[topGenre.genre].toLowerCase()}</Text>
-          </View>
-        )}
-
-        {/* Show remaining genres when expanded */}
-        {genresExpanded && (
-          <View style={styles.genreGrid}>
-            {remainingGenres.map(({ genre, level: genreLevel }) => (
-              <View key={genre} style={styles.genreItem}>
-                <Text style={styles.genreLevel}>{genreLevel}</Text>
-                <Text style={styles.genreName}>{GENRE_DISPLAY_NAMES[genre].toLowerCase()}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
+      {/* Genre Levels section with threshold markers */}
+      {progress?.genreLevels && (
+        <GenreProgress genreLevels={progress.genreLevels} />
+      )}
 
       {/* Slot Unlock Progress section */}
       {progress?.slotProgress && (
@@ -459,46 +425,6 @@ function createStyles(colors: any, spacing: (n: number) => number, fontSize: (si
       color: colors.textSecondary,
       fontFamily: FONTS.mono,
       fontSize: fontSize('small'),
-    },
-    // Genre levels styles
-    genreHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: spacing(2),
-    },
-    expandIcon: {
-      color: colors.textSecondary,
-      fontFamily: FONTS.mono,
-      fontSize: fontSize('small'),
-    },
-    genreGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: spacing(2),
-      marginTop: spacing(2),
-    },
-    genreItem: {
-      width: '30%',
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing(2),
-      marginBottom: spacing(2),
-    },
-    genreLevel: {
-      color: colors.text,
-      fontFamily: FONTS.mono,
-      fontWeight: FONTS.monoBold,
-      fontSize: fontSize('body'),
-      minWidth: 24,
-      textAlign: 'right',
-    },
-    genreName: {
-      color: colors.textSecondary,
-      fontFamily: FONTS.mono,
-      fontSize: fontSize('micro'),
-      letterSpacing: letterSpacing('tight'),
-      flex: 1,
     },
     // Loadout styles
     loadoutContainer: {
