@@ -3,11 +3,44 @@ import { View, Text, TextInput, Pressable, StyleSheet, Alert } from 'react-nativ
 import { useLocalSearchParams, router } from 'expo-router';
 import { storage } from '@/lib/storage';
 import { calculateXp } from '@/lib/xp';
-import { shouldTriggerLoot, rollLoot } from '@/lib/loot';
 import { updateStreak, getDateString } from '@/lib/streak';
-import { ReadingSession } from '@/lib/types';
+import { ReadingSession, LootItem } from '@/lib/types';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
+
+// Inlined from deprecated lib/loot.ts
+const LOOT_INTERVAL = 3600;
+const LOOT_TABLE: Omit<LootItem, 'id' | 'earnedAt'>[] = [
+  { name: 'Hourglass', icon: 'hourglass', rarity: 'common' },
+  { name: 'Scroll', icon: 'scroll', rarity: 'common' },
+  { name: 'Quill', icon: 'quill', rarity: 'common' },
+  { name: 'Bookmark', icon: 'bookmark', rarity: 'rare' },
+  { name: 'Tome', icon: 'book', rarity: 'rare' },
+  { name: 'Crystal', icon: 'crystal', rarity: 'epic' },
+  { name: 'Crown', icon: 'crown', rarity: 'epic' },
+  { name: 'Dragon Scale', icon: 'dragon', rarity: 'legendary' },
+];
+const RARITY_WEIGHTS = { common: 60, rare: 25, epic: 12, legendary: 3 };
+
+function shouldTriggerLoot(previousTime: number, newTime: number): boolean {
+  const previousMilestones = Math.floor(previousTime / LOOT_INTERVAL);
+  const newMilestones = Math.floor(newTime / LOOT_INTERVAL);
+  return newMilestones > previousMilestones;
+}
+
+function rollLoot(): LootItem {
+  const roll = Math.random() * 100;
+  let rarity: LootItem['rarity'];
+  if (roll < RARITY_WEIGHTS.legendary) rarity = 'legendary';
+  else if (roll < RARITY_WEIGHTS.legendary + RARITY_WEIGHTS.epic) rarity = 'epic';
+  else if (roll < RARITY_WEIGHTS.legendary + RARITY_WEIGHTS.epic + RARITY_WEIGHTS.rare) rarity = 'rare';
+  else rarity = 'common';
+  let pool = LOOT_TABLE.filter(item => item.rarity === rarity);
+  if (pool.length === 0) pool = LOOT_TABLE.filter(item => item.rarity === 'common');
+  if (pool.length === 0) throw new Error(`[loot] No items available for rarity: ${rarity}`);
+  const item = pool[Math.floor(Math.random() * pool.length)];
+  return { ...item, id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, earnedAt: Date.now() };
+}
 
 type Colors = ReturnType<typeof useTheme>['colors'];
 type Spacing = ReturnType<typeof useTheme>['spacing'];
