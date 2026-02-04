@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { storage } from './storage';
-import { clearAllImages, deleteBookImages, GENRES, GenreLevels } from './shared';
+import { clearAllImages, deleteBookImages, GENRES, GenreLevels } from '../shared';
 
 const SETTINGS_KEY = 'blahread:settings';
 

@@ -10,17 +10,18 @@ jest.mock('@/lib/shared', () => {
   };
 });
 
-jest.mock('@/lib/settings', () => ({
+jest.mock('@/lib/storage', () => ({
   settings: {
     get: jest.fn().mockResolvedValue({
       apiKey: 'test-key',
       llmModel: 'google/gemini-2.5-flash-preview-05-20',
+      debugMode: false,
     }),
   },
 }));
 
 import { orchestrateCompanionResearch, shouldRunCompanionResearch } from '@/lib/companionOrchestrator';
-import { settings } from '@/lib/settings';
+import { settings } from '@/lib/storage';
 
 // Re-assign for convenience in tests
 const executeCompanionResearch = mockExecuteCompanionResearch;

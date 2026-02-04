@@ -1,7 +1,7 @@
 import { Book, Companion, debug, generateImageForCompanion, detectBookGenres } from './shared';
 import { orchestrateCompanionResearch } from './companionOrchestrator';
 import { generateBufferedImages } from './companionImageQueue';
-import { settings } from './settings';
+import { settings } from './storage';
 
 /**
  * Generate companions for a book in the background.

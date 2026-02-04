@@ -5,11 +5,9 @@ import * as Linking from 'expo-linking';
 import * as Notifications from 'expo-notifications';
 import { ThemeProvider, useTheme } from '@/lib/ThemeContext';
 import { isKindleShareText } from '@/lib/kindleParser';
-import { checkForInterruptedSession } from '@/lib/sessionRecovery';
-import { timerPersistence } from '@/lib/timerPersistence';
+import { checkForInterruptedSession, timerPersistence, storage } from '@/lib/storage';
 import { TimerRecoveryData } from '@/lib/shared';
 import { backgroundService } from '@/lib/shared/backgroundService';
-import { storage } from '@/lib/storage';
 import { processSessionEnd } from '@/lib/sessionRewards';
 import { SessionRecoveryModal } from '@/components/SessionRecoveryModal';
 

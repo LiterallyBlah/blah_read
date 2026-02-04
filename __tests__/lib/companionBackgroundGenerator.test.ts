@@ -4,7 +4,7 @@ import { Book, BookCompanions } from '@/lib/shared';
 jest.mock('@/lib/companionOrchestrator');
 jest.mock('@/lib/companionImageQueue');
 jest.mock('@/lib/shared/imageGen');
-jest.mock('@/lib/settings');
+jest.mock('@/lib/storage');
 jest.mock('@/lib/shared/debug', () => ({
   debug: {
     log: jest.fn(),
@@ -16,7 +16,7 @@ jest.mock('@/lib/shared/debug', () => ({
 
 import { orchestrateCompanionResearch } from '@/lib/companionOrchestrator';
 import { generateBufferedImages } from '@/lib/companionImageQueue';
-import { settings } from '@/lib/settings';
+import { settings } from '@/lib/storage';
 
 describe('companionBackgroundGenerator', () => {
   const mockBook: Book = {

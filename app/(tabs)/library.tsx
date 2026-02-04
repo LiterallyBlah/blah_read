@@ -3,13 +3,12 @@ import { View, Text, FlatList, Pressable, StyleSheet, TextInput, Alert } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
-import { storage } from '@/lib/storage';
+import { storage, settings } from '@/lib/storage';
 import { BookCard } from '@/components/BookCard';
 import { Book, BookStatus, setDebugEnabled } from '@/lib/shared';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 import { isKindleShareText } from '@/lib/kindleParser';
-import { settings } from '@/lib/settings';
 
 const FILTERS: { label: string; value: BookStatus | 'all' }[] = [
   { label: 'all', value: 'all' },

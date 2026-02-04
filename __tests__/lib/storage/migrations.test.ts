@@ -1,4 +1,4 @@
-import { migrateData, CURRENT_VERSION } from '@/lib/migrations';
+import { migrateData, CURRENT_VERSION } from '@/lib/storage';
 import type { Book, UserProgress, Companion } from '@/lib/shared';
 
 describe('migrations', () => {

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { View, Text, Image, Pressable, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import { storage } from '@/lib/storage';
+import { storage, settings } from '@/lib/storage';
 import { enrichBookData } from '@/lib/bookEnrichment';
 import { getNextMilestone } from '@/lib/companionUnlock';
 import { checkLootBoxRewards } from '@/lib/lootBox';
@@ -23,7 +23,6 @@ import {
 } from '@/lib/shared';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
-import { settings } from '@/lib/settings';
 import { generateCompanionsInBackground } from '@/lib/companionBackgroundGenerator';
 import { getBookTier, getTierColorKey, getTierGlow } from '@/lib/bookTier';
 import { SECONDS_PER_LEVEL } from '@/lib/bookLeveling';

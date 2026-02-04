@@ -1,6 +1,6 @@
 import type { Book, BookCompanions, Companion, Genre } from './shared';
 import { debug, setDebugEnabled, executeCompanionResearch } from './shared';
-import { settings } from './settings';
+import { settings } from './storage';
 import {
   buildResearchPrompt,
   parseResearchResponse,

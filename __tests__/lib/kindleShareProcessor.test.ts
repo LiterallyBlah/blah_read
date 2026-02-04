@@ -2,8 +2,14 @@ import { processKindleShare, ProcessingStep } from '@/lib/kindleShareProcessor';
 
 jest.mock('@/lib/kindleParser');
 jest.mock('@/lib/bookEnrichment');
-jest.mock('@/lib/storage');
-jest.mock('@/lib/settings', () => ({
+jest.mock('@/lib/storage', () => ({
+  storage: {
+    findDuplicateBook: jest.fn(),
+    saveBook: jest.fn(),
+    getProgress: jest.fn(),
+    saveProgress: jest.fn(),
+    getDefaultLoadoutForNewBook: jest.fn().mockResolvedValue({ slots: [null, null, null], unlockedSlots: 1 }),
+  },
   settings: {
     get: jest.fn().mockResolvedValue({ googleBooksApiKey: null }),
   },
@@ -227,7 +233,7 @@ describe('kindleShareProcessor', () => {
   });
 
   it('sets companionsPending to true when API key is configured', async () => {
-    const { settings } = require('@/lib/settings');
+    const { settings } = require('@/lib/storage');
     (settings.get as jest.Mock).mockResolvedValue({
       apiKey: 'test-api-key',
       googleBooksApiKey: null
@@ -257,7 +263,7 @@ describe('kindleShareProcessor', () => {
   });
 
   it('sets companionsPending to false when no API key configured', async () => {
-    const { settings } = require('@/lib/settings');
+    const { settings } = require('@/lib/storage');
     (settings.get as jest.Mock).mockResolvedValue({
       apiKey: null,
       googleBooksApiKey: null
@@ -286,7 +292,7 @@ describe('kindleShareProcessor', () => {
   });
 
   it('does not call companion research or image generation', async () => {
-    const { settings } = require('@/lib/settings');
+    const { settings } = require('@/lib/storage');
     (settings.get as jest.Mock).mockResolvedValue({
       apiKey: 'test-api-key',
       googleBooksApiKey: null

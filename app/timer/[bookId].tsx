@@ -4,7 +4,7 @@ import { View, Text, Pressable, StyleSheet, Image, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useTimer } from '@/hooks/useTimer';
-import { storage } from '@/lib/storage';
+import { storage, settings, timerPersistence } from '@/lib/storage';
 import {
   updateStreakWithShield,
   getDateString,
@@ -22,10 +22,8 @@ import { backgroundService } from '@/lib/shared/backgroundService';
 import { processReadingSession } from '@/lib/companionUnlock';
 import { checkLootBoxRewards } from '@/lib/lootBox';
 import { maybeGenerateImages } from '@/lib/companionImageQueue';
-import { settings } from '@/lib/settings';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
-import { timerPersistence } from '@/lib/timerPersistence';
 // V3 Reward System imports
 import { processSessionEnd } from '@/lib/sessionRewards';
 import { calculateActiveEffects, ActiveEffects } from '@/lib/companionEffects';

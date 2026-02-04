@@ -1,15 +1,18 @@
 // Test the timer logic without React rendering
 // The hook implementation is straightforward state management
 
-import { timerPersistence } from '@/lib/timerPersistence';
+import { timerPersistence } from '@/lib/storage';
 import { backgroundService } from '@/lib/shared/backgroundService';
 
-jest.mock('@/lib/timerPersistence', () => ({
+jest.mock('@/lib/storage', () => ({
   timerPersistence: {
     save: jest.fn(),
     load: jest.fn(),
     clear: jest.fn(),
     updateHeartbeat: jest.fn(),
+  },
+  storage: {
+    setLastActiveBookId: jest.fn(),
   },
 }));
 

@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { useTheme } from '@/lib/ThemeContext';
-import { settings, Settings, exportAllData, resetApp, selectiveDelete, DeleteOptions } from '@/lib/settings';
+import { settings, Settings, exportAllData, resetApp, selectiveDelete, DeleteOptions, storage } from '@/lib/storage';
 import {
   resetDebugCache,
   validateApiKey,
@@ -18,7 +18,6 @@ import {
   LootBoxTier,
   Companion,
 } from '@/lib/shared';
-import { storage } from '@/lib/storage';
 import { backfillAllCompanionEffects } from '@/lib/companionEffects';
 import { generateBufferedImages } from '@/lib/companionImageQueue';
 import { consolidateActiveConsumables } from '@/lib/consumableManager';

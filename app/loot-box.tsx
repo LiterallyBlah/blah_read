@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
-import { storage } from '@/lib/storage';
+import { storage, settings } from '@/lib/storage';
 import { openLootBox, openLootBoxWithRarity, getPoolCompanions } from '@/lib/lootBox';
 import { openLootBoxV3 } from '@/lib/lootBoxV3';
 import { PITY_HARD_CAP, rollConsumable } from '@/lib/lootV3';
@@ -14,7 +14,6 @@ import { addActiveConsumable } from '@/lib/consumableManager';
 import { applyInstantConsumable } from '@/lib/instantConsumables';
 import { maybeGenerateImages } from '@/lib/companionImageQueue';
 import { generateImageForCompanion, debug } from '@/lib/shared';
-import { settings } from '@/lib/settings';
 import { TintedChest } from '@/components/dungeon/TintedChest';
 
 // Box tier visual styling

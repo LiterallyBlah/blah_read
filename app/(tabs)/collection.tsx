@@ -4,8 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
-import { storage } from '@/lib/storage';
-import { settings } from '@/lib/settings';
+import { storage, settings, Settings } from '@/lib/storage';
 import {
   debug,
   setDebugEnabled,
@@ -27,7 +26,6 @@ import {
   GENRE_DISPLAY_NAMES,
   Genre,
 } from '@/lib/shared';
-import type { Settings } from '@/lib/settings';
 import { maybeGenerateImages, shouldGenerateMoreImages } from '@/lib/companionImageQueue';
 import { canEquipCompanion, EFFECT_TYPES, EquipRequirements, CompanionEffect } from '@/lib/companionEffects';
 import { PixelSprite } from '@/components/dungeon';

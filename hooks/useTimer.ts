@@ -1,8 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { timerPersistence, PersistedTimerState } from '@/lib/timerPersistence';
+import { timerPersistence, PersistedTimerState, storage } from '@/lib/storage';
 import { backgroundService } from '@/lib/shared/backgroundService';
-import { storage } from '@/lib/storage';
 
 const HEARTBEAT_INTERVAL = 30000; // 30 seconds
 

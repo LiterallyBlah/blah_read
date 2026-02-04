@@ -1,4 +1,4 @@
-import { timerPersistence, PersistedTimerState } from '@/lib/timerPersistence';
+import { timerPersistence, PersistedTimerState } from '@/lib/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 jest.mock('@react-native-async-storage/async-storage');

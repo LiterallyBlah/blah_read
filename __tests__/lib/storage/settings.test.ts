@@ -1,4 +1,4 @@
-import { settings, defaultSettings, exportAllData, clearProgress, resetApp } from '@/lib/settings';
+import { settings, defaultSettings, exportAllData, clearProgress, resetApp } from '@/lib/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 jest.mock('@react-native-async-storage/async-storage');

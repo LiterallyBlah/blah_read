@@ -1,21 +1,26 @@
-// __tests__/lib/sessionRecovery.test.ts
-import { checkForInterruptedSession, buildRecoveryData } from '@/lib/sessionRecovery';
-import { timerPersistence, PersistedTimerState } from '@/lib/timerPersistence';
-import { storage } from '@/lib/storage';
+// __tests__/lib/storage/sessionRecovery.test.ts
 
-jest.mock('@/lib/timerPersistence', () => ({
-  timerPersistence: {
-    load: jest.fn(),
-    isInterrupted: jest.fn(),
-    clear: jest.fn(),
-  },
+// Mock timerPersistence and storage modules before importing
+const mockTimerPersistence = {
+  load: jest.fn(),
+  isInterrupted: jest.fn(),
+  clear: jest.fn(),
+};
+
+const mockStorage = {
+  getBooks: jest.fn(),
+};
+
+// Mock the internal dependencies of sessionRecovery
+jest.mock('@/lib/storage/timerPersistence', () => ({
+  timerPersistence: mockTimerPersistence,
 }));
 
-jest.mock('@/lib/storage', () => ({
-  storage: {
-    getBooks: jest.fn(),
-  },
+jest.mock('@/lib/storage/storage', () => ({
+  storage: mockStorage,
 }));
+
+import { checkForInterruptedSession, buildRecoveryData, PersistedTimerState } from '@/lib/storage';
 
 describe('sessionRecovery', () => {
   beforeEach(() => {
@@ -24,7 +29,7 @@ describe('sessionRecovery', () => {
 
   describe('checkForInterruptedSession', () => {
     it('returns null when no interrupted session', async () => {
-      (timerPersistence.isInterrupted as jest.Mock).mockResolvedValue(false);
+      mockTimerPersistence.isInterrupted.mockResolvedValue(false);
 
       const result = await checkForInterruptedSession();
 
@@ -39,9 +44,9 @@ describe('sessionRecovery', () => {
         isRunning: true,
         lastHeartbeat: Date.now() - 120000, // 2 minutes ago
       };
-      (timerPersistence.isInterrupted as jest.Mock).mockResolvedValue(true);
-      (timerPersistence.load as jest.Mock).mockResolvedValue(savedState);
-      (storage.getBooks as jest.Mock).mockResolvedValue([
+      mockTimerPersistence.isInterrupted.mockResolvedValue(true);
+      mockTimerPersistence.load.mockResolvedValue(savedState);
+      mockStorage.getBooks.mockResolvedValue([
         { id: 'book-123', title: 'Test Book' },
       ]);
 
@@ -60,14 +65,14 @@ describe('sessionRecovery', () => {
         isRunning: true,
         lastHeartbeat: Date.now() - 120000,
       };
-      (timerPersistence.isInterrupted as jest.Mock).mockResolvedValue(true);
-      (timerPersistence.load as jest.Mock).mockResolvedValue(savedState);
-      (storage.getBooks as jest.Mock).mockResolvedValue([]);
+      mockTimerPersistence.isInterrupted.mockResolvedValue(true);
+      mockTimerPersistence.load.mockResolvedValue(savedState);
+      mockStorage.getBooks.mockResolvedValue([]);
 
       const result = await checkForInterruptedSession();
 
       expect(result).toBeNull();
-      expect(timerPersistence.clear).toHaveBeenCalled();
+      expect(mockTimerPersistence.clear).toHaveBeenCalled();
     });
   });
 
