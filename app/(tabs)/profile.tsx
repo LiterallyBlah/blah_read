@@ -37,12 +37,12 @@ export default function ProfileScreen() {
   const hours = Math.floor(totalTime / 3600);
 
   // Calculate loot box counts
-  const v2BoxCount = progress?.lootBoxes?.availableBoxes?.length || 0;
-  const v3Boxes = progress?.lootBoxesV3 || [];
-  const totalBoxCount = v2BoxCount + v3Boxes.length;
-  const woodCount = v3Boxes.filter(b => b.tier === 'wood').length;
-  const silverCount = v3Boxes.filter(b => b.tier === 'silver').length;
-  const goldCount = v3Boxes.filter(b => b.tier === 'gold').length;
+  const legacyBoxCount = progress?.lootBoxes?.availableBoxes?.length || 0;
+  const tieredBoxes = progress?.tieredLootBoxes || [];
+  const totalBoxCount = legacyBoxCount + tieredBoxes.length;
+  const woodCount = tieredBoxes.filter(b => b.tier === 'wood').length;
+  const silverCount = tieredBoxes.filter(b => b.tier === 'silver').length;
+  const goldCount = tieredBoxes.filter(b => b.tier === 'gold').length;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={[styles.contentContainer, { paddingBottom: spacing(6) + insets.bottom }]}>

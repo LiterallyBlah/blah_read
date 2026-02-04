@@ -1,4 +1,4 @@
-import type { Book, Companion, CompanionRarity, LootBox, LootBoxV3, LootBoxTier, UserProgress, Genre } from '../shared';
+import type { Book, Companion, CompanionRarity, LootBox, TieredLootBox, LootBoxTier, UserProgress, Genre } from '../shared';
 import { calculateActiveEffects } from '../companion';
 import { getActiveEffects as getConsumableEffects } from '../consumables';
 import { rollBoxTierWithPity, rollLootForTier, LootResult, rollCompanionRarity } from './lootRng';
@@ -296,7 +296,7 @@ export function openLootBoxWithRarity(
 }
 
 // =============================================================================
-// V3 Box Opening (tier rolled at open time with luck stats)
+// Tiered Box Opening (tier rolled at open time with luck stats)
 // =============================================================================
 
 export interface OpenLootBoxResult {
@@ -322,13 +322,13 @@ function upgradeTier(tier: LootBoxTier): LootBoxTier {
 }
 
 /**
- * Open a V3 loot box, rolling tier at open time if blank.
+ * Open a tiered loot box, rolling tier at open time if blank.
  * Applies luck stats and pity system.
  *
  * @param options.companionPoolSize - Pass 0 to force consumable drops when pool is empty
  */
-export function openLootBoxV3(
-  box: LootBoxV3,
+export function openTieredLootBox(
+  box: TieredLootBox,
   progress: UserProgress,
   equippedCompanions: Companion[],
   bookGenres: Genre[],

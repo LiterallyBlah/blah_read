@@ -1,4 +1,4 @@
-import { Book, ReadingSession, UserProgress, BookStatus, Companion, LootBoxV3 } from '@/lib/shared';
+import { Book, ReadingSession, UserProgress, BookStatus, Companion, TieredLootBox } from '@/lib/shared';
 
 describe('types', () => {
   it('Book type has required fields', () => {
@@ -90,9 +90,9 @@ describe('Companion type', () => {
   });
 });
 
-describe('LootBoxV3 blank boxes', () => {
+describe('TieredLootBox blank boxes', () => {
   it('should allow tier to be undefined for blank boxes', () => {
-    const blankBox: LootBoxV3 = {
+    const blankBox: TieredLootBox = {
       id: 'test-box',
       earnedAt: Date.now(),
       source: 'level_up',
@@ -103,7 +103,7 @@ describe('LootBoxV3 blank boxes', () => {
   });
 
   it('should still allow tier to be set for legacy boxes', () => {
-    const legacyBox: LootBoxV3 = {
+    const legacyBox: TieredLootBox = {
       id: 'test-box',
       earnedAt: Date.now(),
       source: 'level_up',

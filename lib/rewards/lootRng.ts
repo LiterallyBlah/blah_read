@@ -150,7 +150,7 @@ export function rollConsumable(boxTier: LootBoxTier): ConsumableDefinition {
 
   // Final safety check
   if (consumables.length === 0) {
-    throw new Error(`[lootV3] No consumables available for tier: ${tier}`);
+    throw new Error(`[lootRng] No consumables available for tier: ${tier}`);
   }
 
   // Pick random consumable from the tier
@@ -236,7 +236,7 @@ export function rollBonusDropType(availableRarities?: AvailableRarities): BonusD
     }
 
     if (consumables.length === 0) {
-      throw new Error(`[lootV3] No consumables available for tier: ${tier}`);
+      throw new Error(`[lootRng] No consumables available for tier: ${tier}`);
     }
 
     const consumable = consumables[Math.floor(Math.random() * consumables.length)];

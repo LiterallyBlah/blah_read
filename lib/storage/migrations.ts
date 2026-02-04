@@ -1,15 +1,16 @@
-import type { Book, UserProgress, Companion, GenreLevels, CompanionLoadout, SlotUnlockProgress, Genre } from '../shared';
+import type { Book, UserProgress, Companion, GenreLevels, CompanionLoadout, SlotUnlockProgress, Genre, TieredLootBox } from '../shared';
 import { GENRES, mapToCanonicalGenres } from '../shared';
 
-export const CURRENT_VERSION = 4;
+export const CURRENT_VERSION = 5;
 
-// Legacy progress type that includes the old loadout field (for migration)
+// Legacy progress type that includes old fields for migration
 type LegacyUserProgress = UserProgress & {
   version?: number;
   loadout?: CompanionLoadout; // Legacy field, removed in v4
+  lootBoxesV3?: TieredLootBox[]; // Legacy field, renamed to tieredLootBoxes in v5
 };
 
-// Default values for V3 fields
+// Default values for reward system fields
 const DEFAULT_GENRE_LEVELS: GenreLevels = GENRES.reduce((acc, genre) => {
   acc[genre] = 0;
   return acc;
@@ -88,7 +89,7 @@ export async function migrateData(
     version = 2;
   }
 
-  // Migration v2 -> v3: Add Reward System V3 fields
+  // Migration v2 -> v3: Add reward system fields
   if (version < 3) {
     // Migrate books: add normalizedGenres and progression
     migratedBooks = migratedBooks.map(book => {
@@ -166,7 +167,7 @@ export async function migrateData(
     slotProgress.slot2Points = slot2Points;
     slotProgress.slot3Points = slot3Points;
 
-    // Migrate progress: add V3 fields
+    // Migrate progress: add reward system fields
     migratedProgress = {
       ...migratedProgress,
       genreLevels: migratedProgress.genreLevels || genreLevels,
@@ -211,6 +212,19 @@ export async function migrateData(
     });
 
     version = 4;
+  }
+
+  // Migration v4 -> v5: Rename lootBoxesV3 to tieredLootBoxes
+  if (version < 5) {
+    // Read from old field name, write to new field name
+    if (migratedProgress.lootBoxesV3 !== undefined) {
+      migratedProgress = {
+        ...migratedProgress,
+        tieredLootBoxes: migratedProgress.lootBoxesV3,
+      };
+      delete migratedProgress.lootBoxesV3;
+    }
+    version = 5;
   }
 
   // Strip the legacy loadout field from progress before returning

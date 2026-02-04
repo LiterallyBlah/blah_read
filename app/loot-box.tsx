@@ -3,9 +3,9 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme, FONTS } from '@/lib/ui';
 import { storage, settings } from '@/lib/storage';
-import { openLootBox, openLootBoxWithRarity, getPoolCompanions, openLootBoxV3, PITY_HARD_CAP, rollConsumable } from '@/lib/rewards';
+import { openLootBox, openLootBoxWithRarity, getPoolCompanions, openTieredLootBox, PITY_HARD_CAP, rollConsumable } from '@/lib/rewards';
 import { LootBoxReveal } from '@/components/LootBoxReveal';
-import type { Companion, LootBoxV3, LootBoxTier } from '@/lib/shared';
+import type { Companion, TieredLootBox, LootBoxTier } from '@/lib/shared';
 import { ConsumableDefinition, addActiveConsumable, applyInstantConsumable } from '@/lib/consumables';
 import { maybeGenerateImages } from '@/lib/companion';
 import { generateImageForCompanion, debug } from '@/lib/shared';
@@ -25,7 +25,7 @@ export default function LootBoxScreen() {
   const [revealedConsumable, setRevealedConsumable] = useState<ConsumableDefinition | null>(null);
   const [revealedTier, setRevealedTier] = useState<LootBoxTier | null>(null);
   const [boxCount, setBoxCount] = useState(0);
-  const [boxesV3, setBoxesV3] = useState<LootBoxV3[]>([]);
+  const [tieredBoxes, setTieredBoxes] = useState<TieredLootBox[]>([]);
   const [goldPityCounter, setGoldPityCounter] = useState(0);
   const styles = createStyles(colors, spacing, fontSize);
 
@@ -35,11 +35,11 @@ export default function LootBoxScreen() {
 
   async function loadBoxCount() {
     const progress = await storage.getProgress();
-    // Support both V2 (lootBoxes) and V3 (lootBoxesV3) boxes
-    const v2Count = progress.lootBoxes?.availableBoxes?.length || 0;
-    const v3Boxes = progress.lootBoxesV3 || [];
-    setBoxCount(v2Count + v3Boxes.length);
-    setBoxesV3(v3Boxes);
+    // Support both legacy (lootBoxes) and tiered boxes
+    const legacyCount = progress.lootBoxes?.availableBoxes?.length || 0;
+    const tiered = progress.tieredLootBoxes || [];
+    setBoxCount(legacyCount + tiered.length);
+    setTieredBoxes(tiered);
     setGoldPityCounter(progress.goldPityCounter ?? 0);
   }
 
@@ -67,16 +67,16 @@ export default function LootBoxScreen() {
         .filter((c): c is Companion => c !== undefined);
       const bookGenres = currentBook?.normalizedGenres ?? [];
 
-      // Check if we have V3 boxes first
-      const v3Boxes = progress.lootBoxesV3 || [];
-      if (v3Boxes.length > 0) {
-        const boxToOpen = v3Boxes[0];
+      // Check if we have tiered boxes first
+      const tiered = progress.tieredLootBoxes || [];
+      if (tiered.length > 0) {
+        const boxToOpen = tiered[0];
 
         // Check pool availability to avoid companion roll when pool is empty
         const pool = getPoolCompanions(books);
 
-        // Open using new system with tier rolling and pity
-        const { rolledTier, lootResult, updatedProgress: initialProgress } = openLootBoxV3(
+        // Open using tiered system with tier rolling and pity
+        const { rolledTier, lootResult, updatedProgress: initialProgress } = openTieredLootBox(
           boxToOpen,
           progress,
           equippedCompanions,
@@ -85,7 +85,7 @@ export default function LootBoxScreen() {
         );
         let updatedProgress = initialProgress;
 
-        debug.log('lootBox', 'V3 box opened', {
+        debug.log('lootBox', 'Tiered box opened', {
           poolSize: pool.length,
           rolledTier,
           category: lootResult.category,
@@ -95,7 +95,7 @@ export default function LootBoxScreen() {
         });
 
         // Remove the opened box
-        updatedProgress.lootBoxesV3 = v3Boxes.slice(1);
+        updatedProgress.tieredLootBoxes = tiered.slice(1);
 
         if (lootResult.category === 'consumable' && lootResult.consumable) {
           // Handle consumable drop
@@ -204,16 +204,16 @@ export default function LootBoxScreen() {
           }
         }
 
-        const newV3Count = updatedProgress.lootBoxesV3?.length || 0;
-        const v2Count = progress.lootBoxes?.availableBoxes?.length || 0;
-        setBoxCount(v2Count + newV3Count);
-        setBoxesV3(updatedProgress.lootBoxesV3 || []);
+        const newTieredCount = updatedProgress.tieredLootBoxes?.length || 0;
+        const legacyCount = progress.lootBoxes?.availableBoxes?.length || 0;
+        setBoxCount(legacyCount + newTieredCount);
+        setTieredBoxes(updatedProgress.tieredLootBoxes || []);
         setGoldPityCounter(updatedProgress.goldPityCounter ?? 0);
         setRevealing(false);
         return;
       }
 
-      // Fallback to V2 boxes if no V3 boxes
+      // Fallback to legacy boxes if no tiered boxes
       if (progress.lootBoxes.availableBoxes.length === 0) {
         setRevealing(false);
         return;
@@ -266,12 +266,12 @@ export default function LootBoxScreen() {
         await storage.saveProgress(progress);
 
         setRevealedCompanion(companion);
-        setRevealedTier(null); // V2 boxes don't have tiers
+        setRevealedTier(null); // Legacy boxes don't have tiers
         setRevealedConsumable(null);
-        setBoxCount(progress.lootBoxes.availableBoxes.length + (progress.lootBoxesV3?.length || 0));
+        setBoxCount(progress.lootBoxes.availableBoxes.length + (progress.tieredLootBoxes?.length || 0));
       } else {
         // No companion available (empty pool) - roll consumable using RNG
-        debug.log('lootBox', 'V2 pool empty - rolling consumable instead');
+        debug.log('lootBox', 'Legacy pool empty - rolling consumable instead');
         const usedBox = progress.lootBoxes.availableBoxes.shift()!;
         progress.lootBoxes.openHistory.push({
           boxId: usedBox.id,
@@ -279,7 +279,7 @@ export default function LootBoxScreen() {
           companionId: '',
         });
 
-        // V2 boxes don't have tiers, default to wood tier for consumable roll
+        // Legacy boxes don't have tiers, default to wood tier for consumable roll
         const fallbackConsumable = rollConsumable('wood');
         if (fallbackConsumable.duration === 0) {
           // Instant consumable - apply directly
@@ -297,7 +297,7 @@ export default function LootBoxScreen() {
         setRevealedConsumable(fallbackConsumable);
         setRevealedTier(null);
         setRevealedCompanion(null);
-        setBoxCount(progress.lootBoxes.availableBoxes.length + (progress.lootBoxesV3?.length || 0));
+        setBoxCount(progress.lootBoxes.availableBoxes.length + (progress.tieredLootBoxes?.length || 0));
       }
 
       setRevealing(false);
@@ -344,7 +344,7 @@ export default function LootBoxScreen() {
   };
 
   // Group boxes by tier for display (only count boxes with known tiers)
-  const tierCounts = boxesV3.reduce((acc, box) => {
+  const tierCounts = tieredBoxes.reduce((acc, box) => {
     if (box.tier) {
       acc[box.tier] = (acc[box.tier] || 0) + 1;
     }
@@ -352,7 +352,7 @@ export default function LootBoxScreen() {
   }, {} as Record<LootBoxTier, number>);
 
   // Count blank boxes (unknown tier until opened)
-  const blankBoxCount = boxesV3.filter(b => !b.tier).length;
+  const blankBoxCount = tieredBoxes.filter(b => !b.tier).length;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -366,7 +366,7 @@ export default function LootBoxScreen() {
         <>
           <View style={styles.boxCountRow}>
             <TintedChest
-              tier={boxesV3[0]?.tier || 'wood'}
+              tier={tieredBoxes[0]?.tier || 'wood'}
               isOpen={false}
               scale={2}
             />
@@ -375,8 +375,8 @@ export default function LootBoxScreen() {
             </Text>
           </View>
 
-          {/* Show tier breakdown if there are V3 boxes */}
-          {boxesV3.length > 0 && (
+          {/* Show tier breakdown if there are tiered boxes */}
+          {tieredBoxes.length > 0 && (
             <View style={styles.tierBreakdown}>
               {(['gold', 'silver', 'wood'] as LootBoxTier[]).map(tier => {
                 const count = tierCounts[tier] || 0;

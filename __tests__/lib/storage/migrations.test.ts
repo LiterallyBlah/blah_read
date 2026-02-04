@@ -261,9 +261,9 @@ describe('migrations', () => {
       expect(result.books[0].loadout?.unlockedSlots).toBe(1);
     });
 
-    it('updates version to 4', async () => {
+    it('updates version to 5', async () => {
       const result = await migrateData([], v3Progress as any);
-      expect(result.progress.version).toBe(4);
+      expect(result.progress.version).toBe(5);
     });
   });
 

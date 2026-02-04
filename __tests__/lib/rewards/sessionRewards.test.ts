@@ -3,7 +3,7 @@ import {
   SessionRewardResult,
   BASE_XP_PER_MINUTE,
 } from '@/lib/rewards';
-import { Book, UserProgress, Companion, LootBoxV3, Genre, GENRES } from '@/lib/shared';
+import { Book, UserProgress, Companion, TieredLootBox, Genre, GENRES } from '@/lib/shared';
 import { CompanionEffect, ActiveEffects } from '@/lib/companion';
 
 // Helper to create a minimal valid book
@@ -61,7 +61,7 @@ function createMockProgress(overrides: Partial<UserProgress> = {}): UserProgress
       genresRead: [],
     },
     activeConsumables: [],
-    lootBoxesV3: [],
+    tieredLootBoxes: [],
     ...overrides,
   };
 }
@@ -578,7 +578,7 @@ describe('sessionRewards', () => {
 
         const result = processSessionEnd(mockBook, mockProgress, [], 3600);
 
-        expect(result.updatedProgress.lootBoxesV3?.length).toBe(1);
+        expect(result.updatedProgress.tieredLootBoxes?.length).toBe(1);
       });
 
       it('should tick consumables after processing', () => {

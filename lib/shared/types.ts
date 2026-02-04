@@ -55,7 +55,7 @@ export interface Book {
   publishedDate?: string | null;
   source?: 'kindle-share' | 'manual' | 'url';
   metadataSynced?: boolean;
-  // Reward System V3 fields
+  // Reward system fields
   normalizedGenres?: Genre[]; // Normalized genres for reward system
   progression?: BookProgression; // Book-specific progression
   loadout?: CompanionLoadout; // Per-book equipped companions
@@ -89,7 +89,7 @@ export interface Companion {
   creature?: string;
   keywords?: string[];
   generatedAt?: number;
-  // Reward System V3 fields
+  // Reward system fields
   effects?: CompanionEffect[]; // Companion effects
 }
 
@@ -157,8 +157,8 @@ export type GenreLevels = Record<Genre, number>;
 // Loot box tiers
 export type LootBoxTier = 'wood' | 'silver' | 'gold';
 
-// Enhanced loot box for V3
-export interface LootBoxV3 {
+// Tiered loot box (wood/silver/gold) with luck-based opening
+export interface TieredLootBox {
   id: string;
   tier?: LootBoxTier; // Optional: undefined = blank box, roll at open time
   earnedAt: number;
@@ -178,11 +178,11 @@ export interface UserProgress {
   booksFinished: number;
   booksAdded: number;
   totalHoursRead: number;
-  // Reward System V3 fields
+  // Reward system fields
   genreLevels?: GenreLevels; // Per-genre levels
   slotProgress?: SlotUnlockProgress; // Slot unlock tracking
   activeConsumables?: ActiveConsumable[]; // Active consumable effects
-  lootBoxesV3?: LootBoxV3[]; // Tiered loot boxes
+  tieredLootBoxes?: TieredLootBox[]; // Tiered loot boxes (wood/silver/gold)
   goldPityCounter?: number; // Pity counter for gold boxes, resets on gold
   // Instant consumable storage
   streakShieldExpiry?: number | null;   // Timestamp when shield expires, null = no shield

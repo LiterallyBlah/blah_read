@@ -72,7 +72,7 @@ const defaultProgress: UserProgress = {
     genresRead: [],
   },
   activeConsumables: [],
-  lootBoxesV3: [],
+  tieredLootBoxes: [],
   streakShieldExpiry: null,
   pendingBoxUpgrade: false,
   pendingGuaranteedCompanion: false,

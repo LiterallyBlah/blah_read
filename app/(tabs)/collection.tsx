@@ -13,7 +13,7 @@ import {
   LootBoxState,
   CompanionLoadout,
   UserProgress,
-  LootBoxV3,
+  TieredLootBox,
   LootBoxTier,
   GENRE_DISPLAY_NAMES,
   Genre,
@@ -54,7 +54,7 @@ export default function CollectionScreen() {
   const [books, setBooks] = useState<Book[]>([]);
   const [defaultBookId, setDefaultBookId] = useState<string | null>(null); // From lastActiveBookId
   const [lootBoxes, setLootBoxes] = useState<LootBoxState | null>(null);
-  const [lootBoxesV3, setLootBoxesV3] = useState<LootBoxV3[]>([]);
+  const [tieredLootBoxes, setTieredLootBoxes] = useState<TieredLootBox[]>([]);
   const [typeFilter, setTypeFilter] = useState<FilterType>('all');
   const [rarityFilter, setRarityFilter] = useState<RarityFilter>('all');
   const [debugMode, setDebugMode] = useState(false);
@@ -155,7 +155,7 @@ export default function CollectionScreen() {
 
     setBooks(loadedBooks);
     setLootBoxes(progress.lootBoxes);
-    setLootBoxesV3(progress.lootBoxesV3 || []);
+    setTieredLootBoxes(progress.tieredLootBoxes || []);
     setDebugMode(config.debugMode);
     // Derive unlocked slots from slotProgress for global loadout fallback
     const sp = progress.slotProgress;
@@ -512,7 +512,7 @@ export default function CollectionScreen() {
   const unlockedCount = allCompanions.filter(c => !c.isLocked).length;
   const lockedCount = allCompanions.filter(c => c.isLocked).length;
 
-  const boxCount = (lootBoxes?.availableBoxes.length || 0) + lootBoxesV3.length;
+  const boxCount = (lootBoxes?.availableBoxes.length || 0) + tieredLootBoxes.length;
 
   return (
     <ScrollView style={styles.container}>
@@ -555,7 +555,7 @@ export default function CollectionScreen() {
           onPress={() => router.push('/loot-box')}
         >
           <TintedChest
-            tier={(lootBoxesV3[0]?.tier || 'wood') as LootBoxTier}
+            tier={(tieredLootBoxes[0]?.tier || 'wood') as LootBoxTier}
             isOpen={false}
             scale={2}
           />

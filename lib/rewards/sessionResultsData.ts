@@ -86,7 +86,7 @@ export interface SessionResultsData {
   }>;
 
   // Loot boxes earned with tiers (for reveal/recap)
-  // Includes V3 boxes AND legacy achievement/reading time boxes
+  // Includes tiered boxes AND legacy achievement/reading time boxes
   lootBoxesEarned: Array<{
     id: string;
     tier: 'wood' | 'silver' | 'gold';
@@ -115,7 +115,7 @@ export interface LegacyRewardData {
 
 /**
  * Build the complete session results data structure.
- * Combines V3 session rewards with legacy milestone data.
+ * Combines session rewards with legacy milestone data.
  */
 export function buildSessionResultsData(
   result: SessionRewardResult,
@@ -124,7 +124,7 @@ export function buildSessionResultsData(
   previousStreak: number,
   newStreak: number
 ): SessionResultsData {
-  // Calculate loot box breakdown - include both V3 and legacy boxes
+  // Calculate loot box breakdown - include both tiered and legacy boxes
   const lootBoxBreakdown: LootBoxBreakdown = {
     total: result.lootBoxes.length + legacyData.readingTimeLootBoxes.length + legacyData.achievementLootBoxes.length,
     levelUp: result.lootBoxes.filter(lb => lb.source === 'level_up').length,
@@ -163,7 +163,7 @@ export function buildSessionResultsData(
       imageUrl: c.imageUrl,
       source: 'reading_time' as const,
     })),
-    // Bonus drop companions (V3)
+    // Bonus drop companions
     ...result.bonusDrops
       .filter((d): d is ProcessedBonusDrop & { companion: Companion } =>
         d.type === 'companion' && d.companion !== undefined)
@@ -207,7 +207,7 @@ export function buildSessionResultsData(
 
   // Combine all loot boxes earned
   const allLootBoxes = [
-    // V3 boxes
+    // Tiered boxes
     ...result.lootBoxes.map(lb => ({
       id: lb.id,
       tier: lb.tier ?? 'wood' as const,

@@ -77,7 +77,7 @@ export async function clearProgress(): Promise<void> {
     booksFinished: 0,
     booksAdded: 0,
     totalHoursRead: 0,
-    // V3 fields
+    // Reward system fields
     genreLevels: GENRES.reduce((acc, g) => ({ ...acc, [g]: 0 }), {} as GenreLevels),
     slotProgress: {
       slot2Points: 0,
@@ -90,7 +90,7 @@ export async function clearProgress(): Promise<void> {
       genresRead: [],
     },
     activeConsumables: [],
-    lootBoxesV3: [],
+    tieredLootBoxes: [],
     streakShieldExpiry: null,
     pendingBoxUpgrade: false,
     pendingGuaranteedCompanion: false,

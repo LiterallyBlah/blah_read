@@ -1,11 +1,11 @@
 /**
  * Session Reward Processor
  *
- * Main integration point for the V3 reward system. Processes session end
+ * Main integration point for the reward system. Processes session end
  * and calculates all rewards: book levels, XP, genre levels, loot boxes.
  */
 
-import { Book, UserProgress, Companion, LootBoxV3, GenreLevels, CompanionRarity, ActiveConsumable, SlotUnlockProgress, Genre, GENRES } from '../shared';
+import { Book, UserProgress, Companion, TieredLootBox, GenreLevels, CompanionRarity, ActiveConsumable, SlotUnlockProgress, Genre, GENRES } from '../shared';
 import { processReadingTime, calculateCompletionBonus } from '../books';
 import { calculateActiveEffects, ActiveEffects } from '../companion';
 import { getActiveEffects as getConsumableEffects, tickConsumables, consolidateActiveConsumables, ConsumableDefinition } from '../consumables';
@@ -36,7 +36,7 @@ export interface SessionRewardResult {
   newBookLevel: number;
   xpGained: number;
   genreLevelIncreases: Record<Genre, number>;
-  lootBoxes: LootBoxV3[];
+  lootBoxes: TieredLootBox[];
   bonusDrops: ProcessedBonusDrop[];
   activeEffects: ActiveEffects;
   updatedBook: Book;
@@ -239,7 +239,7 @@ export function processSessionEnd(
   }
 
   // Step 8: Roll and create loot boxes with tiers
-  const lootBoxes: LootBoxV3[] = [];
+  const lootBoxes: TieredLootBox[] = [];
   let currentPityCounter = progress.goldPityCounter ?? 0;
 
   // Level up boxes
@@ -443,13 +443,13 @@ export function processSessionEnd(
     updatedSlotProgress.booksFinished += 1;
   }
 
-  const existingLootBoxesV3 = progress.lootBoxesV3 || [];
+  const existingLootBoxesV3 = progress.tieredLootBoxes || [];
 
   const updatedProgress: UserProgress = {
     ...progress,
     totalXp: progress.totalXp + xpGained,
     genreLevels: updatedGenreLevels,
-    lootBoxesV3: [...existingLootBoxesV3, ...lootBoxes],
+    tieredLootBoxes: [...existingLootBoxesV3, ...lootBoxes],
     activeConsumables: allConsumables,
     goldPityCounter: currentPityCounter,
     slotProgress: updatedSlotProgress,

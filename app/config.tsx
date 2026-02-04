@@ -14,7 +14,7 @@ import {
   deleteOrphanedImages,
   generateImageForCompanion,
   Genre,
-  LootBoxV3,
+  TieredLootBox,
   LootBoxTier,
   Companion,
 } from '@/lib/shared';
@@ -56,14 +56,14 @@ export default function ConfigScreen() {
 
   async function addTestLootBox(tier: LootBoxTier) {
     const progress = await storage.getProgress();
-    const newBox: LootBoxV3 = {
+    const newBox: TieredLootBox = {
       id: `debug-${tier}-${Date.now()}`,
       tier,
       earnedAt: Date.now(),
       source: 'bonus_drop',
     };
-    const updatedBoxes = [...(progress.lootBoxesV3 || []), newBox];
-    await storage.saveProgress({ ...progress, lootBoxesV3: updatedBoxes });
+    const updatedBoxes = [...(progress.tieredLootBoxes || []), newBox];
+    await storage.saveProgress({ ...progress, tieredLootBoxes: updatedBoxes });
     Alert.alert('Added', `Added 1 ${tier} loot box`);
   }
 

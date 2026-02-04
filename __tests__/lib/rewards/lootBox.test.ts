@@ -3,9 +3,9 @@ import {
   openLootBox,
   openLootBoxWithRarity,
   getPoolCompanions,
-  openLootBoxV3,
+  openTieredLootBox,
 } from '@/lib/rewards';
-import type { UserProgress, Book, Companion, LootBoxV3 } from '@/lib/shared';
+import type { UserProgress, Book, Companion, TieredLootBox } from '@/lib/shared';
 
 describe('lootBox', () => {
   describe('checkLootBoxRewards', () => {
@@ -429,15 +429,15 @@ describe('lootBox', () => {
     });
   });
 
-  describe('openLootBoxV3', () => {
-    const createBlankBox = (): LootBoxV3 => ({
+  describe('openTieredLootBox', () => {
+    const createBlankBox = (): TieredLootBox => ({
       id: 'test-box',
       earnedAt: Date.now(),
       source: 'level_up',
       bookId: 'book-1',
     });
 
-    const createLegacyBox = (tier: 'wood' | 'silver' | 'gold'): LootBoxV3 => ({
+    const createLegacyBox = (tier: 'wood' | 'silver' | 'gold'): TieredLootBox => ({
       id: 'test-box',
       tier,
       earnedAt: Date.now(),
@@ -463,7 +463,7 @@ describe('lootBox', () => {
       const box = createBlankBox();
       const progress = createProgress(0);
 
-      const result = openLootBoxV3(box, progress, [], []);
+      const result = openTieredLootBox(box, progress, [], []);
 
       expect(result.rolledTier).toBeDefined();
       expect(['wood', 'silver', 'gold']).toContain(result.rolledTier);
@@ -473,7 +473,7 @@ describe('lootBox', () => {
       const box = createLegacyBox('gold');
       const progress = createProgress(0);
 
-      const result = openLootBoxV3(box, progress, [], []);
+      const result = openTieredLootBox(box, progress, [], []);
 
       expect(result.rolledTier).toBe('gold');
     });
@@ -482,7 +482,7 @@ describe('lootBox', () => {
       const box = createBlankBox();
       const progress = createProgress(5);
 
-      const result = openLootBoxV3(box, progress, [], []);
+      const result = openTieredLootBox(box, progress, [], []);
 
       if (result.rolledTier === 'gold') {
         expect(result.updatedProgress.goldPityCounter).toBe(0);
@@ -495,7 +495,7 @@ describe('lootBox', () => {
       const box = createBlankBox();
       const progress = createProgress(25);
 
-      const result = openLootBoxV3(box, progress, [], []);
+      const result = openTieredLootBox(box, progress, [], []);
 
       expect(result.rolledTier).toBe('gold');
       expect(result.updatedProgress.goldPityCounter).toBe(0);
@@ -519,7 +519,7 @@ describe('lootBox', () => {
       });
 
       it('should upgrade box tier when pendingBoxUpgrade is true', () => {
-        const box: LootBoxV3 = {
+        const box: TieredLootBox = {
           id: 'test-box',
           tier: 'wood',
           earnedAt: Date.now(),
@@ -530,14 +530,14 @@ describe('lootBox', () => {
           pendingBoxUpgrade: true,
         };
 
-        const result = openLootBoxV3(box, progress, [], []);
+        const result = openTieredLootBox(box, progress, [], []);
 
         expect(result.rolledTier).toBe('silver');
         expect(result.updatedProgress.pendingBoxUpgrade).toBe(false);
       });
 
       it('should upgrade silver to gold when pendingBoxUpgrade is true', () => {
-        const box: LootBoxV3 = {
+        const box: TieredLootBox = {
           id: 'test-box',
           tier: 'silver',
           earnedAt: Date.now(),
@@ -548,14 +548,14 @@ describe('lootBox', () => {
           pendingBoxUpgrade: true,
         };
 
-        const result = openLootBoxV3(box, progress, [], []);
+        const result = openTieredLootBox(box, progress, [], []);
 
         expect(result.rolledTier).toBe('gold');
         expect(result.updatedProgress.pendingBoxUpgrade).toBe(false);
       });
 
       it('should keep gold as gold when pendingBoxUpgrade is true', () => {
-        const box: LootBoxV3 = {
+        const box: TieredLootBox = {
           id: 'test-box',
           tier: 'gold',
           earnedAt: Date.now(),
@@ -566,14 +566,14 @@ describe('lootBox', () => {
           pendingBoxUpgrade: true,
         };
 
-        const result = openLootBoxV3(box, progress, [], []);
+        const result = openTieredLootBox(box, progress, [], []);
 
         expect(result.rolledTier).toBe('gold');
         expect(result.updatedProgress.pendingBoxUpgrade).toBe(false);
       });
 
       it('should force companion when pendingGuaranteedCompanion is true', () => {
-        const box: LootBoxV3 = {
+        const box: TieredLootBox = {
           id: 'test-box',
           tier: 'wood',
           earnedAt: Date.now(),
@@ -587,7 +587,7 @@ describe('lootBox', () => {
         const originalRandom = Math.random;
         Math.random = () => 0.01;
 
-        const result = openLootBoxV3(box, progress, [], [], { companionPoolSize: 5 });
+        const result = openTieredLootBox(box, progress, [], [], { companionPoolSize: 5 });
 
         Math.random = originalRandom;
 
@@ -596,7 +596,7 @@ describe('lootBox', () => {
       });
 
       it('should give consumable fallback when pool empty even with guaranteed companion', () => {
-        const box: LootBoxV3 = {
+        const box: TieredLootBox = {
           id: 'test-box',
           tier: 'wood',
           earnedAt: Date.now(),
@@ -607,7 +607,7 @@ describe('lootBox', () => {
           pendingGuaranteedCompanion: true,
         };
 
-        const result = openLootBoxV3(box, progress, [], [], { companionPoolSize: 0 });
+        const result = openTieredLootBox(box, progress, [], [], { companionPoolSize: 0 });
 
         expect(result.lootResult.category).toBe('consumable');
         expect(result.updatedProgress.pendingGuaranteedCompanion).toBe(true);
