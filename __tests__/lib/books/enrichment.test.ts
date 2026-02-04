@@ -1,20 +1,20 @@
-import { enrichBookData, EnrichmentResult } from '@/lib/bookEnrichment';
+import { enrichBookData, EnrichmentResult } from '@/lib/books';
 
 // Mock the API modules
-jest.mock('@/lib/googleBooks', () => ({
+jest.mock('@/lib/books/googleBooks', () => ({
   searchGoogleBooks: jest.fn(),
   searchGoogleBooksByIsbn: jest.fn(),
 }));
 
-jest.mock('@/lib/openLibrary', () => ({
+jest.mock('@/lib/books/openLibrary', () => ({
   searchOpenLibrary: jest.fn(),
   buildOpenLibraryCoverUrl: jest.fn((id, size) =>
     id ? `https://covers.openlibrary.org/b/id/${id}-${size}.jpg` : null
   ),
 }));
 
-import { searchGoogleBooks, searchGoogleBooksByIsbn } from '@/lib/googleBooks';
-import { searchOpenLibrary } from '@/lib/openLibrary';
+import { searchGoogleBooks, searchGoogleBooksByIsbn } from '@/lib/books/googleBooks';
+import { searchOpenLibrary } from '@/lib/books/openLibrary';
 
 describe('bookEnrichment', () => {
   beforeEach(() => {

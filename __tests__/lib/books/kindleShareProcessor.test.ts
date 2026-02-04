@@ -1,7 +1,7 @@
-import { processKindleShare, ProcessingStep } from '@/lib/kindleShareProcessor';
+import { processKindleShare, ProcessingStep } from '@/lib/books';
 
-jest.mock('@/lib/kindleParser');
-jest.mock('@/lib/bookEnrichment');
+jest.mock('@/lib/books/kindleParser');
+jest.mock('@/lib/books/enrichment');
 jest.mock('@/lib/storage', () => ({
   storage: {
     findDuplicateBook: jest.fn(),
@@ -15,8 +15,8 @@ jest.mock('@/lib/storage', () => ({
   },
 }));
 
-import { parseKindleShareText } from '@/lib/kindleParser';
-import { enrichBookData } from '@/lib/bookEnrichment';
+import { parseKindleShareText } from '@/lib/books/kindleParser';
+import { enrichBookData } from '@/lib/books/enrichment';
 import { storage } from '@/lib/storage';
 
 describe('kindleShareProcessor', () => {

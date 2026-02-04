@@ -1,4 +1,4 @@
-import { parseKindleShareText, isKindleShareText } from '@/lib/kindleParser';
+import { parseKindleShareText, isKindleShareText } from '@/lib/books';
 
 describe('kindleParser', () => {
   const validShareText = `I think you might like this book – "Power (Buryoku Book 1)" by Aaron Oster, Richard Sashigane.

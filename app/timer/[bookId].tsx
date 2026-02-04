@@ -29,7 +29,7 @@ import { processSessionEnd } from '@/lib/sessionRewards';
 import { calculateActiveEffects, ActiveEffects } from '@/lib/companionEffects';
 import { getActiveEffects as getConsumableEffects } from '@/lib/consumables';
 import { buildSessionResultsData } from '@/lib/sessionResultsData';
-import { getBookTier, getTierColorKey } from '@/lib/bookTier';
+import { getBookTier, getTierColorKey } from '@/lib/books';
 
 export default function TimerScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();

@@ -1,5 +1,5 @@
 // __tests__/integration/kindleShare.test.ts
-import { processKindleShare } from '@/lib/kindleShareProcessor';
+import { processKindleShare } from '@/lib/books';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 jest.mock('@react-native-async-storage/async-storage');

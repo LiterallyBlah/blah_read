@@ -1,7 +1,7 @@
 import { searchGoogleBooks, searchGoogleBooksByIsbn } from './googleBooks';
 import { searchOpenLibrary, buildOpenLibraryCoverUrl } from './openLibrary';
 import { asinToIsbn13 } from './isbn';
-import { mapToCanonicalGenres, Genre } from './shared';
+import { mapToCanonicalGenres, Genre } from '../shared';
 
 /**
  * Clean up book title for better search results

@@ -1,4 +1,4 @@
-import { parseOpenLibraryResponse, buildOpenLibraryCoverUrl } from '@/lib/openLibrary';
+import { parseOpenLibraryResponse, buildOpenLibraryCoverUrl } from '@/lib/books';
 
 describe('openLibrary', () => {
   describe('parseOpenLibraryResponse', () => {

@@ -3,7 +3,7 @@ import { View, Text, Image, Pressable, ScrollView, StyleSheet, Alert, ActivityIn
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { storage, settings } from '@/lib/storage';
-import { enrichBookData } from '@/lib/bookEnrichment';
+import { enrichBookData } from '@/lib/books';
 import { getNextMilestone } from '@/lib/companionUnlock';
 import { checkLootBoxRewards } from '@/lib/lootBox';
 import { processSessionEnd } from '@/lib/sessionRewards';
@@ -24,8 +24,7 @@ import {
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 import { generateCompanionsInBackground } from '@/lib/companionBackgroundGenerator';
-import { getBookTier, getTierColorKey, getTierGlow } from '@/lib/bookTier';
-import { SECONDS_PER_LEVEL } from '@/lib/bookLeveling';
+import { getBookTier, getTierColorKey, getTierGlow, SECONDS_PER_LEVEL } from '@/lib/books';
 import { BOOK_LEVEL_REQUIREMENTS } from '@/lib/companionEffects';
 import { EffectBadgeList } from '@/components/EffectBadge';
 import { ReadingMilestones } from '@/components/Milestones';

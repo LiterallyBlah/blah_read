@@ -6,7 +6,7 @@
  */
 
 import { Book, UserProgress, Companion, LootBoxV3, GenreLevels, CompanionRarity, ActiveConsumable, SlotUnlockProgress, Genre, GENRES } from './shared';
-import { processReadingTime, calculateCompletionBonus } from './bookLeveling';
+import { processReadingTime, calculateCompletionBonus } from './books';
 import { calculateActiveEffects, ActiveEffects } from './companionEffects';
 import { getActiveEffects as getConsumableEffects, tickConsumables, consolidateActiveConsumables } from './consumables';
 import { rollCheckpointDrops, rollBoxTierWithPity, BonusDropResult, AvailableRarities } from './lootV3';

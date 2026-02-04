@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
-import { processKindleShare, ProcessingStep, ProcessResult } from '@/lib/kindleShareProcessor';
+import { processKindleShare, ProcessingStep, ProcessResult } from '@/lib/books';
 import { DuplicateBookDialog } from '@/components/DuplicateBookDialog';
 import { Book } from '@/lib/shared';
 

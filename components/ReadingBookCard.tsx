@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { Book, Companion, getBookLoadout, isSlotUnlocked } from '@/lib/shared';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
-import { getBookTier, getTierColorKey, getTierGlow } from '@/lib/bookTier';
+import { getBookTier, getTierColorKey, getTierGlow } from '@/lib/books';
 
 interface ReadingBookCardProps {
   book: Book;

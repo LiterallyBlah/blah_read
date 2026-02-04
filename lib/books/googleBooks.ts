@@ -1,4 +1,4 @@
-import { debug } from './shared';
+import { debug } from '../shared';
 
 const API_URL = 'https://www.googleapis.com/books/v1/volumes';
 

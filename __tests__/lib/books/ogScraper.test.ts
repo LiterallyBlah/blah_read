@@ -1,4 +1,4 @@
-import { parseOgTags } from '@/lib/ogScraper';
+import { parseOgTags } from '@/lib/books';
 
 describe('parseOgTags', () => {
   it('extracts og:title, og:image, og:description from HTML', () => {

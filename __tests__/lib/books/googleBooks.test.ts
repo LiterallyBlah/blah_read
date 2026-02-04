@@ -1,4 +1,4 @@
-import { parseGoogleBooksResponse } from '@/lib/googleBooks';
+import { parseGoogleBooksResponse } from '@/lib/books';
 
 describe('parseGoogleBooksResponse', () => {
   it('extracts title, cover, and description from API response', () => {

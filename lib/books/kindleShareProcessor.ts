@@ -1,7 +1,7 @@
 import { parseKindleShareText } from './kindleParser';
-import { enrichBookData } from './bookEnrichment';
-import { storage, settings } from './storage';
-import { Book, debug, setDebugEnabled, generateId } from './shared';
+import { enrichBookData } from './enrichment';
+import { storage, settings } from '../storage';
+import { Book, debug, setDebugEnabled, generateId } from '../shared';
 
 export type ProcessingStep = 'parsing' | 'checking-duplicate' | 'enriching' | 'saving';
 

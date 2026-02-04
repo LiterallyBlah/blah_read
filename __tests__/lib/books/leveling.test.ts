@@ -5,7 +5,7 @@ import {
   processReadingTime,
   SECONDS_PER_LEVEL,
   PAGES_PER_LEVEL,
-} from '@/lib/bookLeveling';
+} from '@/lib/books';
 
 describe('bookLeveling constants', () => {
   it('should have correct SECONDS_PER_LEVEL', () => {

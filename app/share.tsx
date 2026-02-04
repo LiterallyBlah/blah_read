@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { fetchOgTags } from '@/lib/ogScraper';
+import { fetchOgTags } from '@/lib/books';
 import { storage } from '@/lib/storage';
 import { Book } from '@/lib/shared';
 import { FONTS } from '@/lib/theme';

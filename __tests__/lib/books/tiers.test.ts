@@ -1,4 +1,4 @@
-import { getBookTier, getTierGlow, getTierColorKey } from '@/lib/bookTier';
+import { getBookTier, getTierGlow, getTierColorKey } from '@/lib/books';
 
 describe('getBookTier', () => {
   it('returns common for levels 1-3', () => {

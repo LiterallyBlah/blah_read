@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as Linking from 'expo-linking';
 import * as Notifications from 'expo-notifications';
 import { ThemeProvider, useTheme } from '@/lib/ThemeContext';
-import { isKindleShareText } from '@/lib/kindleParser';
+import { isKindleShareText } from '@/lib/books';
 import { checkForInterruptedSession, timerPersistence, storage } from '@/lib/storage';
 import { TimerRecoveryData } from '@/lib/shared';
 import { backgroundService } from '@/lib/shared/backgroundService';

@@ -3,7 +3,7 @@ import {
   validateIsbn10,
   isbn10ToIsbn13,
   asinToIsbn13,
-} from '@/lib/isbn';
+} from '@/lib/books';
 
 describe('isbn', () => {
   describe('looksLikeIsbn10', () => {
