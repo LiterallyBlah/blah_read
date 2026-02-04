@@ -304,12 +304,6 @@ export function rollCheckpointDrops(
   return drops;
 }
 
-/** @deprecated Use rollCheckpointDrops instead */
-export function rollBonusDrop(dropRateBoost: number): boolean {
-  if (dropRateBoost <= 0) return false;
-  return Math.random() < dropRateBoost;
-}
-
 /**
  * Complete loot roll using the three-layer system.
  * 1. Roll box tier (with luck boost)

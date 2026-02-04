@@ -6,7 +6,6 @@ import {
   rollConsumable,
   rollLoot,
   rollLootForTier,
-  rollBonusDrop,
   rollCheckpointDrops,
   rollBoxTierWithPity,
   PityState,
@@ -328,25 +327,6 @@ describe('lootV3', () => {
       expect(results.silver / trials).toBeLessThan(0.30);
       expect(results.gold / trials).toBeGreaterThan(0.02);
       expect(results.gold / trials).toBeLessThan(0.08);
-    });
-  });
-
-  describe('rollBonusDrop', () => {
-    it('should return false with 0 drop rate', () => {
-      let gotBonus = false;
-      for (let i = 0; i < 100; i++) {
-        if (rollBonusDrop(0)) gotBonus = true;
-      }
-      expect(gotBonus).toBe(false);
-    });
-
-    it('should sometimes return true with positive drop rate', () => {
-      let bonusCount = 0;
-      for (let i = 0; i < 100; i++) {
-        if (rollBonusDrop(0.50)) bonusCount++;
-      }
-      expect(bonusCount).toBeGreaterThan(0);
-      expect(bonusCount).toBeLessThan(100);
     });
   });
 
