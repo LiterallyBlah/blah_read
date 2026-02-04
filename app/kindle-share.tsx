@@ -5,7 +5,7 @@ import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
 import { processKindleShare, ProcessingStep, ProcessResult } from '@/lib/kindleShareProcessor';
 import { DuplicateBookDialog } from '@/components/DuplicateBookDialog';
-import { Book } from '@/lib/types';
+import { Book } from '@/lib/shared';
 
 type ScreenState = 'processing' | 'duplicate' | 'error' | 'success';
 

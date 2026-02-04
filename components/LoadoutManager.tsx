@@ -2,14 +2,16 @@ import React from 'react';
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
-import type { Companion, CompanionLoadout, SlotUnlockProgress } from '@/lib/types';
-import { isSlotUnlocked } from '@/lib/loadout';
 import {
+  type Companion,
+  type CompanionLoadout,
+  type SlotUnlockProgress,
+  isSlotUnlocked,
   calculateSlot2Progress,
   calculateSlot3Progress,
   SLOT_2_POINTS,
   SLOT_3_POINTS,
-} from '@/lib/slotProgress';
+} from '@/lib/shared';
 
 export interface LoadoutManagerProps {
   loadout: CompanionLoadout;

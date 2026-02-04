@@ -4,8 +4,7 @@ import {
   LegacyRewardData,
 } from '@/lib/sessionResultsData';
 import { SessionRewardResult } from '@/lib/sessionRewards';
-import { Book, UserProgress, Companion } from '@/lib/types';
-import { Genre, GENRES } from '@/lib/genres';
+import { Book, UserProgress, Companion, Genre, GENRES } from '@/lib/shared';
 
 const emptyLegacyData: LegacyRewardData = {
   readingTimeCompanions: [],

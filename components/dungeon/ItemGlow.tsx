@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
-import type { CompanionRarity } from '@/lib/types';
+import type { CompanionRarity } from '@/lib/shared';
 
 interface ItemGlowProps {
   rarity: CompanionRarity;

@@ -1,8 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Book, ReadingSession, UserProgress, Companion, CompanionLoadout } from './types';
+import { Book, ReadingSession, UserProgress, Companion, CompanionLoadout, debug, deleteCompanionImage } from './shared';
 import { migrateData, CURRENT_VERSION } from './migrations';
-import { debug } from './debug';
-import { deleteCompanionImage } from './imageStorage';
 
 /**
  * Safely parse JSON with fallback.

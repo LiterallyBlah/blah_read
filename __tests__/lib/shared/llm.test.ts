@@ -1,4 +1,4 @@
-import { buildCompanionPrompt, parseCompanionResponse, buildResearchRequest } from '@/lib/llm';
+import { buildCompanionPrompt, parseCompanionResponse, buildResearchRequest } from '@/lib/shared';
 import { RESEARCH_SCHEMA } from '@/lib/companionResearch';
 
 describe('llm', () => {

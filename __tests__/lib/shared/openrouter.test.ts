@@ -1,4 +1,4 @@
-import { parseModelsResponse, supportsImageOutput } from '@/lib/openrouter';
+import { parseModelsResponse, supportsImageOutput } from '@/lib/shared';
 
 describe('openrouter', () => {
   it('parses models response', () => {

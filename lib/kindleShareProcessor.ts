@@ -2,9 +2,7 @@ import { parseKindleShareText } from './kindleParser';
 import { enrichBookData } from './bookEnrichment';
 import { storage } from './storage';
 import { settings } from './settings';
-import { Book } from './types';
-import { debug, setDebugEnabled } from './debug';
-import { generateId } from './idGenerator';
+import { Book, debug, setDebugEnabled, generateId } from './shared';
 
 export type ProcessingStep = 'parsing' | 'checking-duplicate' | 'enriching' | 'saving';
 

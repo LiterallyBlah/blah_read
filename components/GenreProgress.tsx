@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
-import { GENRES, GENRE_DISPLAY_NAMES, Genre } from '@/lib/genres';
-import { GenreLevels } from '@/lib/types';
+import { GENRES, GENRE_DISPLAY_NAMES, Genre, GenreLevels } from '@/lib/shared';
 import { DungeonBar } from '@/components/dungeon';
 
 // Threshold constants

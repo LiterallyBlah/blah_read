@@ -7,11 +7,11 @@ import { ThemeProvider, useTheme } from '@/lib/ThemeContext';
 import { isKindleShareText } from '@/lib/kindleParser';
 import { checkForInterruptedSession } from '@/lib/sessionRecovery';
 import { timerPersistence } from '@/lib/timerPersistence';
-import { backgroundService } from '@/lib/backgroundService';
+import { TimerRecoveryData } from '@/lib/shared';
+import { backgroundService } from '@/lib/shared/backgroundService';
 import { storage } from '@/lib/storage';
 import { processSessionEnd } from '@/lib/sessionRewards';
 import { SessionRecoveryModal } from '@/components/SessionRecoveryModal';
-import { TimerRecoveryData } from '@/lib/types';
 
 function RootLayoutInner() {
   const { isDark } = useTheme();

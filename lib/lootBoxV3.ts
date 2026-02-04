@@ -1,5 +1,4 @@
-import { LootBoxV3, LootBoxTier, UserProgress, Companion } from './types';
-import { Genre } from './genres';
+import { LootBoxV3, LootBoxTier, UserProgress, Companion, Genre } from './shared';
 import { calculateActiveEffects } from './companionEffects';
 import { getActiveEffects as getConsumableEffects } from './consumableManager';
 import { rollBoxTierWithPity, rollLootForTier, LootResult, rollCompanionRarity } from './lootV3';

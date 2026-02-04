@@ -8,9 +8,10 @@ import {
   equipCompanionToBook,
   unequipCompanionFromBook,
   getBookEquippedCompanionIds,
-} from '@/lib/loadout';
+  CompanionLoadout,
+  Book,
+} from '@/lib/shared';
 import { storage } from '@/lib/storage';
-import { CompanionLoadout, Book } from '@/lib/types';
 
 jest.mock('@/lib/storage');
 

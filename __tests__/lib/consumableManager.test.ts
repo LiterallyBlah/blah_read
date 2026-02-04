@@ -1,4 +1,4 @@
-import { ActiveConsumable } from '@/lib/types';
+import { ActiveConsumable } from '@/lib/shared';
 import { CONSUMABLES, getConsumableById } from '@/lib/consumables';
 import {
   ConsumableEffects,

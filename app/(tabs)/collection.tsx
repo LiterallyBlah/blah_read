@@ -6,14 +6,30 @@ import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
 import { storage } from '@/lib/storage';
 import { settings } from '@/lib/settings';
-import { debug, setDebugEnabled } from '@/lib/debug';
-import { maybeGenerateImages, shouldGenerateMoreImages } from '@/lib/companionImageQueue';
-import { generateImageForCompanion } from '@/lib/imageGen';
-import type { Book, Companion, LootBoxState, CompanionLoadout, UserProgress, LootBoxV3, LootBoxTier } from '@/lib/types';
+import {
+  debug,
+  setDebugEnabled,
+  generateImageForCompanion,
+  Book,
+  Companion,
+  LootBoxState,
+  CompanionLoadout,
+  UserProgress,
+  LootBoxV3,
+  LootBoxTier,
+  equipCompanion,
+  unequipCompanion,
+  getEquippedCompanionIds,
+  isSlotUnlocked,
+  equipCompanionToBook,
+  unequipCompanionFromBook,
+  getBookLoadout,
+  GENRE_DISPLAY_NAMES,
+  Genre,
+} from '@/lib/shared';
 import type { Settings } from '@/lib/settings';
-import { equipCompanion, unequipCompanion, getEquippedCompanionIds, isSlotUnlocked, equipCompanionToBook, unequipCompanionFromBook, getBookLoadout } from '@/lib/loadout';
+import { maybeGenerateImages, shouldGenerateMoreImages } from '@/lib/companionImageQueue';
 import { canEquipCompanion, EFFECT_TYPES, EquipRequirements, CompanionEffect } from '@/lib/companionEffects';
-import { GENRE_DISPLAY_NAMES, Genre } from '@/lib/genres';
 import { PixelSprite } from '@/components/dungeon';
 import { TintedChest } from '@/components/dungeon/TintedChest';
 

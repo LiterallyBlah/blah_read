@@ -5,12 +5,11 @@ import { router, useFocusEffect } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { storage } from '@/lib/storage';
 import { BookCard } from '@/components/BookCard';
-import { Book, BookStatus } from '@/lib/types';
+import { Book, BookStatus, setDebugEnabled } from '@/lib/shared';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 import { isKindleShareText } from '@/lib/kindleParser';
 import { settings } from '@/lib/settings';
-import { setDebugEnabled } from '@/lib/debug';
 
 const FILTERS: { label: string; value: BookStatus | 'all' }[] = [
   { label: 'all', value: 'all' },

@@ -1,4 +1,4 @@
-import { GENRES, Genre, isValidGenre, mapToCanonicalGenres } from '../../lib/genres';
+import { GENRES, Genre, isValidGenre, mapToCanonicalGenres } from '@/lib/shared';
 
 describe('genres', () => {
   it('should have exactly 12 genres', () => {

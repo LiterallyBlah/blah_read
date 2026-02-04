@@ -8,9 +8,19 @@ import { getNextMilestone } from '@/lib/companionUnlock';
 import { checkLootBoxRewards } from '@/lib/lootBox';
 import { processSessionEnd } from '@/lib/sessionRewards';
 import { generateBufferedImages } from '@/lib/companionImageQueue';
-import { generateImageForCompanion } from '@/lib/imageGen';
-import { Book, BookStatus, CompanionRarity } from '@/lib/types';
-import type { Companion } from '@/lib/types';
+import {
+  generateImageForCompanion,
+  Book,
+  BookStatus,
+  CompanionRarity,
+  Companion,
+  GENRES,
+  Genre,
+  GENRE_DISPLAY_NAMES,
+  detectBookGenres,
+  getBookLoadout,
+  isSlotUnlocked,
+} from '@/lib/shared';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 import { settings } from '@/lib/settings';
@@ -18,9 +28,6 @@ import { generateCompanionsInBackground } from '@/lib/companionBackgroundGenerat
 import { getBookTier, getTierColorKey, getTierGlow } from '@/lib/bookTier';
 import { SECONDS_PER_LEVEL } from '@/lib/bookLeveling';
 import { BOOK_LEVEL_REQUIREMENTS } from '@/lib/companionEffects';
-import { GENRES, Genre, GENRE_DISPLAY_NAMES } from '@/lib/genres';
-import { detectBookGenres } from '@/lib/genreDetection';
-import { getBookLoadout, isSlotUnlocked } from '@/lib/loadout';
 import { EffectBadgeList } from '@/components/EffectBadge';
 import { ReadingMilestones } from '@/components/Milestones';
 

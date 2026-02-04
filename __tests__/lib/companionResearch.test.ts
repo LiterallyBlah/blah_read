@@ -3,7 +3,7 @@ import {
   parseResearchResponse,
   assignCompanionQueues,
 } from '@/lib/companionResearch';
-import type { Companion } from '@/lib/types';
+import type { Companion } from '@/lib/shared';
 
 describe('companionResearch', () => {
   describe('buildResearchPrompt', () => {

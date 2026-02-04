@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, router } from 'expo-router';
 import { storage } from '@/lib/storage';
 import { calculateLevel, xpProgress, getStreakMultiplierInfo } from '@/lib/xp';
-import { Book, UserProgress } from '@/lib/types';
+import { Book, UserProgress } from '@/lib/shared';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 import { getConsumableById, formatDuration } from '@/lib/consumables';

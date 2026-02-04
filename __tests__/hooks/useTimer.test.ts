@@ -2,7 +2,7 @@
 // The hook implementation is straightforward state management
 
 import { timerPersistence } from '@/lib/timerPersistence';
-import { backgroundService } from '@/lib/backgroundService';
+import { backgroundService } from '@/lib/shared/backgroundService';
 
 jest.mock('@/lib/timerPersistence', () => ({
   timerPersistence: {
@@ -13,7 +13,7 @@ jest.mock('@/lib/timerPersistence', () => ({
   },
 }));
 
-jest.mock('@/lib/backgroundService', () => ({
+jest.mock('@/lib/shared/backgroundService', () => ({
   backgroundService: {
     start: jest.fn(),
     stop: jest.fn(),

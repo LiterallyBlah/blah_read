@@ -13,7 +13,7 @@ import { ItemGlow } from './ItemGlow';
 import { ConsumableIcon } from './ConsumableIcon';
 import { useRevealTimeline, TIMELINE } from '@/hooks/useRevealTimeline';
 import { getTierGlowColor } from '@/lib/dungeonAssets';
-import type { LootBoxTier, Companion, CompanionRarity } from '@/lib/types';
+import type { LootBoxTier, Companion, CompanionRarity } from '@/lib/shared';
 import type { ConsumableDefinition } from '@/lib/consumables';
 
 interface ChestRevealProps {

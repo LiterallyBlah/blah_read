@@ -1,14 +1,12 @@
-import type { Book, BookCompanions, Companion } from './types';
-import type { Genre } from './genres';
+import type { Book, BookCompanions, Companion, Genre } from './shared';
+import { debug, setDebugEnabled, executeCompanionResearch } from './shared';
 import { settings } from './settings';
-import { executeCompanionResearch } from './llm';
 import {
   buildResearchPrompt,
   parseResearchResponse,
   assignCompanionQueues,
 } from './companionResearch';
 import { generateInspiredCompanions } from './inspiredCompanions';
-import { debug, setDebugEnabled } from './debug';
 
 const TARGET_COMPANION_COUNT = 15;
 const MIN_DISCOVERED_FOR_HIGH_CONFIDENCE = 10;

@@ -3,8 +3,7 @@ import { View, Text, TextInput, Pressable, StyleSheet, Alert } from 'react-nativ
 import { useLocalSearchParams, router } from 'expo-router';
 import { storage } from '@/lib/storage';
 import { calculateXp } from '@/lib/xp';
-import { updateStreak, getDateString } from '@/lib/streak';
-import { ReadingSession, LootItem } from '@/lib/types';
+import { updateStreak, getDateString, ReadingSession, LootItem } from '@/lib/shared';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 

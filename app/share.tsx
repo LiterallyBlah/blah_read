@@ -3,7 +3,7 @@ import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { fetchOgTags } from '@/lib/ogScraper';
 import { storage } from '@/lib/storage';
-import { Book } from '@/lib/types';
+import { Book } from '@/lib/shared';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 

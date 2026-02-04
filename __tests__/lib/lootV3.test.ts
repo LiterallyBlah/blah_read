@@ -22,7 +22,7 @@ import {
   COMPANION_RARITY_ODDS,
   LootResult,
 } from '@/lib/lootV3';
-import { LootBoxTier, CompanionRarity } from '@/lib/types';
+import { LootBoxTier, CompanionRarity } from '@/lib/shared';
 import { ConsumableTier, getConsumablesByTier } from '@/lib/consumables';
 
 describe('lootV3', () => {

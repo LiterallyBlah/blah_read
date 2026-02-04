@@ -1,4 +1,4 @@
-import { UserProgress } from './types';
+import { UserProgress } from './shared';
 import { ConsumableDefinition, ConsumableTier } from './consumables';
 
 /**

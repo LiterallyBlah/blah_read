@@ -1,6 +1,5 @@
 // lib/companionEffects.ts
-import { CompanionRarity, Companion } from './types';
-import { Genre } from './genres';
+import { CompanionRarity, Companion, Genre } from './shared';
 
 export const EFFECT_TYPES = [
   'xp_boost',

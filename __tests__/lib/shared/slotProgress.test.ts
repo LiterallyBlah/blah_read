@@ -6,8 +6,8 @@ import {
   calculateSlot3Progress,
   shouldUnlockSlot2,
   shouldUnlockSlot3,
-} from '@/lib/slotProgress';
-import { SlotUnlockProgress } from '@/lib/types';
+  SlotUnlockProgress,
+} from '@/lib/shared';
 
 describe('createDefaultSlotProgress', () => {
   it('should return default progress with all values at zero', () => {

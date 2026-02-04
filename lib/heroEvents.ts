@@ -6,8 +6,7 @@
  */
 
 import { SessionRewardResult } from './sessionRewards';
-import { Genre } from './genres';
-import { Companion } from './types';
+import { Genre, Companion } from './shared';
 
 export type HeroEventType =
   | 'companion_unlocked'

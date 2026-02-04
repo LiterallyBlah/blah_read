@@ -11,7 +11,7 @@ import {
   rollCompanionEffects,
   backfillAllCompanionEffects,
 } from '../../lib/companionEffects';
-import { Companion } from '../../lib/types';
+import { Companion } from '@/lib/shared';
 
 describe('companionEffects', () => {
   describe('ActiveEffects interface', () => {

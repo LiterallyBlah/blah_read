@@ -8,14 +8,13 @@ import { openLootBox, openLootBoxWithRarity, getPoolCompanions } from '@/lib/loo
 import { openLootBoxV3 } from '@/lib/lootBoxV3';
 import { PITY_HARD_CAP, rollConsumable } from '@/lib/lootV3';
 import { LootBoxReveal } from '@/components/LootBoxReveal';
-import type { Companion, LootBoxV3, LootBoxTier } from '@/lib/types';
+import type { Companion, LootBoxV3, LootBoxTier } from '@/lib/shared';
 import { ConsumableDefinition } from '@/lib/consumables';
 import { addActiveConsumable } from '@/lib/consumableManager';
 import { applyInstantConsumable } from '@/lib/instantConsumables';
 import { maybeGenerateImages } from '@/lib/companionImageQueue';
-import { generateImageForCompanion } from '@/lib/imageGen';
+import { generateImageForCompanion, debug } from '@/lib/shared';
 import { settings } from '@/lib/settings';
-import { debug } from '@/lib/debug';
 import { TintedChest } from '@/components/dungeon/TintedChest';
 
 // Box tier visual styling

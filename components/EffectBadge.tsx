@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
 import { CompanionEffect, EffectType } from '@/lib/companionEffects';
-import { GENRE_DISPLAY_NAMES, Genre } from '@/lib/genres';
+import { GENRE_DISPLAY_NAMES, Genre } from '@/lib/shared';
 
 // Display names for effect types
 const EFFECT_DISPLAY_NAMES: Record<EffectType, string> = {

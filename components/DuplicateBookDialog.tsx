@@ -1,7 +1,7 @@
 import { Modal, View, Text, Pressable, StyleSheet } from 'react-native';
 import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
-import { Book } from '@/lib/types';
+import { Book } from '@/lib/shared';
 
 interface DuplicateBookDialogProps {
   visible: boolean;

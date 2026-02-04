@@ -1,4 +1,4 @@
-import { Book, ReadingSession, UserProgress, BookStatus, Companion, LootBoxV3 } from '@/lib/types';
+import { Book, ReadingSession, UserProgress, BookStatus, Companion, LootBoxV3 } from '@/lib/shared';
 
 describe('types', () => {
   it('Book type has required fields', () => {

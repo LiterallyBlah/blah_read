@@ -4,7 +4,7 @@ import {
   openLootBoxWithRarity,
   getPoolCompanions,
 } from '@/lib/lootBox';
-import type { UserProgress, Book, Companion } from '@/lib/types';
+import type { UserProgress, Book, Companion } from '@/lib/shared';
 
 describe('lootBox', () => {
   describe('checkLootBoxRewards', () => {

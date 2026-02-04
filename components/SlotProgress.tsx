@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
-import { SlotUnlockProgress } from '@/lib/types';
 import {
+  SlotUnlockProgress,
   calculateSlot2Progress,
   calculateSlot3Progress,
   SLOT_2_POINTS,
@@ -16,7 +16,7 @@ import {
   SLOT_3_COMPANION_COLLECTED,
   SLOT_3_GENRE_LEVEL_TEN,
   SLOT_3_NEW_GENRE,
-} from '@/lib/slotProgress';
+} from '@/lib/shared';
 import { DungeonBar } from '@/components/dungeon';
 
 interface Props {

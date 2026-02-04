@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
-import type { Companion, LootBoxTier } from '@/lib/types';
+import type { Companion, LootBoxTier } from '@/lib/shared';
 import { formatDuration, type ConsumableDefinition } from '@/lib/consumables';
 import { ChestReveal } from './dungeon/ChestReveal';
 import { ConsumableIcon } from './dungeon/ConsumableIcon';

@@ -1,6 +1,5 @@
-import type { Book, BookCompanions, Companion, CompanionRarity, LootBox } from './types';
-import { debug } from './debug';
-import { generateBatchId } from './idGenerator';
+import type { Book, BookCompanions, Companion, CompanionRarity, LootBox } from './shared';
+import { debug, generateBatchId } from './shared';
 
 /**
  * Reading time milestones in seconds (front-loaded)

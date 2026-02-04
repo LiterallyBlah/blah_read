@@ -5,8 +5,7 @@ import {
   SlotUnlockState,
 } from '@/lib/heroEvents';
 import { SessionRewardResult } from '@/lib/sessionRewards';
-import { Genre } from '@/lib/genres';
-import { Companion } from '@/lib/types';
+import { Genre, Companion } from '@/lib/shared';
 
 function createMockSessionResult(overrides: Partial<SessionRewardResult> = {}): SessionRewardResult {
   return {

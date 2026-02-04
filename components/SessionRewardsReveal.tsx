@@ -3,7 +3,7 @@ import { CompanionCardReveal } from './CompanionCardReveal';
 import { LootBoxSummary } from './LootBoxSummary';
 import { ConsumableSummary } from './ConsumableSummary';
 import { MilestonesSummary } from './MilestonesSummary';
-import type { LootBoxTier } from '@/lib/types';
+import type { LootBoxTier } from '@/lib/shared';
 import type { AchievedMilestone } from '@/lib/lootBox';
 import type { ConsumableEffectType, ConsumableTier } from '@/lib/consumables';
 

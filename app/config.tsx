@@ -6,17 +6,23 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { useTheme } from '@/lib/ThemeContext';
 import { settings, Settings, exportAllData, resetApp, selectiveDelete, DeleteOptions } from '@/lib/settings';
-import { resetDebugCache } from '@/lib/debug';
-import { validateApiKey, validateImageModel } from '@/lib/openrouter';
-import { getImageStorageDiagnostics, deleteOrphanedImages } from '@/lib/imageStorage';
+import {
+  resetDebugCache,
+  validateApiKey,
+  validateImageModel,
+  getImageStorageDiagnostics,
+  deleteOrphanedImages,
+  generateImageForCompanion,
+  Genre,
+  LootBoxV3,
+  LootBoxTier,
+  Companion,
+} from '@/lib/shared';
 import { storage } from '@/lib/storage';
 import { backfillAllCompanionEffects } from '@/lib/companionEffects';
 import { generateBufferedImages } from '@/lib/companionImageQueue';
-import { generateImageForCompanion } from '@/lib/imageGen';
 import { consolidateActiveConsumables } from '@/lib/consumableManager';
-import type { Genre } from '@/lib/genres';
 import { FONTS } from '@/lib/theme';
-import type { LootBoxV3, LootBoxTier, Companion } from '@/lib/types';
 
 type ApiStatus = 'not set' | 'testing' | 'connected' | 'invalid';
 

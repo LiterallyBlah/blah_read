@@ -5,8 +5,7 @@
  * and calculates all rewards: book levels, XP, genre levels, loot boxes.
  */
 
-import { Book, UserProgress, Companion, LootBoxV3, GenreLevels, CompanionRarity, ActiveConsumable, SlotUnlockProgress } from './types';
-import { Genre, GENRES } from './genres';
+import { Book, UserProgress, Companion, LootBoxV3, GenreLevels, CompanionRarity, ActiveConsumable, SlotUnlockProgress, Genre, GENRES } from './shared';
 import { processReadingTime, calculateCompletionBonus } from './bookLeveling';
 import { calculateActiveEffects, ActiveEffects } from './companionEffects';
 import { getActiveEffects as getConsumableEffects, tickConsumables, consolidateActiveConsumables } from './consumableManager';

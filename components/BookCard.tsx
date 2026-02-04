@@ -1,10 +1,8 @@
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
-import { Book } from '@/lib/types';
+import { Book, GENRE_DISPLAY_NAMES, Genre, debug } from '@/lib/shared';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 import { getBookTier, getTierColorKey, getTierGlow } from '@/lib/bookTier';
-import { GENRE_DISPLAY_NAMES, Genre } from '@/lib/genres';
-import { debug } from '@/lib/debug';
 
 interface Props {
   book: Book;

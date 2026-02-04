@@ -1,4 +1,4 @@
-import type { LootBoxTier } from './types';
+import type { LootBoxTier } from './shared';
 import type { ConsumableEffectType, ConsumableTier } from './consumables';
 
 // Tier color configuration for chest tinting and glow effects

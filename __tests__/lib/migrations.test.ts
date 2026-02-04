@@ -1,5 +1,5 @@
 import { migrateData, CURRENT_VERSION } from '@/lib/migrations';
-import type { Book, UserProgress, Companion } from '@/lib/types';
+import type { Book, UserProgress, Companion } from '@/lib/shared';
 
 describe('migrations', () => {
   const baseProgress: UserProgress = {

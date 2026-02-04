@@ -1,7 +1,7 @@
 // lib/sessionRecovery.ts
 import { timerPersistence, PersistedTimerState } from './timerPersistence';
 import { storage } from './storage';
-import { TimerRecoveryData } from './types';
+import { TimerRecoveryData } from './shared';
 
 export function buildRecoveryData(
   state: PersistedTimerState,

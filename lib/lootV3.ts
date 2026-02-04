@@ -1,4 +1,4 @@
-import { LootBoxTier, CompanionRarity, Companion } from './types';
+import { LootBoxTier, CompanionRarity, Companion } from './shared';
 import { ConsumableTier, ConsumableDefinition, getConsumablesByTier } from './consumables';
 
 // Unified bonus drop system

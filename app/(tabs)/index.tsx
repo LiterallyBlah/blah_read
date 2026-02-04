@@ -13,7 +13,7 @@ import {
 import { router, useFocusEffect } from 'expo-router';
 import { storage } from '@/lib/storage';
 import { calculateLevel, xpProgress } from '@/lib/xp';
-import { Book, UserProgress, Companion } from '@/lib/types';
+import { Book, UserProgress, Companion } from '@/lib/shared';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 import { DungeonBar } from '@/components/dungeon';

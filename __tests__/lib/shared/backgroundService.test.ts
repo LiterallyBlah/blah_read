@@ -1,5 +1,5 @@
-// __tests__/lib/backgroundService.test.ts
-import { backgroundService } from '@/lib/backgroundService';
+// __tests__/lib/shared/backgroundService.test.ts
+import { backgroundService } from '@/lib/shared/backgroundService';
 import { Platform, NativeModules, AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
 

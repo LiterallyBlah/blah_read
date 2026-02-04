@@ -1,9 +1,14 @@
-import { orchestrateCompanionResearch, shouldRunCompanionResearch } from '@/lib/companionOrchestrator';
+// Mock needs to be at top level for Jest hoisting
+const mockExecuteCompanionResearch = jest.fn();
 
-// Mock the dependencies
-jest.mock('@/lib/llm', () => ({
-  executeCompanionResearch: jest.fn(),
-}));
+jest.mock('@/lib/shared', () => {
+  const actual = jest.requireActual('@/lib/shared');
+  return {
+    __esModule: true,
+    ...actual,
+    executeCompanionResearch: mockExecuteCompanionResearch,
+  };
+});
 
 jest.mock('@/lib/settings', () => ({
   settings: {
@@ -14,8 +19,11 @@ jest.mock('@/lib/settings', () => ({
   },
 }));
 
-import { executeCompanionResearch } from '@/lib/llm';
+import { orchestrateCompanionResearch, shouldRunCompanionResearch } from '@/lib/companionOrchestrator';
 import { settings } from '@/lib/settings';
+
+// Re-assign for convenience in tests
+const executeCompanionResearch = mockExecuteCompanionResearch;
 
 describe('companionOrchestrator', () => {
   beforeEach(() => {

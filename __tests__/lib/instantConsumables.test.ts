@@ -1,4 +1,4 @@
-import { UserProgress } from '@/lib/types';
+import { UserProgress } from '@/lib/shared';
 import { ConsumableDefinition } from '@/lib/consumables';
 import {
   applyInstantConsumable,

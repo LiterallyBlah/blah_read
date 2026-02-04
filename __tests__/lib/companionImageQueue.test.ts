@@ -4,7 +4,7 @@ import {
   READING_TIME_BUFFER,
   POOL_BUFFER,
 } from '@/lib/companionImageQueue';
-import type { BookCompanions, Companion } from '@/lib/types';
+import type { BookCompanions, Companion } from '@/lib/shared';
 
 const createCompanion = (
   id: string,

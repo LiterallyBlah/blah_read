@@ -1,5 +1,5 @@
-import type { Book, UserProgress, Companion, GenreLevels, CompanionLoadout, SlotUnlockProgress } from './types';
-import { GENRES, Genre, mapToCanonicalGenres } from './genres';
+import type { Book, UserProgress, Companion, GenreLevels, CompanionLoadout, SlotUnlockProgress, Genre } from './shared';
+import { GENRES, mapToCanonicalGenres } from './shared';
 
 export const CURRENT_VERSION = 4;
 

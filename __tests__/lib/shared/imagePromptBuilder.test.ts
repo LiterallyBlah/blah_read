@@ -1,5 +1,4 @@
-import { getBorderInstruction, buildPromptTemplate, generateImagePrompt } from '@/lib/imagePromptBuilder';
-import type { Companion } from '@/lib/types';
+import { getBorderInstruction, buildPromptTemplate, generateImagePrompt, Companion } from '@/lib/shared';
 
 // Mock fetch globally at the top of the file
 global.fetch = jest.fn();

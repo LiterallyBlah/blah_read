@@ -1,4 +1,4 @@
-import { buildImagePrompt, ImageGenConfig } from '@/lib/imageGen';
+import { buildImagePrompt, ImageGenConfig } from '@/lib/shared';
 
 describe('imageGen', () => {
   describe('ImageGenConfig', () => {

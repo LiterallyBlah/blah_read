@@ -1,4 +1,4 @@
-import { updateStreak, getDateString, updateStreakWithShield } from '@/lib/streak';
+import { updateStreak, getDateString, updateStreakWithShield } from '@/lib/shared';
 
 describe('streak', () => {
   it('increments streak for consecutive days', () => {

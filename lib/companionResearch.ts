@@ -3,10 +3,10 @@ import type {
   CompanionQueue,
   CompanionRarity,
   CompanionType,
-} from './types';
-import type { Genre } from './genres';
+  Genre,
+} from './shared';
+import { generateBatchId } from './shared';
 import { rollCompanionEffects } from './companionEffects';
-import { generateBatchId } from './idGenerator';
 
 /**
  * Structured output schema for OpenRouter

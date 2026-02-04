@@ -3,8 +3,7 @@ import {
   SessionRewardResult,
   BASE_XP_PER_MINUTE,
 } from '@/lib/sessionRewards';
-import { Book, UserProgress, Companion, LootBoxV3 } from '@/lib/types';
-import { Genre, GENRES } from '@/lib/genres';
+import { Book, UserProgress, Companion, LootBoxV3, Genre, GENRES } from '@/lib/shared';
 import { CompanionEffect, ActiveEffects } from '@/lib/companionEffects';
 
 // Helper to create a minimal valid book

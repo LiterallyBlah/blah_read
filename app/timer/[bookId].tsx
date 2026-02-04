@@ -5,25 +5,32 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useTimer } from '@/hooks/useTimer';
 import { storage } from '@/lib/storage';
-import { updateStreakWithShield, getDateString } from '@/lib/streak';
-import { Book, ReadingSession, Companion, UserProgress } from '@/lib/types';
+import {
+  updateStreakWithShield,
+  getDateString,
+  Book,
+  ReadingSession,
+  Companion,
+  generateImageForCompanion,
+  debug,
+  setDebugEnabled,
+  getEquippedCompanionIds,
+  shouldUnlockSlot2,
+  shouldUnlockSlot3,
+} from '@/lib/shared';
+import { backgroundService } from '@/lib/shared/backgroundService';
 import { processReadingSession } from '@/lib/companionUnlock';
 import { checkLootBoxRewards } from '@/lib/lootBox';
 import { maybeGenerateImages } from '@/lib/companionImageQueue';
-import { generateImageForCompanion } from '@/lib/imageGen';
 import { settings } from '@/lib/settings';
-import { debug, setDebugEnabled } from '@/lib/debug';
 import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 import { timerPersistence } from '@/lib/timerPersistence';
-import { backgroundService } from '@/lib/backgroundService';
 // V3 Reward System imports
 import { processSessionEnd } from '@/lib/sessionRewards';
-import { getEquippedCompanionIds } from '@/lib/loadout';
 import { calculateActiveEffects, ActiveEffects } from '@/lib/companionEffects';
 import { getActiveEffects as getConsumableEffects } from '@/lib/consumableManager';
 import { buildSessionResultsData } from '@/lib/sessionResultsData';
-import { shouldUnlockSlot2, shouldUnlockSlot3 } from '@/lib/slotProgress';
 import { getBookTier, getTierColorKey } from '@/lib/bookTier';
 
 export default function TimerScreen() {

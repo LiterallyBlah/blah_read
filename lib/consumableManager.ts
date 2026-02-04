@@ -1,4 +1,4 @@
-import { ActiveConsumable } from './types';
+import { ActiveConsumable } from './shared';
 import { ConsumableDefinition, getConsumableById } from './consumables';
 
 export interface ConsumableEffects {

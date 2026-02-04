@@ -1,11 +1,11 @@
 import { generateCompanionsInBackground } from '@/lib/companionBackgroundGenerator';
-import { Book, BookCompanions } from '@/lib/types';
+import { Book, BookCompanions } from '@/lib/shared';
 
 jest.mock('@/lib/companionOrchestrator');
 jest.mock('@/lib/companionImageQueue');
-jest.mock('@/lib/imageGen');
+jest.mock('@/lib/shared/imageGen');
 jest.mock('@/lib/settings');
-jest.mock('@/lib/debug', () => ({
+jest.mock('@/lib/shared/debug', () => ({
   debug: {
     log: jest.fn(),
     error: jest.fn(),

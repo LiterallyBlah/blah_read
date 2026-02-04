@@ -6,8 +6,8 @@
 
 import { Book, UserProgress, GenreLevels } from './types';
 import { Genre } from './genres';
-import { SECONDS_PER_LEVEL } from './bookLeveling';
-import { READING_TIME_MILESTONES, getNextMilestone } from './companionUnlock';
+import { SECONDS_PER_LEVEL } from '../bookLeveling';
+import { READING_TIME_MILESTONES, getNextMilestone } from '../companionUnlock';
 
 export type MilestoneType = 'book_level' | 'companion_unlock' | 'genre_rarity';
 export type MilestoneReward = 'loot_box' | 'companion' | 'rarity_unlock';

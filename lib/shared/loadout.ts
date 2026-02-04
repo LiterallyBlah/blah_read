@@ -1,5 +1,5 @@
 import { CompanionLoadout, Book } from './types';
-import { storage } from './storage';
+import { storage } from '../storage';
 import { debug } from './debug';
 
 /**

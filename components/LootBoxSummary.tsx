@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
 import { PixelSprite } from '@/components/dungeon/PixelSprite';
-import type { LootBoxTier } from '@/lib/types';
+import type { LootBoxTier } from '@/lib/shared';
 
 interface LootBoxData {
   id: string;

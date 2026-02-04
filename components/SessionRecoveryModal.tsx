@@ -1,7 +1,7 @@
 import { View, Text, Pressable, StyleSheet, Modal } from 'react-native';
 import { useTheme } from '@/lib/ThemeContext';
 import { FONTS } from '@/lib/theme';
-import { TimerRecoveryData } from '@/lib/types';
+import { TimerRecoveryData } from '@/lib/shared';
 
 interface SessionRecoveryModalProps {
   visible: boolean;

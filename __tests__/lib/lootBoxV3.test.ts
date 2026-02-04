@@ -1,6 +1,5 @@
 import { openLootBoxV3 } from '@/lib/lootBoxV3';
-import { LootBoxV3, UserProgress } from '@/lib/types';
-import { Genre } from '@/lib/genres';
+import { LootBoxV3, UserProgress, Genre } from '@/lib/shared';
 
 describe('openLootBoxV3', () => {
   const createBlankBox = (): LootBoxV3 => ({
