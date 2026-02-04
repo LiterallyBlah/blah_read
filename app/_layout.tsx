@@ -3,7 +3,7 @@ import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as Linking from 'expo-linking';
 import * as Notifications from 'expo-notifications';
-import { ThemeProvider, useTheme } from '@/lib/ThemeContext';
+import { ThemeProvider, useTheme } from '@/lib/ui';
 import { isKindleShareText } from '@/lib/books';
 import { checkForInterruptedSession, timerPersistence, storage } from '@/lib/storage';
 import { TimerRecoveryData } from '@/lib/shared';

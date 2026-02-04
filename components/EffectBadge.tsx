@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme } from '@/lib/ThemeContext';
-import { FONTS } from '@/lib/theme';
+import { useTheme, FONTS } from '@/lib/ui';
 import { CompanionEffect, EffectType } from '@/lib/companionEffects';
 import { GENRE_DISPLAY_NAMES, Genre } from '@/lib/shared';
 

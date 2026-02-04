@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { useTheme } from '@/lib/ThemeContext';
-import { FONTS } from '@/lib/theme';
+import { useTheme, FONTS } from '@/lib/ui';
 import type { AchievedMilestone } from '@/lib/lootBox';
 
 interface Props {

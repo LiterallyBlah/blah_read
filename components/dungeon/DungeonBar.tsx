@@ -1,8 +1,7 @@
 // components/dungeon/DungeonBar.tsx
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, StyleProp } from 'react-native';
-import { useTheme } from '@/lib/ThemeContext';
-import { FONTS } from '@/lib/theme';
+import { useTheme, FONTS } from '@/lib/ui';
 
 interface DungeonBarProps {
   value: number;

@@ -21,8 +21,7 @@ import {
   getBookLoadout,
   isSlotUnlocked,
 } from '@/lib/shared';
-import { FONTS } from '@/lib/theme';
-import { useTheme } from '@/lib/ThemeContext';
+import { FONTS, useTheme } from '@/lib/ui';
 import { generateCompanionsInBackground } from '@/lib/companionBackgroundGenerator';
 import { getBookTier, getTierColorKey, getTierGlow, SECONDS_PER_LEVEL } from '@/lib/books';
 import { BOOK_LEVEL_REQUIREMENTS } from '@/lib/companionEffects';

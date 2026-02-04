@@ -1,5 +1,5 @@
-import type { LootBoxTier } from './shared';
-import type { ConsumableEffectType, ConsumableTier } from './consumables';
+import type { LootBoxTier } from '../shared';
+import type { ConsumableEffectType, ConsumableTier } from '../consumables';
 
 // Tier color configuration for chest tinting and glow effects
 // Using subtle 35% opacity to preserve wood detail while showing tier color

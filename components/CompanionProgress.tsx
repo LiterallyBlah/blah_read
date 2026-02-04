@@ -1,6 +1,5 @@
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { useTheme } from '@/lib/ThemeContext';
-import { FONTS } from '@/lib/theme';
+import { useTheme, FONTS } from '@/lib/ui';
 
 export type CompanionStep = 'analyzing' | 'personality' | 'avatar' | 'done' | 'error';
 

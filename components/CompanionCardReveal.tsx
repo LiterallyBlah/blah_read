@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, Pressable, Image, StyleSheet, Animated } from 'react-native';
-import { useTheme } from '@/lib/ThemeContext';
-import { FONTS } from '@/lib/theme';
+import { useTheme, FONTS } from '@/lib/ui';
 
 interface CompanionData {
   id: string;

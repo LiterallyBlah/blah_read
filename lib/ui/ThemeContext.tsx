@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 import { COLORS, COLORS_LIGHT, COLORS_DUNGEON, FONTS, spacing as baseSpacing, fontSize as baseFontSize, letterSpacing } from './theme';
-import { settings, Settings } from './storage';
+import { settings, Settings } from '../storage';
 
 interface ThemeContextValue {
   colors: typeof COLORS;

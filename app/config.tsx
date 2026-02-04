@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import { useTheme } from '@/lib/ThemeContext';
+import { useTheme, FONTS } from '@/lib/ui';
 import { settings, Settings, exportAllData, resetApp, selectiveDelete, DeleteOptions, storage } from '@/lib/storage';
 import {
   resetDebugCache,
@@ -21,7 +21,6 @@ import {
 import { backfillAllCompanionEffects } from '@/lib/companionEffects';
 import { generateBufferedImages } from '@/lib/companionImageQueue';
 import { consolidateActiveConsumables } from '@/lib/consumables';
-import { FONTS } from '@/lib/theme';
 
 type ApiStatus = 'not set' | 'testing' | 'connected' | 'invalid';
 

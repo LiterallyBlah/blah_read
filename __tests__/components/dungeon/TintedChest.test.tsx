@@ -10,7 +10,7 @@ jest.mock('react-native', () => ({
 }));
 
 // Mock the image assets
-jest.mock('@/lib/dungeonAssets', () => ({
+jest.mock('@/lib/ui/dungeonAssets', () => ({
   DUNGEON_TILES: {
     chest_wood_closed: 1,
     chest_silver_closed: 2,

@@ -1,4 +1,4 @@
-import { COLORS, COLORS_LIGHT, COLORS_DUNGEON, FONTS, spacing, fontSize, letterSpacing } from '@/lib/theme';
+import { COLORS, COLORS_LIGHT, COLORS_DUNGEON, FONTS, spacing, fontSize, letterSpacing } from '@/lib/ui/theme';
 
 describe('theme', () => {
   it('exports COLORS matching design system', () => {

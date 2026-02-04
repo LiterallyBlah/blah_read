@@ -4,8 +4,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { fetchOgTags } from '@/lib/books';
 import { storage } from '@/lib/storage';
 import { Book } from '@/lib/shared';
-import { FONTS } from '@/lib/theme';
-import { useTheme } from '@/lib/ThemeContext';
+import { FONTS, useTheme } from '@/lib/ui';
 
 export default function ShareScreen() {
   const { colors, spacing, fontSize, letterSpacing } = useTheme();

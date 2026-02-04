@@ -22,8 +22,7 @@ import { backgroundService } from '@/lib/shared/backgroundService';
 import { processReadingSession } from '@/lib/companionUnlock';
 import { checkLootBoxRewards } from '@/lib/lootBox';
 import { maybeGenerateImages } from '@/lib/companionImageQueue';
-import { FONTS } from '@/lib/theme';
-import { useTheme } from '@/lib/ThemeContext';
+import { FONTS, useTheme } from '@/lib/ui';
 // V3 Reward System imports
 import { processSessionEnd } from '@/lib/sessionRewards';
 import { calculateActiveEffects, ActiveEffects } from '@/lib/companionEffects';

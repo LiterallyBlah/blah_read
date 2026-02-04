@@ -1,8 +1,7 @@
 // components/dungeon/ConsumableIcon.tsx
 import React from 'react';
 import { View, Image, StyleSheet, ViewStyle, StyleProp } from 'react-native';
-import { useTheme } from '@/lib/ThemeContext';
-import { getConsumableTileForTier, getTierPixelSize } from '@/lib/dungeonAssets';
+import { useTheme, getConsumableTileForTier, getTierPixelSize } from '@/lib/ui';
 import type { ConsumableEffectType, ConsumableTier } from '@/lib/consumables';
 
 interface ConsumableIconProps {

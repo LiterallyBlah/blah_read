@@ -10,7 +10,7 @@ import { View, StyleSheet } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { SessionResultsScreen } from '@/components/SessionResultsScreen';
 import { SessionResultsData } from '@/lib/sessionResultsData';
-import { useTheme } from '@/lib/ThemeContext';
+import { useTheme } from '@/lib/ui';
 
 export default function SessionResultsRoute() {
   const { colors } = useTheme();

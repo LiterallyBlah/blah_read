@@ -3,7 +3,7 @@ import {
   detectHeroEvents,
   HERO_EVENT_PRIORITY,
   SlotUnlockState,
-} from '@/lib/heroEvents';
+} from '@/lib/ui/heroEvents';
 import { SessionRewardResult } from '@/lib/sessionRewards';
 import { Genre, Companion } from '@/lib/shared';
 

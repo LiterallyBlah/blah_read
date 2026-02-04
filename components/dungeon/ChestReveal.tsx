@@ -5,14 +5,13 @@ import Animated, {
   interpolate,
   Extrapolation,
 } from 'react-native-reanimated';
-import { useTheme } from '@/lib/ThemeContext';
-import { FONTS } from '@/lib/theme';
+import { useTheme, FONTS } from '@/lib/ui';
 import { TintedChest } from './TintedChest';
 import { ParticleBurst } from './ParticleBurst';
 import { ItemGlow } from './ItemGlow';
 import { ConsumableIcon } from './ConsumableIcon';
 import { useRevealTimeline, TIMELINE } from '@/hooks/useRevealTimeline';
-import { getTierGlowColor } from '@/lib/dungeonAssets';
+import { getTierGlowColor } from '@/lib/ui';
 import type { LootBoxTier, Companion, CompanionRarity } from '@/lib/shared';
 import type { ConsumableDefinition } from '@/lib/consumables';
 

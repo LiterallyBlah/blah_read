@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { SessionRewardsReveal } from '@/components/SessionRewardsReveal';
-import { useTheme } from '@/lib/ThemeContext';
+import { useTheme } from '@/lib/ui';
 
 export default function SessionRewardsRevealRoute() {
   const { colors } = useTheme();

@@ -1,7 +1,7 @@
 // components/dungeon/PixelSprite.tsx
 import React from 'react';
 import { Image, ImageStyle, StyleProp, View, ViewStyle } from 'react-native';
-import { DUNGEON_TILES } from '@/lib/dungeonAssets';
+import { DUNGEON_TILES } from '@/lib/ui';
 
 interface PixelSpriteProps {
   tile: keyof typeof DUNGEON_TILES;

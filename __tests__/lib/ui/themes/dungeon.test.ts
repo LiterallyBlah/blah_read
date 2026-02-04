@@ -1,5 +1,5 @@
 // __tests__/lib/themes/dungeon.test.ts
-import { COLORS_DUNGEON } from '@/lib/themes/dungeon';
+import { COLORS_DUNGEON } from '@/lib/ui/themes/dungeon';
 
 describe('dungeon theme', () => {
   it('exports dungeon color palette', () => {

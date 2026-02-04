@@ -1,7 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Text } from 'react-native';
-import { FONTS } from '@/lib/theme';
-import { useTheme } from '@/lib/ThemeContext';
+import { FONTS, useTheme } from '@/lib/ui';
 
 // Text-based icons following typewriter aesthetic - using single chars to prevent wrapping
 function TabIcon({ symbol, focused }: { symbol: string; focused: boolean }) {

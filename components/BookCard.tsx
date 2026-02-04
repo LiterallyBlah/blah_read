@@ -1,7 +1,6 @@
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import { Book, GENRE_DISPLAY_NAMES, Genre, debug } from '@/lib/shared';
-import { FONTS } from '@/lib/theme';
-import { useTheme } from '@/lib/ThemeContext';
+import { FONTS, useTheme } from '@/lib/ui';
 import { getBookTier, getTierColorKey, getTierGlow } from '@/lib/books';
 
 interface Props {

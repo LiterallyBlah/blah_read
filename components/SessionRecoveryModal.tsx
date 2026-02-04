@@ -1,6 +1,5 @@
 import { View, Text, Pressable, StyleSheet, Modal } from 'react-native';
-import { useTheme } from '@/lib/ThemeContext';
-import { FONTS } from '@/lib/theme';
+import { useTheme, FONTS } from '@/lib/ui';
 import { TimerRecoveryData } from '@/lib/shared';
 
 interface SessionRecoveryModalProps {

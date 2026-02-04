@@ -1,7 +1,7 @@
 // components/dungeon/DungeonCard.tsx
 import React, { ReactNode } from 'react';
 import { View, StyleSheet, ViewStyle, StyleProp } from 'react-native';
-import { useTheme } from '@/lib/ThemeContext';
+import { useTheme } from '@/lib/ui';
 
 interface DungeonCardProps {
   children: ReactNode;

@@ -10,7 +10,7 @@ import {
   getTierPixelSize,
   TIER_COLORS,
   getTierGlowColor,
-} from '@/lib/dungeonAssets';
+} from '@/lib/ui/dungeonAssets';
 
 describe('dungeonAssets', () => {
   describe('DUNGEON_TILES', () => {

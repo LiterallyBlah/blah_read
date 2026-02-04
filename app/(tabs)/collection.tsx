@@ -2,8 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { View, ScrollView, StyleSheet, Text, Pressable, Image, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useTheme } from '@/lib/ThemeContext';
-import { FONTS } from '@/lib/theme';
+import { useTheme, FONTS } from '@/lib/ui';
 import { storage, settings, Settings } from '@/lib/storage';
 import {
   debug,

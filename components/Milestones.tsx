@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { useTheme } from '@/lib/ThemeContext';
-import { FONTS } from '@/lib/theme';
+import { useTheme, FONTS } from '@/lib/ui';
 import { READING_TIME_MILESTONES, MILESTONE_RARITY_ODDS } from '@/lib/companionUnlock';
 
 /**

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
-import { useTheme } from '@/lib/ThemeContext';
-import { FONTS } from '@/lib/theme';
+import { useTheme, FONTS } from '@/lib/ui';
 import { storage, settings } from '@/lib/storage';
 import { openLootBox, openLootBoxWithRarity, getPoolCompanions } from '@/lib/lootBox';
 import { openLootBoxV3 } from '@/lib/lootBoxV3';

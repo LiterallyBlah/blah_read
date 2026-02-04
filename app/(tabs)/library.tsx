@@ -6,8 +6,7 @@ import * as Clipboard from 'expo-clipboard';
 import { storage, settings } from '@/lib/storage';
 import { BookCard } from '@/components/BookCard';
 import { Book, BookStatus, setDebugEnabled } from '@/lib/shared';
-import { FONTS } from '@/lib/theme';
-import { useTheme } from '@/lib/ThemeContext';
+import { FONTS, useTheme } from '@/lib/ui';
 import { isKindleShareText } from '@/lib/books';
 
 const FILTERS: { label: string; value: BookStatus | 'all' }[] = [

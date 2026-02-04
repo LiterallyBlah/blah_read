@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
-import { useTheme } from '@/lib/ThemeContext';
-import { FONTS } from '@/lib/theme';
+import { useTheme, FONTS } from '@/lib/ui';
 import type { Companion, LootBoxTier } from '@/lib/shared';
 import { formatDuration, type ConsumableDefinition } from '@/lib/consumables';
 import { ChestReveal } from './dungeon/ChestReveal';

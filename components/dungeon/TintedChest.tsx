@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Image, StyleSheet } from 'react-native';
-import { DUNGEON_TILES, CHEST_TILES, TIER_COLORS } from '@/lib/dungeonAssets';
+import { DUNGEON_TILES, CHEST_TILES, TIER_COLORS } from '@/lib/ui';
 import type { LootBoxTier } from '@/lib/shared';
 
 interface TintedChestProps {
