@@ -21,7 +21,7 @@ import {
   CONSUMABLE_TIER_ODDS,
   COMPANION_RARITY_ODDS,
   LootResult,
-} from '@/lib/lootV3';
+} from '@/lib/rewards';
 import { LootBoxTier, CompanionRarity } from '@/lib/shared';
 import { ConsumableTier, getConsumablesByTier } from '@/lib/consumables';
 

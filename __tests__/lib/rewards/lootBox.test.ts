@@ -3,7 +3,7 @@ import {
   openLootBox,
   openLootBoxWithRarity,
   getPoolCompanions,
-} from '@/lib/lootBox';
+} from '@/lib/rewards';
 import type { UserProgress, Book, Companion } from '@/lib/shared';
 
 describe('lootBox', () => {

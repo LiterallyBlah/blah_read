@@ -5,12 +5,11 @@
  * and calculates all rewards: book levels, XP, genre levels, loot boxes.
  */
 
-import { Book, UserProgress, Companion, LootBoxV3, GenreLevels, CompanionRarity, ActiveConsumable, SlotUnlockProgress, Genre, GENRES } from './shared';
-import { processReadingTime, calculateCompletionBonus } from './books';
-import { calculateActiveEffects, ActiveEffects } from './companion';
-import { getActiveEffects as getConsumableEffects, tickConsumables, consolidateActiveConsumables } from './consumables';
+import { Book, UserProgress, Companion, LootBoxV3, GenreLevels, CompanionRarity, ActiveConsumable, SlotUnlockProgress, Genre, GENRES } from '../shared';
+import { processReadingTime, calculateCompletionBonus } from '../books';
+import { calculateActiveEffects, ActiveEffects } from '../companion';
+import { getActiveEffects as getConsumableEffects, tickConsumables, consolidateActiveConsumables, ConsumableDefinition } from '../consumables';
 import { rollCheckpointDrops, rollBoxTierWithPity, BonusDropResult, AvailableRarities } from './lootV3';
-import { ConsumableDefinition } from './consumables';
 import { getStreakMultiplier, calculateLevel } from './xp';
 
 // Constants

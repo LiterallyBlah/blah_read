@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { storage } from '@/lib/storage';
-import { calculateXp } from '@/lib/xp';
+import { calculateXp } from '@/lib/rewards';
 import { updateStreak, getDateString, ReadingSession, LootItem } from '@/lib/shared';
 import { FONTS, useTheme } from '@/lib/ui';
 

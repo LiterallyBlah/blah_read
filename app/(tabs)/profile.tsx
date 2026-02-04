@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, router } from 'expo-router';
 import { storage } from '@/lib/storage';
-import { calculateLevel, xpProgress, getStreakMultiplierInfo } from '@/lib/xp';
+import { calculateLevel, xpProgress, getStreakMultiplierInfo } from '@/lib/rewards';
 import { Book, UserProgress } from '@/lib/shared';
 import { FONTS, useTheme } from '@/lib/ui';
 import { getConsumableById, formatDuration } from '@/lib/consumables';

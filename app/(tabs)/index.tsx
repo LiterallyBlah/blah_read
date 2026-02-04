@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { storage } from '@/lib/storage';
-import { calculateLevel, xpProgress } from '@/lib/xp';
+import { calculateLevel, xpProgress } from '@/lib/rewards';
 import { Book, UserProgress, Companion } from '@/lib/shared';
 import { FONTS, useTheme } from '@/lib/ui';
 import { DungeonBar } from '@/components/dungeon';

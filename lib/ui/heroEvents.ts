@@ -5,7 +5,7 @@
  * Events are prioritized so the most important one can be shown as the "hero moment".
  */
 
-import { SessionRewardResult } from '../sessionRewards';
+import { SessionRewardResult } from '../rewards';
 import { Genre, Companion } from '../shared';
 
 export type HeroEventType =

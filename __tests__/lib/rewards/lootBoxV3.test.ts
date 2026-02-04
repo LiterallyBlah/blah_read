@@ -1,4 +1,4 @@
-import { openLootBoxV3 } from '@/lib/lootBoxV3';
+import { openLootBoxV3 } from '@/lib/rewards';
 import { LootBoxV3, UserProgress, Genre } from '@/lib/shared';
 
 describe('openLootBoxV3', () => {

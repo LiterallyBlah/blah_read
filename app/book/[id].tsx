@@ -5,8 +5,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { storage, settings } from '@/lib/storage';
 import { enrichBookData } from '@/lib/books';
 import { getNextMilestone, generateBufferedImages } from '@/lib/companion';
-import { checkLootBoxRewards } from '@/lib/lootBox';
-import { processSessionEnd } from '@/lib/sessionRewards';
+import { checkLootBoxRewards, processSessionEnd } from '@/lib/rewards';
 import {
   generateImageForCompanion,
   Book,

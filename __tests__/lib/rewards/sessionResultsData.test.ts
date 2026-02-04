@@ -2,8 +2,8 @@ import {
   SessionResultsData,
   buildSessionResultsData,
   LegacyRewardData,
-} from '@/lib/sessionResultsData';
-import { SessionRewardResult } from '@/lib/sessionRewards';
+  SessionRewardResult,
+} from '@/lib/rewards';
 import { Book, UserProgress, Companion, Genre, GENRES } from '@/lib/shared';
 
 const emptyLegacyData: LegacyRewardData = {

@@ -4,7 +4,7 @@ import {
   HERO_EVENT_PRIORITY,
   SlotUnlockState,
 } from '@/lib/ui/heroEvents';
-import { SessionRewardResult } from '@/lib/sessionRewards';
+import { SessionRewardResult } from '@/lib/rewards';
 import { Genre, Companion } from '@/lib/shared';
 
 function createMockSessionResult(overrides: Partial<SessionRewardResult> = {}): SessionRewardResult {

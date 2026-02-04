@@ -8,7 +8,7 @@ import { isKindleShareText } from '@/lib/books';
 import { checkForInterruptedSession, timerPersistence, storage } from '@/lib/storage';
 import { TimerRecoveryData } from '@/lib/shared';
 import { backgroundService } from '@/lib/shared/backgroundService';
-import { processSessionEnd } from '@/lib/sessionRewards';
+import { processSessionEnd } from '@/lib/rewards';
 import { SessionRecoveryModal } from '@/components/SessionRecoveryModal';
 
 function RootLayoutInner() {

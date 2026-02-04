@@ -1,4 +1,4 @@
-import { calculateXp, getStreakMultiplier, getStreakMultiplierInfo, calculateLevel, xpProgress } from '@/lib/xp';
+import { calculateXp, getStreakMultiplier, getStreakMultiplierInfo, calculateLevel, xpProgress } from '@/lib/rewards';
 
 describe('xp', () => {
   it('calculates base XP as 10 per minute', () => {

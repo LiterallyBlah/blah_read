@@ -2,7 +2,7 @@ import {
   processSessionEnd,
   SessionRewardResult,
   BASE_XP_PER_MINUTE,
-} from '@/lib/sessionRewards';
+} from '@/lib/rewards';
 import { Book, UserProgress, Companion, LootBoxV3, Genre, GENRES } from '@/lib/shared';
 import { CompanionEffect, ActiveEffects } from '@/lib/companion';
 

@@ -5,10 +5,10 @@
  */
 
 import { SessionRewardResult, ProcessedBonusDrop } from './sessionRewards';
-import { Companion, LootBox, NextMilestone, calculateNextMilestones } from './shared';
-import { HeroEvent, detectHeroEvents } from './ui/heroEvents';
+import { Companion, LootBox, NextMilestone, calculateNextMilestones } from '../shared';
+import { HeroEvent, detectHeroEvents } from '../ui/heroEvents';
 import { AchievedMilestone } from './lootBox';
-import { ConsumableDefinition, ConsumableEffectType, ConsumableTier } from './consumables';
+import { ConsumableDefinition, ConsumableEffectType, ConsumableTier } from '../consumables';
 
 export interface LootBoxBreakdown {
   total: number;

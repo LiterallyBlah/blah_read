@@ -1,5 +1,5 @@
-import { LootBoxTier, CompanionRarity, Companion } from './shared';
-import { ConsumableTier, ConsumableDefinition, getConsumablesByTier } from './consumables';
+import { LootBoxTier, CompanionRarity, Companion } from '../shared';
+import { ConsumableTier, ConsumableDefinition, getConsumablesByTier } from '../consumables';
 
 // Unified bonus drop system
 // When reading, checkpoint drops can be consumables, loot boxes, or companions directly

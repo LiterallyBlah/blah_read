@@ -18,7 +18,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useTheme, FONTS } from '@/lib/ui';
-import { SessionResultsData } from '@/lib/sessionResultsData';
+import { SessionResultsData } from '@/lib/rewards';
 import { HeroEvent } from '@/lib/ui';
 import { DungeonBar, PixelSprite } from '@/components/dungeon';
 

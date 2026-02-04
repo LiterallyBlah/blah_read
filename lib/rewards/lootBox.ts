@@ -1,4 +1,4 @@
-import type { Book, Companion, CompanionRarity, LootBox, UserProgress } from './shared';
+import type { Book, Companion, CompanionRarity, LootBox, UserProgress } from '../shared';
 
 /**
  * Loot box reward thresholds
