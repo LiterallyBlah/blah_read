@@ -443,13 +443,13 @@ export function processSessionEnd(
     updatedSlotProgress.booksFinished += 1;
   }
 
-  const existingLootBoxesV3 = progress.tieredLootBoxes || [];
+  const existingTieredBoxes = progress.tieredLootBoxes || [];
 
   const updatedProgress: UserProgress = {
     ...progress,
     totalXp: progress.totalXp + xpGained,
     genreLevels: updatedGenreLevels,
-    tieredLootBoxes: [...existingLootBoxesV3, ...lootBoxes],
+    tieredLootBoxes: [...existingTieredBoxes, ...lootBoxes],
     activeConsumables: allConsumables,
     goldPityCounter: currentPityCounter,
     slotProgress: updatedSlotProgress,

@@ -198,12 +198,12 @@ export default function ProfileScreen() {
               <Text style={styles.lootBoxLabel}>
                 box{totalBoxCount !== 1 ? 'es' : ''} to open
               </Text>
-              {v3Boxes.length > 0 && (
+              {tieredBoxes.length > 0 && (
                 <Text style={styles.lootBoxBreakdown}>
                   {goldCount > 0 && <Text style={styles.goldText}>{goldCount} gold </Text>}
                   {silverCount > 0 && <Text style={styles.silverText}>{silverCount} silver </Text>}
                   {woodCount > 0 && <Text style={styles.woodText}>{woodCount} wood</Text>}
-                  {v2BoxCount > 0 && <Text> +{v2BoxCount} classic</Text>}
+                  {legacyBoxCount > 0 && <Text> +{legacyBoxCount} classic</Text>}
                 </Text>
               )}
             </View>

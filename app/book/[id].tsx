@@ -157,7 +157,7 @@ export default function BookDetailScreen() {
     if (status === 'finished') {
       updatedBook.finishedAt = Date.now();
 
-      // Load progress and equipped companions for V3 rewards
+      // Load progress and equipped companions for completion rewards
       const progress = await storage.getProgress();
       const books = await storage.getBooks();
 
@@ -181,7 +181,7 @@ export default function BookDetailScreen() {
         console.warn(`[book completion] ${equippedIds.length - equippedCompanions.length} equipped companion(s) not found in library`);
       }
 
-      // Process V3 completion rewards (0 additional seconds, isCompletion=true)
+      // Process completion rewards (0 additional seconds, isCompletion=true)
       const sessionResult = processSessionEnd(
         book,
         progress,
@@ -193,7 +193,7 @@ export default function BookDetailScreen() {
       // Use updated book from session processor (has new progression)
       Object.assign(updatedBook, sessionResult.updatedBook);
 
-      // Merge V3 progress updates
+      // Merge progress updates
       let updatedProgress = sessionResult.updatedProgress;
 
       // Handle legendary unlock for book completion (existing logic)
@@ -233,7 +233,7 @@ export default function BookDetailScreen() {
 
       await storage.saveProgress(updatedProgress);
 
-      // Show completion notification with V3 rewards
+      // Show completion notification with rewards
       if (sessionResult.bookLevelsGained > 0 || sessionResult.lootBoxes.length > 0) {
         const notifications: string[] = [];
 

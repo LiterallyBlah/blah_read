@@ -21,7 +21,7 @@ import { getEquippedCompanionIds } from '@/lib/shared/loadout';
 import { backgroundService } from '@/lib/shared/backgroundService';
 import { processReadingSession, maybeGenerateImages, calculateActiveEffects, ActiveEffects } from '@/lib/companion';
 import { FONTS, useTheme } from '@/lib/ui';
-// V3 Reward System imports
+// Reward system imports
 import { checkLootBoxRewards, processSessionEnd, buildSessionResultsData } from '@/lib/rewards';
 import { getActiveEffects as getConsumableEffects } from '@/lib/consumables';
 import { getBookTier, getTierColorKey } from '@/lib/books';
@@ -206,7 +206,7 @@ export default function TimerScreen() {
       shieldConsumed: streakResult.shieldConsumed,
     });
 
-    // Process V3 session rewards (book levels, XP, loot boxes)
+    // Process session rewards (book levels, XP, loot boxes)
     const sessionResult = processSessionEnd(
       book,
       progress,
@@ -215,7 +215,7 @@ export default function TimerScreen() {
       false // isCompletion - timer screen doesn't handle book completion
     );
 
-    debug.log('timer', 'V3 Session rewards processed', {
+    debug.log('timer', 'Session rewards processed', {
       xpGained: sessionResult.xpGained,
       bookLevelsGained: sessionResult.bookLevelsGained,
       newBookLevel: sessionResult.newBookLevel,
@@ -394,8 +394,8 @@ export default function TimerScreen() {
     );
 
     debug.log('timer', 'Session end complete', {
-      v3LootBoxes: sessionResult.lootBoxes.length,
-      v3BonusDrops: sessionResult.bonusDrops.length,
+      tieredLootBoxes: sessionResult.lootBoxes.length,
+      bonusDrops: sessionResult.bonusDrops.length,
       readingTimeCompanions: readingTimeCompanions.length,
       readingTimeLootBoxes: readingTimeLootBoxes.length,
       achievementMilestones: achievementResult.milestones.length,
