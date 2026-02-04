@@ -24,7 +24,7 @@ import {
 import { LootBoxTier, CompanionRarity } from '@/lib/shared';
 import { ConsumableTier, getConsumablesByTier } from '@/lib/consumables';
 
-describe('lootV3', () => {
+describe('lootRng', () => {
   describe('odds tables', () => {
     it('should have box tier odds summing to 1', () => {
       const sum = BOX_TIER_ODDS.wood + BOX_TIER_ODDS.silver + BOX_TIER_ODDS.gold;

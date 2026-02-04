@@ -9,7 +9,7 @@ import { Book, UserProgress, Companion, LootBoxV3, GenreLevels, CompanionRarity,
 import { processReadingTime, calculateCompletionBonus } from '../books';
 import { calculateActiveEffects, ActiveEffects } from '../companion';
 import { getActiveEffects as getConsumableEffects, tickConsumables, consolidateActiveConsumables, ConsumableDefinition } from '../consumables';
-import { rollCheckpointDrops, rollBoxTierWithPity, BonusDropResult, AvailableRarities } from './lootV3';
+import { rollCheckpointDrops, rollBoxTierWithPity, BonusDropResult, AvailableRarities } from './lootRng';
 import { getStreakMultiplier, calculateLevel } from './xp';
 
 // Constants
