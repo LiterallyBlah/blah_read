@@ -72,8 +72,25 @@ export function SessionResultsScreen({ data, bookTitle, onContinue }: Props) {
           </View>
         </View>
 
+        {/* Achievement Milestones */}
+        {data.achievementMilestones?.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>achievements unlocked</Text>
+            {data.achievementMilestones.map((milestone, index) => (
+              <View key={`${milestone.type}-${index}`} style={styles.achievementItem}>
+                <Text style={[styles.achievementDesc, { color: colors.text }]}>
+                  {milestone.description}
+                </Text>
+                <Text style={[styles.achievementReward, { color: colors.primary }]}>
+                  +{milestone.boxesAwarded} box{milestone.boxesAwarded !== 1 ? 'es' : ''}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* Found This Session */}
-        {(data.unlockedCompanions?.length > 0 || data.lootBoxesEarned?.length > 0) && (
+        {(data.unlockedCompanions?.length > 0 || data.droppedConsumables?.length > 0 || data.lootBoxesEarned?.length > 0) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>found this session</Text>
 
@@ -91,14 +108,59 @@ export function SessionResultsScreen({ data, bookTitle, onContinue }: Props) {
                 ]}>
                   [{companion.rarity}]
                 </Text>
+                {companion.source === 'bonus_drop' && (
+                  <Text style={[styles.bonusTag, { color: colors.primary }]}>bonus!</Text>
+                )}
               </View>
             ))}
 
-            {/* Loot boxes */}
+            {/* Consumables dropped */}
+            {data.droppedConsumables?.map((consumable) => (
+              <View key={consumable.id} style={styles.foundItem}>
+                <Text style={[styles.foundName, { color: colors.text }]}>
+                  {consumable.name.toLowerCase()}
+                </Text>
+                <Text style={[
+                  styles.foundRarity,
+                  { color: consumable.tier === 'strong' ? colors.rarityLegendary :
+                           consumable.tier === 'medium' ? colors.rarityRare :
+                           colors.rarityCommon }
+                ]}>
+                  [{consumable.tier}]
+                </Text>
+                <Text style={[styles.consumableTag, { color: colors.textSecondary }]}>
+                  consumable
+                </Text>
+              </View>
+            ))}
+
+            {/* Loot boxes breakdown */}
             {data.lootBoxesEarned?.length > 0 && (
-              <Text style={styles.progressItem}>
-                {data.lootBoxesEarned.length} loot box{data.lootBoxesEarned.length !== 1 ? 'es' : ''} in inventory
-              </Text>
+              <View style={styles.lootBoxSummary}>
+                <Text style={styles.progressItem}>
+                  {data.lootBoxesEarned.length} loot box{data.lootBoxesEarned.length !== 1 ? 'es' : ''} in inventory
+                </Text>
+                {data.lootBoxBreakdown.levelUp > 0 && (
+                  <Text style={styles.lootBoxBreakdownItem}>
+                    {data.lootBoxBreakdown.levelUp} from level ups
+                  </Text>
+                )}
+                {data.lootBoxBreakdown.bonusDrop > 0 && (
+                  <Text style={[styles.lootBoxBreakdownItem, { color: colors.primary }]}>
+                    {data.lootBoxBreakdown.bonusDrop} bonus drop{data.lootBoxBreakdown.bonusDrop !== 1 ? 's' : ''}!
+                  </Text>
+                )}
+                {data.lootBoxBreakdown.achievement > 0 && (
+                  <Text style={styles.lootBoxBreakdownItem}>
+                    {data.lootBoxBreakdown.achievement} from achievements
+                  </Text>
+                )}
+                {data.lootBoxBreakdown.readingTime > 0 && (
+                  <Text style={styles.lootBoxBreakdownItem}>
+                    {data.lootBoxBreakdown.readingTime} from reading milestones
+                  </Text>
+                )}
+              </View>
             )}
           </View>
         )}
@@ -390,6 +452,40 @@ const createStyles = (
       fontFamily: FONTS.mono,
       fontSize: fontSize('small'),
       fontWeight: FONTS.monoBold,
+    },
+    bonusTag: {
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      fontWeight: FONTS.monoBold,
+    },
+    consumableTag: {
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+    },
+    achievementItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing(1),
+    },
+    achievementDesc: {
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('body'),
+      flex: 1,
+    },
+    achievementReward: {
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      fontWeight: FONTS.monoBold,
+    },
+    lootBoxSummary: {
+      marginTop: spacing(1),
+    },
+    lootBoxBreakdownItem: {
+      fontFamily: FONTS.mono,
+      fontSize: fontSize('small'),
+      color: colors.textSecondary,
+      marginLeft: spacing(2),
     },
     progressItem: {
       fontFamily: FONTS.mono,

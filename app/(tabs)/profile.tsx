@@ -9,7 +9,6 @@ import { FONTS } from '@/lib/theme';
 import { useTheme } from '@/lib/ThemeContext';
 import { getConsumableById, formatDuration } from '@/lib/consumables';
 import { DungeonBar, DungeonCard, ConsumableIcon } from '@/components/dungeon';
-import { ReadingMilestones } from '@/components/Milestones';
 import { SlotProgress } from '@/components/SlotProgress';
 import { GenreProgress } from '@/components/GenreProgress';
 
@@ -215,10 +214,6 @@ export default function ProfileScreen() {
           <Text style={styles.emptyText}>no loot boxes - keep reading!_</Text>
         )}
       </View>
-
-      {/* Reading Milestones section - shows AGGREGATE time across all books
-          (Book detail screen shows per-book milestones for individual progress) */}
-      <ReadingMilestones currentReadingMinutes={Math.floor(totalTime / 60)} />
 
       {/* Genre Levels section with threshold markers */}
       {progress?.genreLevels && (

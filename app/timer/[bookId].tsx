@@ -307,21 +307,23 @@ export default function TimerScreen() {
     updatedBook.status = 'reading';
 
     // Process companion unlocks (legacy system - still needed for unlocking companions)
-    let unlockedCompanions: Companion[] = [];
+    let readingTimeCompanions: Companion[] = [];
+    let readingTimeLootBoxes: typeof updatedProgress.lootBoxes.availableBoxes = [];
     if (updatedBook.companions) {
       debug.log('timer', 'Processing companion unlocks...');
       const result = processReadingSession(updatedBook, finalTime);
       updatedBook.companions = result.updatedCompanions;
-      unlockedCompanions = result.unlockedCompanions;
+      readingTimeCompanions = result.unlockedCompanions;
 
-      if (unlockedCompanions.length > 0) {
-        debug.log('timer', `Unlocked ${unlockedCompanions.length} companions!`, {
-          names: unlockedCompanions.map(c => c.name),
+      if (readingTimeCompanions.length > 0) {
+        debug.log('timer', `Unlocked ${readingTimeCompanions.length} companions!`, {
+          names: readingTimeCompanions.map(c => c.name),
         });
       }
 
-      // Add any loot boxes earned from reading time (legacy loot boxes)
+      // Capture reading time loot boxes for results display
       if (result.earnedLootBoxes.length > 0) {
+        readingTimeLootBoxes = result.earnedLootBoxes;
         updatedProgress.lootBoxes.availableBoxes.push(...result.earnedLootBoxes);
         debug.log('timer', `Earned ${result.earnedLootBoxes.length} legacy loot boxes`);
       }
@@ -335,12 +337,14 @@ export default function TimerScreen() {
       allBooks.reduce((sum, b) => sum + b.totalReadingTime, 0) / 3600
     );
 
-    // Check for achievement-based loot boxes (legacy)
+    // Check for achievement-based loot boxes (legacy) - now returns boxes AND milestones
     const previousProgress = { ...progress, totalXp: progress.totalXp };
-    const newLootBoxes = checkLootBoxRewards(previousProgress, updatedProgress);
-    if (newLootBoxes.length > 0) {
-      updatedProgress.lootBoxes.availableBoxes.push(...newLootBoxes);
-      debug.log('timer', `Achievement loot boxes earned: ${newLootBoxes.length}`);
+    const achievementResult = checkLootBoxRewards(previousProgress, updatedProgress);
+    if (achievementResult.boxes.length > 0) {
+      updatedProgress.lootBoxes.availableBoxes.push(...achievementResult.boxes);
+      debug.log('timer', `Achievement loot boxes earned: ${achievementResult.boxes.length}`, {
+        milestones: achievementResult.milestones.map(m => m.description),
+      });
     }
 
     await storage.saveProgress(updatedProgress);
@@ -373,19 +377,39 @@ export default function TimerScreen() {
       });
     }
 
-    // Build session results data
+    // Build session results data with all reward sources
+    const legacyData = {
+      readingTimeCompanions,
+      readingTimeLootBoxes,
+      achievementMilestones: achievementResult.milestones,
+      achievementLootBoxes: achievementResult.boxes,
+    };
+
     const resultsData = buildSessionResultsData(
       sessionResult,
       finalTime,
-      unlockedCompanions,
+      legacyData,
       previousStreak,
       updatedProgress.currentStreak
     );
 
-    debug.log('timer', 'Session end complete, navigating to rewards reveal');
+    debug.log('timer', 'Session end complete', {
+      v3LootBoxes: sessionResult.lootBoxes.length,
+      v3BonusDrops: sessionResult.bonusDrops.length,
+      readingTimeCompanions: readingTimeCompanions.length,
+      readingTimeLootBoxes: readingTimeLootBoxes.length,
+      achievementMilestones: achievementResult.milestones.length,
+      achievementLootBoxes: achievementResult.boxes.length,
+    });
 
-    // Navigate to reveal screen if there are rewards, otherwise straight to results
-    const hasRewardsToReveal = unlockedCompanions.length > 0 || sessionResult.lootBoxes.length > 0;
+    // Navigate to reveal screen if there are any rewards to show
+    const hasCompanions = readingTimeCompanions.length > 0 ||
+      sessionResult.bonusDrops.some(d => d.type === 'companion');
+    const hasLootBoxes = sessionResult.lootBoxes.length > 0 ||
+      readingTimeLootBoxes.length > 0 ||
+      achievementResult.boxes.length > 0;
+    const hasConsumables = sessionResult.bonusDrops.some(d => d.type === 'consumable');
+    const hasRewardsToReveal = hasCompanions || hasLootBoxes || hasConsumables;
 
     if (hasRewardsToReveal) {
       router.replace({
@@ -393,6 +417,8 @@ export default function TimerScreen() {
         params: {
           companions: JSON.stringify(resultsData.unlockedCompanions),
           lootBoxes: JSON.stringify(resultsData.lootBoxesEarned),
+          consumables: JSON.stringify(resultsData.droppedConsumables),
+          milestones: JSON.stringify(resultsData.achievementMilestones),
           resultsData: JSON.stringify(resultsData),
           bookTitle: book.title,
         },

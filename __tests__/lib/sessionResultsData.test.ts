@@ -1,10 +1,18 @@
 import {
   SessionResultsData,
   buildSessionResultsData,
+  LegacyRewardData,
 } from '@/lib/sessionResultsData';
 import { SessionRewardResult } from '@/lib/sessionRewards';
 import { Book, UserProgress, Companion } from '@/lib/types';
 import { Genre, GENRES } from '@/lib/genres';
+
+const emptyLegacyData: LegacyRewardData = {
+  readingTimeCompanions: [],
+  readingTimeLootBoxes: [],
+  achievementMilestones: [],
+  achievementLootBoxes: [],
+};
 
 function createMockBook(overrides: Partial<Book> = {}): Book {
   return {
@@ -71,7 +79,7 @@ describe('sessionResultsData', () => {
   describe('buildSessionResultsData', () => {
     it('should include session minutes', () => {
       const result = createMockSessionResult();
-      const data = buildSessionResultsData(result, 1800, [], 2, 3);
+      const data = buildSessionResultsData(result, 1800, emptyLegacyData, 2, 3);
 
       expect(data.sessionMinutes).toBe(30);
     });
@@ -86,7 +94,7 @@ describe('sessionResultsData', () => {
         bonusDrops: [{ type: 'lootbox', lootBoxTier: 'wood' }] as any,
       });
 
-      const data = buildSessionResultsData(result, 3600, [], 0, 0);
+      const data = buildSessionResultsData(result, 3600, emptyLegacyData, 0, 0);
 
       expect(data.lootBoxBreakdown.levelUp).toBe(2);
       expect(data.lootBoxBreakdown.bonusDrop).toBe(1);
@@ -99,7 +107,7 @@ describe('sessionResultsData', () => {
         bookLevelsGained: 1,
       });
 
-      const data = buildSessionResultsData(result, 3600, [], 0, 0);
+      const data = buildSessionResultsData(result, 3600, emptyLegacyData, 0, 0);
 
       expect(data.heroEvents.length).toBeGreaterThan(0);
       expect(data.heroEvents[0].type).toBe('bonus_drop'); // Higher priority than book_level_up
@@ -107,7 +115,7 @@ describe('sessionResultsData', () => {
 
     it('should include next milestones', () => {
       const result = createMockSessionResult();
-      const data = buildSessionResultsData(result, 1800, [], 0, 0);
+      const data = buildSessionResultsData(result, 1800, emptyLegacyData, 0, 0);
 
       expect(data.nextMilestones.length).toBeGreaterThan(0);
     });
@@ -118,7 +126,7 @@ describe('sessionResultsData', () => {
         streakMultiplier: 1.2,
       });
 
-      const data = buildSessionResultsData(result, 3600, [], 0, 0);
+      const data = buildSessionResultsData(result, 3600, emptyLegacyData, 0, 0);
 
       // 1.25 (xp boost) * 1.2 (streak) = 1.5
       expect(data.totalBoostMultiplier).toBeCloseTo(1.5, 2);
@@ -132,7 +140,7 @@ describe('sessionResultsData', () => {
         activeEffects: { xpBoost: 0, luck: 0.15, rareLuck: 0.10, legendaryLuck: 0, dropRateBoost: 0, completionBonus: 0 },
       });
 
-      const data = buildSessionResultsData(result, 3600, [], 0, 0);
+      const data = buildSessionResultsData(result, 3600, emptyLegacyData, 0, 0);
 
       expect(data.lootBoxOdds.luck).toBe(0.15);
       expect(data.lootBoxOdds.rareLuck).toBe(0.10);

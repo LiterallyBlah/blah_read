@@ -24,13 +24,38 @@ const BOOKS_FINISHED_REWARD = 2; // 2 boxes per book finished
 const CURRENT_BOOK_WEIGHT = 3;
 
 /**
- * Check what loot box rewards should be given based on progress changes
+ * Achievement milestone types
+ */
+export type AchievementType = 'streak' | 'xp' | 'book_finished' | 'books_added' | 'hours_read';
+
+/**
+ * A milestone that was achieved this session
+ */
+export interface AchievedMilestone {
+  type: AchievementType;
+  milestone: number; // The threshold reached (e.g., 7 for 7-day streak, 250 for 250 XP)
+  boxesAwarded: number;
+  description: string; // Human-readable description
+}
+
+/**
+ * Result of checking loot box rewards - includes both boxes and milestone info
+ */
+export interface LootBoxRewardResult {
+  boxes: LootBox[];
+  milestones: AchievedMilestone[];
+}
+
+/**
+ * Check what loot box rewards should be given based on progress changes.
+ * Returns both the boxes and information about what milestones were hit.
  */
 export function checkLootBoxRewards(
   previousProgress: UserProgress,
   newProgress: UserProgress
-): LootBox[] {
+): LootBoxRewardResult {
   const boxes: LootBox[] = [];
+  const milestones: AchievedMilestone[] = [];
   const now = Date.now();
 
   // Check streak milestones
@@ -40,6 +65,12 @@ export function checkLootBoxRewards(
       previousProgress.currentStreak < milestoneNum &&
       newProgress.currentStreak >= milestoneNum
     ) {
+      milestones.push({
+        type: 'streak',
+        milestone: milestoneNum,
+        boxesAwarded: reward,
+        description: `${milestoneNum}-day reading streak`,
+      });
       for (let i = 0; i < reward; i++) {
         boxes.push({
           id: `lootbox-streak-${milestone}-${now}-${i}`,
@@ -54,6 +85,12 @@ export function checkLootBoxRewards(
   const previousXpMilestone = Math.floor(previousProgress.totalXp / XP_INTERVAL);
   const newXpMilestone = Math.floor(newProgress.totalXp / XP_INTERVAL);
   for (let m = previousXpMilestone + 1; m <= newXpMilestone; m++) {
+    milestones.push({
+      type: 'xp',
+      milestone: m * XP_INTERVAL,
+      boxesAwarded: 1,
+      description: `reached ${m * XP_INTERVAL} total XP`,
+    });
     boxes.push({
       id: `lootbox-xp-${m * XP_INTERVAL}-${now}`,
       earnedAt: now,
@@ -64,6 +101,12 @@ export function checkLootBoxRewards(
   // Check books finished
   if (newProgress.booksFinished > previousProgress.booksFinished) {
     const booksJustFinished = newProgress.booksFinished - previousProgress.booksFinished;
+    milestones.push({
+      type: 'book_finished',
+      milestone: newProgress.booksFinished,
+      boxesAwarded: booksJustFinished * BOOKS_FINISHED_REWARD,
+      description: booksJustFinished === 1 ? 'finished a book' : `finished ${booksJustFinished} books`,
+    });
     for (let i = 0; i < booksJustFinished * BOOKS_FINISHED_REWARD; i++) {
       boxes.push({
         id: `lootbox-finished-${now}-${i}`,
@@ -79,6 +122,12 @@ export function checkLootBoxRewards(
       previousProgress.booksAdded < milestone &&
       newProgress.booksAdded >= milestone
     ) {
+      milestones.push({
+        type: 'books_added',
+        milestone,
+        boxesAwarded: 1,
+        description: `added ${milestone} books to library`,
+      });
       boxes.push({
         id: `lootbox-books-${milestone}-${now}`,
         earnedAt: now,
@@ -93,6 +142,12 @@ export function checkLootBoxRewards(
       previousProgress.totalHoursRead < milestone &&
       newProgress.totalHoursRead >= milestone
     ) {
+      milestones.push({
+        type: 'hours_read',
+        milestone,
+        boxesAwarded: 1,
+        description: `${milestone} total hours read`,
+      });
       boxes.push({
         id: `lootbox-hours-${milestone}-${now}`,
         earnedAt: now,
@@ -101,7 +156,7 @@ export function checkLootBoxRewards(
     }
   }
 
-  return boxes;
+  return { boxes, milestones };
 }
 
 /**

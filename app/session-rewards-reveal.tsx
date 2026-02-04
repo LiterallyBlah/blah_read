@@ -9,15 +9,21 @@ export default function SessionRewardsRevealRoute() {
   const params = useLocalSearchParams<{
     companions: string;
     lootBoxes: string;
+    consumables: string;
+    milestones: string;
     resultsData: string;
     bookTitle: string;
   }>();
 
   let companions = [];
   let lootBoxes = [];
+  let consumables = [];
+  let milestones = [];
   try {
     companions = JSON.parse(params.companions || '[]');
     lootBoxes = JSON.parse(params.lootBoxes || '[]');
+    consumables = JSON.parse(params.consumables || '[]');
+    milestones = JSON.parse(params.milestones || '[]');
   } catch (e) {
     console.error('Failed to parse rewards data:', e);
   }
@@ -39,6 +45,8 @@ export default function SessionRewardsRevealRoute() {
       <SessionRewardsReveal
         companions={companions}
         lootBoxes={lootBoxes}
+        consumables={consumables}
+        milestones={milestones}
         onComplete={handleComplete}
       />
     </View>

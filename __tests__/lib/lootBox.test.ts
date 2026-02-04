@@ -25,42 +25,56 @@ describe('lootBox', () => {
       const prev = { ...baseProgress, currentStreak: 2 };
       const next = { ...baseProgress, currentStreak: 3 };
 
-      const boxes = checkLootBoxRewards(prev, next);
-      expect(boxes.some(b => b.source === 'streak_3')).toBe(true);
+      const result = checkLootBoxRewards(prev, next);
+      expect(result.boxes.some(b => b.source === 'streak_3')).toBe(true);
+      expect(result.milestones.some(m => m.type === 'streak' && m.milestone === 3)).toBe(true);
     });
 
     it('awards 2 boxes for 7-day streak', () => {
       const prev = { ...baseProgress, currentStreak: 6 };
       const next = { ...baseProgress, currentStreak: 7 };
 
-      const boxes = checkLootBoxRewards(prev, next);
-      const streakBoxes = boxes.filter(b => b.source === 'streak_7');
+      const result = checkLootBoxRewards(prev, next);
+      const streakBoxes = result.boxes.filter(b => b.source === 'streak_7');
       expect(streakBoxes.length).toBe(2);
+      expect(result.milestones.some(m => m.type === 'streak' && m.boxesAwarded === 2)).toBe(true);
     });
 
     it('awards boxes for XP milestones', () => {
       const prev = { ...baseProgress, totalXp: 200 };
       const next = { ...baseProgress, totalXp: 300 };
 
-      const boxes = checkLootBoxRewards(prev, next);
-      expect(boxes.some(b => b.source === 'xp_250')).toBe(true);
+      const result = checkLootBoxRewards(prev, next);
+      expect(result.boxes.some(b => b.source === 'xp_250')).toBe(true);
+      expect(result.milestones.some(m => m.type === 'xp' && m.milestone === 250)).toBe(true);
     });
 
     it('awards boxes for finishing books', () => {
       const prev = { ...baseProgress, booksFinished: 0 };
       const next = { ...baseProgress, booksFinished: 1 };
 
-      const boxes = checkLootBoxRewards(prev, next);
-      const finishBoxes = boxes.filter(b => b.source === 'book_finished');
+      const result = checkLootBoxRewards(prev, next);
+      const finishBoxes = result.boxes.filter(b => b.source === 'book_finished');
       expect(finishBoxes.length).toBe(2);
+      expect(result.milestones.some(m => m.type === 'book_finished')).toBe(true);
     });
 
     it('awards boxes for book count milestones', () => {
       const prev = { ...baseProgress, booksAdded: 2 };
       const next = { ...baseProgress, booksAdded: 3 };
 
-      const boxes = checkLootBoxRewards(prev, next);
-      expect(boxes.some(b => b.source === 'books_added_3')).toBe(true);
+      const result = checkLootBoxRewards(prev, next);
+      expect(result.boxes.some(b => b.source === 'books_added_3')).toBe(true);
+      expect(result.milestones.some(m => m.type === 'books_added' && m.milestone === 3)).toBe(true);
+    });
+
+    it('returns milestone descriptions for display', () => {
+      const prev = { ...baseProgress, currentStreak: 6, totalHoursRead: 4 };
+      const next = { ...baseProgress, currentStreak: 7, totalHoursRead: 5 };
+
+      const result = checkLootBoxRewards(prev, next);
+      expect(result.milestones.some(m => m.description.includes('7-day'))).toBe(true);
+      expect(result.milestones.some(m => m.description.includes('5 total hours'))).toBe(true);
     });
   });
 

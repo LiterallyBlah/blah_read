@@ -226,9 +226,9 @@ export default function BookDetailScreen() {
 
       // Check legacy loot box rewards (booksFinished is now tracked by sessionRewards)
       const previousProgress = { ...progress };
-      const newBoxes = checkLootBoxRewards(previousProgress, updatedProgress);
-      if (newBoxes.length > 0) {
-        updatedProgress.lootBoxes.availableBoxes.push(...newBoxes);
+      const rewardResult = checkLootBoxRewards(previousProgress, updatedProgress);
+      if (rewardResult.boxes.length > 0) {
+        updatedProgress.lootBoxes.availableBoxes.push(...rewardResult.boxes);
       }
 
       await storage.saveProgress(updatedProgress);

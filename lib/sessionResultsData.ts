@@ -4,16 +4,20 @@
  * Builds the complete data structure needed by the SessionResultsScreen.
  */
 
-import { SessionRewardResult } from './sessionRewards';
-import { Companion } from './types';
+import { SessionRewardResult, ProcessedBonusDrop } from './sessionRewards';
+import { Companion, LootBox } from './types';
 import { HeroEvent, detectHeroEvents } from './heroEvents';
 import { NextMilestone, calculateNextMilestones } from './nextMilestone';
+import { AchievedMilestone } from './lootBox';
+import { ConsumableDefinition, ConsumableEffectType, ConsumableTier } from './consumables';
 
 export interface LootBoxBreakdown {
   total: number;
   levelUp: number;
   bonusDrop: number;
   completion: number;
+  achievement: number; // From legacy achievement system
+  readingTime: number; // From legacy reading time milestones
 }
 
 export interface LootBoxOdds {
@@ -21,6 +25,18 @@ export interface LootBoxOdds {
   rareLuck: number;
   legendaryLuck: number;
   pityCounter: number;
+}
+
+/**
+ * A consumable that dropped directly this session (not in a loot box)
+ */
+export interface DroppedConsumable {
+  id: string;
+  name: string;
+  tier: ConsumableTier;
+  effectType: ConsumableEffectType;
+  description: string;
+  duration: number;
 }
 
 export interface SessionResultsData {
@@ -58,6 +74,7 @@ export interface SessionResultsData {
   lootBoxOdds: LootBoxOdds;
 
   // Companions unlocked this session (for reveal/recap)
+  // Includes both reading time unlocks AND bonus drop companions
   unlockedCompanions: Array<{
     id: string;
     name: string;
@@ -65,32 +82,56 @@ export interface SessionResultsData {
     type: 'character' | 'creature' | 'object';
     description: string;
     imageUrl: string | null;
+    source: 'reading_time' | 'bonus_drop'; // How they were unlocked
   }>;
 
   // Loot boxes earned with tiers (for reveal/recap)
+  // Includes V3 boxes AND legacy achievement/reading time boxes
   lootBoxesEarned: Array<{
     id: string;
     tier: 'wood' | 'silver' | 'gold';
-    source: 'level_up' | 'bonus_drop' | 'completion';
+    source: 'level_up' | 'bonus_drop' | 'completion' | 'achievement' | 'reading_time';
   }>;
+
+  // Consumables dropped directly this session (not in loot boxes)
+  droppedConsumables: DroppedConsumable[];
+
+  // Achievement milestones hit this session (streaks, XP milestones, etc.)
+  achievementMilestones: AchievedMilestone[];
+}
+
+/**
+ * Additional data from legacy systems to include in results.
+ */
+export interface LegacyRewardData {
+  // Companions unlocked via reading time milestones
+  readingTimeCompanions: Companion[];
+  // Loot boxes from reading time milestones
+  readingTimeLootBoxes: LootBox[];
+  // Achievement milestones hit and their boxes
+  achievementMilestones: AchievedMilestone[];
+  achievementLootBoxes: LootBox[];
 }
 
 /**
  * Build the complete session results data structure.
+ * Combines V3 session rewards with legacy milestone data.
  */
 export function buildSessionResultsData(
   result: SessionRewardResult,
   sessionSeconds: number,
-  unlockedCompanions: Companion[],
+  legacyData: LegacyRewardData,
   previousStreak: number,
   newStreak: number
 ): SessionResultsData {
-  // Calculate loot box breakdown
+  // Calculate loot box breakdown - include both V3 and legacy boxes
   const lootBoxBreakdown: LootBoxBreakdown = {
-    total: result.lootBoxes.length,
+    total: result.lootBoxes.length + legacyData.readingTimeLootBoxes.length + legacyData.achievementLootBoxes.length,
     levelUp: result.lootBoxes.filter(lb => lb.source === 'level_up').length,
     bonusDrop: result.lootBoxes.filter(lb => lb.source === 'bonus_drop').length,
     completion: result.lootBoxes.filter(lb => lb.source === 'completion').length,
+    achievement: legacyData.achievementLootBoxes.length,
+    readingTime: legacyData.readingTimeLootBoxes.length,
   };
 
   // Build genre level transitions
@@ -110,14 +151,81 @@ export function buildSessionResultsData(
   const xpBoostMultiplier = 1 + result.activeEffects.xpBoost;
   const totalBoostMultiplier = xpBoostMultiplier * result.streakMultiplier;
 
-  // Detect hero events
-  const heroEvents = detectHeroEvents(result, unlockedCompanions, previousStreak, newStreak);
+  // Combine all unlocked companions from all sources
+  const allUnlockedCompanions = [
+    // Reading time unlocks (legacy)
+    ...legacyData.readingTimeCompanions.map(c => ({
+      id: c.id,
+      name: c.name,
+      rarity: c.rarity,
+      type: c.type,
+      description: c.description,
+      imageUrl: c.imageUrl,
+      source: 'reading_time' as const,
+    })),
+    // Bonus drop companions (V3)
+    ...result.bonusDrops
+      .filter((d): d is ProcessedBonusDrop & { companion: Companion } =>
+        d.type === 'companion' && d.companion !== undefined)
+      .map(d => ({
+        id: d.companion.id,
+        name: d.companion.name,
+        rarity: d.companion.rarity,
+        type: d.companion.type,
+        description: d.companion.description,
+        imageUrl: d.companion.imageUrl,
+        source: 'bonus_drop' as const,
+      })),
+  ];
+
+  // Detect hero events with all companions
+  const heroEvents = detectHeroEvents(
+    result,
+    [...legacyData.readingTimeCompanions, ...result.bonusDrops.filter(d => d.type === 'companion').map(d => d.companion!).filter(Boolean)],
+    previousStreak,
+    newStreak
+  );
 
   // Calculate next milestones
   const nextMilestones = calculateNextMilestones(result.updatedBook, result.updatedProgress);
 
   // Get current pity counter
   const pityCounter = result.updatedProgress.goldPityCounter ?? 0;
+
+  // Extract dropped consumables from bonus drops
+  const droppedConsumables: DroppedConsumable[] = result.bonusDrops
+    .filter((d): d is ProcessedBonusDrop & { consumable: ConsumableDefinition } =>
+      d.type === 'consumable' && d.consumable !== undefined)
+    .map(d => ({
+      id: d.consumable.id,
+      name: d.consumable.name,
+      tier: d.consumable.tier,
+      effectType: d.consumable.effectType,
+      description: d.consumable.description,
+      duration: d.consumable.duration,
+    }));
+
+  // Combine all loot boxes earned
+  const allLootBoxes = [
+    // V3 boxes
+    ...result.lootBoxes.map(lb => ({
+      id: lb.id,
+      tier: lb.tier ?? 'wood' as const,
+      source: lb.source as 'level_up' | 'bonus_drop' | 'completion',
+    })),
+    // Reading time milestone boxes (legacy)
+    ...legacyData.readingTimeLootBoxes.map(lb => ({
+      id: lb.id,
+      tier: 'wood' as const, // Legacy boxes don't have tiers
+      source: 'reading_time' as const,
+    })),
+    // Achievement boxes (legacy)
+    ...legacyData.achievementLootBoxes.map(lb => ({
+      id: lb.id,
+      tier: 'wood' as const, // Legacy boxes don't have tiers
+      source: 'achievement' as const,
+    })),
+  ];
 
   return {
     xpGained: result.xpGained,
@@ -156,20 +264,9 @@ export function buildSessionResultsData(
       pityCounter,
     },
 
-    // New fields for reveal/recap
-    unlockedCompanions: unlockedCompanions.map(c => ({
-      id: c.id,
-      name: c.name,
-      rarity: c.rarity,
-      type: c.type,
-      description: c.description,
-      imageUrl: c.imageUrl,
-    })),
-
-    lootBoxesEarned: result.lootBoxes.map(lb => ({
-      id: lb.id,
-      tier: lb.tier ?? 'wood', // Fallback for any legacy boxes
-      source: lb.source,
-    })),
+    unlockedCompanions: allUnlockedCompanions,
+    lootBoxesEarned: allLootBoxes,
+    droppedConsumables,
+    achievementMilestones: legacyData.achievementMilestones,
   };
 }

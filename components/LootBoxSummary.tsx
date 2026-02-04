@@ -8,7 +8,7 @@ import type { LootBoxTier } from '@/lib/types';
 interface LootBoxData {
   id: string;
   tier: LootBoxTier;
-  source: 'level_up' | 'bonus_drop' | 'completion';
+  source: 'level_up' | 'bonus_drop' | 'completion' | 'achievement' | 'reading_time';
 }
 
 interface Props {
