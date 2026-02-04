@@ -9,7 +9,7 @@ import { PITY_HARD_CAP, rollConsumable } from '@/lib/lootV3';
 import { LootBoxReveal } from '@/components/LootBoxReveal';
 import type { Companion, LootBoxV3, LootBoxTier } from '@/lib/shared';
 import { ConsumableDefinition, addActiveConsumable, applyInstantConsumable } from '@/lib/consumables';
-import { maybeGenerateImages } from '@/lib/companionImageQueue';
+import { maybeGenerateImages } from '@/lib/companion';
 import { generateImageForCompanion, debug } from '@/lib/shared';
 import { TintedChest } from '@/components/dungeon/TintedChest';
 

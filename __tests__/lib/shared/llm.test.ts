@@ -1,5 +1,5 @@
 import { buildCompanionPrompt, parseCompanionResponse, buildResearchRequest } from '@/lib/shared';
-import { RESEARCH_SCHEMA } from '@/lib/companionResearch';
+import { RESEARCH_SCHEMA } from '@/lib/companion';
 
 describe('llm', () => {
   it('builds prompt with synopsis', () => {

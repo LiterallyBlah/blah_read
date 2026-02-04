@@ -2,7 +2,7 @@ import {
   buildResearchPrompt,
   parseResearchResponse,
   assignCompanionQueues,
-} from '@/lib/companionResearch';
+} from '@/lib/companion';
 import type { Companion } from '@/lib/shared';
 
 describe('companionResearch', () => {

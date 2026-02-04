@@ -2,7 +2,7 @@ import {
   READING_TIME_MILESTONES,
   checkReadingTimeUnlocks,
   getNextMilestone,
-} from '../../lib/companionUnlock';
+} from '@/lib/companion';
 
 describe('companionUnlock', () => {
   describe('READING_TIME_MILESTONES', () => {

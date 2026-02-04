@@ -25,8 +25,8 @@ import {
   GENRE_DISPLAY_NAMES,
   Genre,
 } from '@/lib/shared';
-import { maybeGenerateImages, shouldGenerateMoreImages } from '@/lib/companionImageQueue';
-import { canEquipCompanion, EFFECT_TYPES, EquipRequirements, CompanionEffect } from '@/lib/companionEffects';
+import { maybeGenerateImages, shouldGenerateMoreImages } from '@/lib/companion';
+import { canEquipCompanion, EFFECT_TYPES, EquipRequirements, CompanionEffect } from '@/lib/companion';
 import { PixelSprite } from '@/components/dungeon';
 import { TintedChest } from '@/components/dungeon/TintedChest';
 

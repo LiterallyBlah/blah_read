@@ -1,5 +1,5 @@
-import type { Book, BookCompanions, Companion } from './shared';
-import { debug } from './shared';
+import type { Book, BookCompanions, Companion } from '../shared';
+import { debug } from '../shared';
 
 /**
  * Buffer sizes for pre-generated images

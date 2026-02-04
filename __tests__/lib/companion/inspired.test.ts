@@ -1,4 +1,4 @@
-import { generateInspiredCompanions, INSPIRED_TEMPLATES } from '@/lib/inspiredCompanions';
+import { generateInspiredCompanions, INSPIRED_TEMPLATES } from '@/lib/companion';
 
 describe('INSPIRED_TEMPLATES', () => {
   it('all templates have physicalDescription', () => {

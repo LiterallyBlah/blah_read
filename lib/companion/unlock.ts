@@ -1,5 +1,5 @@
-import type { Book, BookCompanions, Companion, CompanionRarity, LootBox } from './shared';
-import { debug, generateBatchId } from './shared';
+import type { Book, BookCompanions, Companion, CompanionRarity, LootBox } from '../shared';
+import { debug, generateBatchId } from '../shared';
 
 /**
  * Reading time milestones in seconds (front-loaded)

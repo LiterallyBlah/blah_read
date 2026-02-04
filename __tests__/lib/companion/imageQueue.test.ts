@@ -3,7 +3,7 @@ import {
   shouldGenerateMoreImages,
   READING_TIME_BUFFER,
   POOL_BUFFER,
-} from '@/lib/companionImageQueue';
+} from '@/lib/companion';
 import type { BookCompanions, Companion } from '@/lib/shared';
 
 const createCompanion = (

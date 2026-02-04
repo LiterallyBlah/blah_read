@@ -4,7 +4,7 @@ import {
   BASE_XP_PER_MINUTE,
 } from '@/lib/sessionRewards';
 import { Book, UserProgress, Companion, LootBoxV3, Genre, GENRES } from '@/lib/shared';
-import { CompanionEffect, ActiveEffects } from '@/lib/companionEffects';
+import { CompanionEffect, ActiveEffects } from '@/lib/companion';
 
 // Helper to create a minimal valid book
 function createMockBook(overrides: Partial<Book> = {}): Book {

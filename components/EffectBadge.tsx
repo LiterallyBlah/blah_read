@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme, FONTS } from '@/lib/ui';
-import { CompanionEffect, EffectType } from '@/lib/companionEffects';
+import { CompanionEffect, EffectType } from '@/lib/companion';
 import { GENRE_DISPLAY_NAMES, Genre } from '@/lib/shared';
 
 // Display names for effect types

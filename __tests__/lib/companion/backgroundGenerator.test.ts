@@ -1,8 +1,8 @@
-import { generateCompanionsInBackground } from '@/lib/companionBackgroundGenerator';
+import { generateCompanionsInBackground } from '@/lib/companion';
 import { Book, BookCompanions } from '@/lib/shared';
 
-jest.mock('@/lib/companionOrchestrator');
-jest.mock('@/lib/companionImageQueue');
+jest.mock('@/lib/companion/orchestrator');
+jest.mock('@/lib/companion/imageQueue');
 jest.mock('@/lib/shared/imageGen');
 jest.mock('@/lib/storage');
 jest.mock('@/lib/shared/debug', () => ({
@@ -14,8 +14,8 @@ jest.mock('@/lib/shared/debug', () => ({
   },
 }));
 
-import { orchestrateCompanionResearch } from '@/lib/companionOrchestrator';
-import { generateBufferedImages } from '@/lib/companionImageQueue';
+import { orchestrateCompanionResearch } from '@/lib/companion/orchestrator';
+import { generateBufferedImages } from '@/lib/companion/imageQueue';
 import { settings } from '@/lib/storage';
 
 describe('companionBackgroundGenerator', () => {

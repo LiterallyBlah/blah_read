@@ -4,9 +4,9 @@ import type {
   CompanionRarity,
   CompanionType,
   Genre,
-} from './shared';
-import { generateBatchId } from './shared';
-import { rollCompanionEffects } from './companionEffects';
+} from '../shared';
+import { generateBatchId } from '../shared';
+import { rollCompanionEffects } from './effects';
 
 /**
  * Structured output schema for OpenRouter

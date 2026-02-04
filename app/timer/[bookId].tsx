@@ -19,13 +19,12 @@ import {
   shouldUnlockSlot3,
 } from '@/lib/shared';
 import { backgroundService } from '@/lib/shared/backgroundService';
-import { processReadingSession } from '@/lib/companionUnlock';
+import { processReadingSession, maybeGenerateImages } from '@/lib/companion';
 import { checkLootBoxRewards } from '@/lib/lootBox';
-import { maybeGenerateImages } from '@/lib/companionImageQueue';
 import { FONTS, useTheme } from '@/lib/ui';
 // V3 Reward System imports
 import { processSessionEnd } from '@/lib/sessionRewards';
-import { calculateActiveEffects, ActiveEffects } from '@/lib/companionEffects';
+import { calculateActiveEffects, ActiveEffects } from '@/lib/companion';
 import { getActiveEffects as getConsumableEffects } from '@/lib/consumables';
 import { buildSessionResultsData } from '@/lib/sessionResultsData';
 import { getBookTier, getTierColorKey } from '@/lib/books';

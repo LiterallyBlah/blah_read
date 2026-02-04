@@ -4,10 +4,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { storage, settings } from '@/lib/storage';
 import { enrichBookData } from '@/lib/books';
-import { getNextMilestone } from '@/lib/companionUnlock';
+import { getNextMilestone, generateBufferedImages } from '@/lib/companion';
 import { checkLootBoxRewards } from '@/lib/lootBox';
 import { processSessionEnd } from '@/lib/sessionRewards';
-import { generateBufferedImages } from '@/lib/companionImageQueue';
 import {
   generateImageForCompanion,
   Book,
@@ -22,9 +21,8 @@ import {
   isSlotUnlocked,
 } from '@/lib/shared';
 import { FONTS, useTheme } from '@/lib/ui';
-import { generateCompanionsInBackground } from '@/lib/companionBackgroundGenerator';
+import { generateCompanionsInBackground, BOOK_LEVEL_REQUIREMENTS } from '@/lib/companion';
 import { getBookTier, getTierColorKey, getTierGlow, SECONDS_PER_LEVEL } from '@/lib/books';
-import { BOOK_LEVEL_REQUIREMENTS } from '@/lib/companionEffects';
 import { EffectBadgeList } from '@/components/EffectBadge';
 import { ReadingMilestones } from '@/components/Milestones';
 

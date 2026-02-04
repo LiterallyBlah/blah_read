@@ -18,8 +18,7 @@ import {
   LootBoxTier,
   Companion,
 } from '@/lib/shared';
-import { backfillAllCompanionEffects } from '@/lib/companionEffects';
-import { generateBufferedImages } from '@/lib/companionImageQueue';
+import { backfillAllCompanionEffects, generateBufferedImages } from '@/lib/companion';
 import { consolidateActiveConsumables } from '@/lib/consumables';
 
 type ApiStatus = 'not set' | 'testing' | 'connected' | 'invalid';

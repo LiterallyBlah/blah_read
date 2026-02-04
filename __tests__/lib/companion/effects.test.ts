@@ -1,4 +1,4 @@
-// __tests__/lib/companionEffects.test.ts
+// __tests__/lib/companion/effects.test.ts
 import {
   EFFECT_TYPES,
   calculateEffectMagnitude,
@@ -10,7 +10,7 @@ import {
   ActiveEffects,
   rollCompanionEffects,
   backfillAllCompanionEffects,
-} from '../../lib/companionEffects';
+} from '@/lib/companion';
 import { Companion } from '@/lib/shared';
 
 describe('companionEffects', () => {

@@ -1,5 +1,5 @@
-import type { Companion, CompanionType, CompanionRarity } from './shared';
-import { generateBatchId } from './shared';
+import type { Companion, CompanionType, CompanionRarity } from '../shared';
+import { generateBatchId } from '../shared';
 
 /**
  * Template for generating inspired companions when LLM research fails

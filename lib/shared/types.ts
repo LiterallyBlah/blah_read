@@ -1,5 +1,5 @@
 import { Genre } from './genres';
-import { CompanionEffect } from '../companionEffects';
+import { CompanionEffect } from '../companion';
 
 export type BookStatus = 'to_read' | 'reading' | 'finished';
 

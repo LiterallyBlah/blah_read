@@ -20,7 +20,7 @@ jest.mock('@/lib/storage', () => ({
   },
 }));
 
-import { orchestrateCompanionResearch, shouldRunCompanionResearch } from '@/lib/companionOrchestrator';
+import { orchestrateCompanionResearch, shouldRunCompanionResearch } from '@/lib/companion';
 import { settings } from '@/lib/storage';
 
 // Re-assign for convenience in tests
