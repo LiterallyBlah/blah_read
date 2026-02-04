@@ -1,4 +1,5 @@
-import { RESEARCH_SCHEMA, type ResearchResponse } from '../companion';
+// Direct import to avoid circular dependency through barrel export
+import { RESEARCH_SCHEMA, type ResearchResponse } from '../companion/research';
 
 // OpenRouter API configuration
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';

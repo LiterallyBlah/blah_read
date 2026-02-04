@@ -1,5 +1,6 @@
 import { Genre } from './genres';
-import { CompanionEffect } from '../companion';
+// Direct import to avoid circular dependency through barrel export
+import { CompanionEffect } from '../companion/effects';
 
 export type BookStatus = 'to_read' | 'reading' | 'finished';
 

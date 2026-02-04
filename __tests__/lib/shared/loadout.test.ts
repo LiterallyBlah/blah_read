@@ -11,9 +11,10 @@ import {
   CompanionLoadout,
   Book,
 } from '@/lib/shared';
-import { storage } from '@/lib/storage';
+import { storage } from '@/lib/storage/storage';
 
-jest.mock('@/lib/storage');
+// Mock the direct import path used by loadout.ts
+jest.mock('@/lib/storage/storage');
 
 describe('createDefaultLoadout', () => {
   it('should create loadout with 1 unlocked slot', () => {

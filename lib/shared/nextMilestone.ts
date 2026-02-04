@@ -6,8 +6,9 @@
 
 import { Book, UserProgress, GenreLevels } from './types';
 import { Genre } from './genres';
-import { SECONDS_PER_LEVEL } from '../books';
-import { READING_TIME_MILESTONES, getNextMilestone } from '../companion';
+// Direct imports to avoid circular dependency through barrel exports
+import { SECONDS_PER_LEVEL } from '../books/leveling';
+import { READING_TIME_MILESTONES, getNextMilestone } from '../companion/unlock';
 
 export type MilestoneType = 'book_level' | 'companion_unlock' | 'genre_rarity';
 export type MilestoneReward = 'loot_box' | 'companion' | 'rarity_unlock';

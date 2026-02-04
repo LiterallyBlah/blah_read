@@ -63,7 +63,11 @@
       "Bash(git -C /mnt/c/Users/micha/Projects/blah_read diff components/SessionResultsScreen.tsx)",
       "Bash(npx expo doctor:*)",
       "Bash(npx expo export:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(xargs:*)",
+      "Bash(echo \"=== lootBox.ts usage \\(OLD V2 system\\) ===\" grep -r \"from.*lootBox[''\"\"]\" /mnt/c/Users/micha/Projects/blah_read --include=\"*.ts\" --include=\"*.tsx\")",
+      "Bash(git -C /mnt/c/Users/micha/Projects/blah_read diff)",
+      "Bash(git -C /mnt/c/Users/micha/Projects/blah_read commit -m \"$\\(cat <<''EOF''\nchore: remove deprecated loot.ts and companionGenerator.ts\n\n- Inline loot functions into manual-entry.tsx \\(only consumer\\)\n- Delete lib/loot.ts and its test\n- Delete lib/companionGenerator.ts \\(zero imports, marked @deprecated\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }

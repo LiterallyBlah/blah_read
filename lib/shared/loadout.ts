@@ -1,5 +1,6 @@
 import { CompanionLoadout, Book } from './types';
-import { storage } from '../storage';
+// Direct import to avoid circular dependency through barrel export
+import { storage } from '../storage/storage';
 import { debug } from './debug';
 
 /**
