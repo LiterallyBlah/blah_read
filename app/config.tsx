@@ -20,7 +20,7 @@ import {
 } from '@/lib/shared';
 import { backfillAllCompanionEffects } from '@/lib/companionEffects';
 import { generateBufferedImages } from '@/lib/companionImageQueue';
-import { consolidateActiveConsumables } from '@/lib/consumableManager';
+import { consolidateActiveConsumables } from '@/lib/consumables';
 import { FONTS } from '@/lib/theme';
 
 type ApiStatus = 'not set' | 'testing' | 'connected' | 'invalid';

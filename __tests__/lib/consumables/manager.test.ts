@@ -1,13 +1,14 @@
 import { ActiveConsumable } from '@/lib/shared';
-import { CONSUMABLES, getConsumableById } from '@/lib/consumables';
 import {
+  CONSUMABLES,
+  getConsumableById,
   ConsumableEffects,
   addActiveConsumable,
   getActiveEffects,
   tickConsumables,
   removeUsedConsumable,
   consolidateActiveConsumables,
-} from '@/lib/consumableManager';
+} from '@/lib/consumables';
 
 describe('addActiveConsumable', () => {
   it('should add new consumable to active list', () => {

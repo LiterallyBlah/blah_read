@@ -1,5 +1,5 @@
-import { ActiveConsumable } from './shared';
-import { ConsumableDefinition, getConsumableById } from './consumables';
+import { ActiveConsumable } from '../shared';
+import { ConsumableDefinition, getConsumableById } from './definitions';
 
 export interface ConsumableEffects {
   xpBoost: number;

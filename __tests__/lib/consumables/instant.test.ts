@@ -1,9 +1,9 @@
 import { UserProgress } from '@/lib/shared';
-import { ConsumableDefinition } from '@/lib/consumables';
 import {
+  ConsumableDefinition,
   applyInstantConsumable,
   STREAK_SHIELD_HOURS,
-} from '@/lib/instantConsumables';
+} from '@/lib/consumables';
 
 // Helper to create minimal UserProgress
 function createProgress(overrides: Partial<UserProgress> = {}): UserProgress {

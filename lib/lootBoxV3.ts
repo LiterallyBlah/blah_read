@@ -1,6 +1,6 @@
 import { LootBoxV3, LootBoxTier, UserProgress, Companion, Genre } from './shared';
 import { calculateActiveEffects } from './companionEffects';
-import { getActiveEffects as getConsumableEffects } from './consumableManager';
+import { getActiveEffects as getConsumableEffects } from './consumables';
 import { rollBoxTierWithPity, rollLootForTier, LootResult, rollCompanionRarity } from './lootV3';
 
 export interface OpenLootBoxResult {

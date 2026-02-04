@@ -1,5 +1,5 @@
-import { UserProgress } from './shared';
-import { ConsumableDefinition, ConsumableTier } from './consumables';
+import { UserProgress } from '../shared';
+import { ConsumableDefinition, ConsumableTier } from './definitions';
 
 /**
  * Hours of streak protection by consumable tier.

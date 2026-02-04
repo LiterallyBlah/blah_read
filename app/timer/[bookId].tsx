@@ -27,7 +27,7 @@ import { useTheme } from '@/lib/ThemeContext';
 // V3 Reward System imports
 import { processSessionEnd } from '@/lib/sessionRewards';
 import { calculateActiveEffects, ActiveEffects } from '@/lib/companionEffects';
-import { getActiveEffects as getConsumableEffects } from '@/lib/consumableManager';
+import { getActiveEffects as getConsumableEffects } from '@/lib/consumables';
 import { buildSessionResultsData } from '@/lib/sessionResultsData';
 import { getBookTier, getTierColorKey } from '@/lib/bookTier';
 
