@@ -1,10 +1,26 @@
 import { Genre } from './genres';
-// Direct import to avoid circular dependency through barrel export
-import { CompanionEffect } from '../companion/effects';
 
 export type BookStatus = 'to_read' | 'reading' | 'finished';
 
 export type CompanionRarity = 'common' | 'rare' | 'legendary';
+
+// Effect types - defined here to avoid circular dependency with companion/effects.ts
+export const EFFECT_TYPES = [
+  'xp_boost',
+  'luck',           // reduces wood chance
+  'rare_luck',      // increases silver share of non-wood
+  'legendary_luck', // increases gold share of non-wood
+  'drop_rate_boost',
+  'completion_bonus',
+] as const;
+
+export type EffectType = typeof EFFECT_TYPES[number];
+
+export interface CompanionEffect {
+  type: EffectType;
+  magnitude: number; // 0.05 = 5%, 0.30 = 30%
+  targetGenre?: Genre; // undefined = global
+}
 export type CompanionType = 'character' | 'creature' | 'object';
 export type CompanionSource = 'discovered' | 'inspired';
 export type CompanionUnlockMethod = 'reading_time' | 'loot_box' | 'book_completion';

@@ -1,5 +1,6 @@
 import type { Book, BookCompanions, Companion, Genre } from '../shared';
-import { debug, setDebugEnabled, executeCompanionResearch } from '../shared';
+import { debug, setDebugEnabled } from '../shared';
+import { executeCompanionResearch } from '../shared/llm';
 import { settings } from '../storage';
 import {
   buildResearchPrompt,

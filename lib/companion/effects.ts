@@ -1,22 +1,15 @@
 // lib/companion/effects.ts
-import { CompanionRarity, Companion, Genre } from '../shared';
+import {
+  CompanionRarity,
+  Companion,
+  Genre,
+  EFFECT_TYPES,
+  EffectType,
+  CompanionEffect,
+} from '../shared';
 
-export const EFFECT_TYPES = [
-  'xp_boost',
-  'luck',           // was luck_boost - reduces wood chance
-  'rare_luck',      // NEW - increases silver share of non-wood
-  'legendary_luck', // NEW - increases gold share of non-wood
-  'drop_rate_boost',
-  'completion_bonus',
-] as const;
-
-export type EffectType = typeof EFFECT_TYPES[number];
-
-export interface CompanionEffect {
-  type: EffectType;
-  magnitude: number; // 0.05 = 5%, 0.30 = 30%
-  targetGenre?: Genre; // undefined = global
-}
+// Re-export for backwards compatibility
+export { EFFECT_TYPES, EffectType, CompanionEffect };
 
 // Global effects (apply to all books) - lower magnitudes
 const GLOBAL_EFFECT_MAGNITUDES: Record<CompanionRarity, { min: number; max: number }> = {

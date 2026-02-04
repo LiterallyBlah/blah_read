@@ -8,8 +8,6 @@ export * from './debug';
 export * from './idGenerator';
 export * from './streak';
 export * from './slotProgress';
-export * from './nextMilestone';
-export * from './loadout';
 
 // Image generation
 export * from './imageGen';
@@ -17,8 +15,11 @@ export * from './imageStorage';
 export * from './imagePromptBuilder';
 
 // LLM
-export * from './llm';
 export * from './openrouter';
 
-// Note: backgroundService.ts is NOT exported from barrel due to React Native dependencies
-// Import it directly: import { ... } from '@/lib/shared/backgroundService'
+// Note: The following files are NOT exported from barrel to avoid circular dependencies.
+// Import them directly when needed:
+//   - nextMilestone: import { ... } from '@/lib/shared/nextMilestone'
+//   - loadout: import { ... } from '@/lib/shared/loadout'
+//   - llm: import { ... } from '@/lib/shared/llm'
+//   - backgroundService: import { ... } from '@/lib/shared/backgroundService'

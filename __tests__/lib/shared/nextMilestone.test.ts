@@ -1,11 +1,5 @@
-import {
-  NextMilestone,
-  calculateNextMilestones,
-  Book,
-  UserProgress,
-  Genre,
-  GENRES,
-} from '@/lib/shared';
+import { NextMilestone, calculateNextMilestones } from '@/lib/shared/nextMilestone';
+import { Book, UserProgress, Genre, GENRES } from '@/lib/shared';
 
 function createMockBook(overrides: Partial<Book> = {}): Book {
   return {

@@ -15,6 +15,10 @@ import {
   UserProgress,
   LootBoxV3,
   LootBoxTier,
+  GENRE_DISPLAY_NAMES,
+  Genre,
+} from '@/lib/shared';
+import {
   equipCompanion,
   unequipCompanion,
   getEquippedCompanionIds,
@@ -22,9 +26,7 @@ import {
   equipCompanionToBook,
   unequipCompanionFromBook,
   getBookLoadout,
-  GENRE_DISPLAY_NAMES,
-  Genre,
-} from '@/lib/shared';
+} from '@/lib/shared/loadout';
 import { maybeGenerateImages, shouldGenerateMoreImages } from '@/lib/companion';
 import { canEquipCompanion, EFFECT_TYPES, EquipRequirements, CompanionEffect } from '@/lib/companion';
 import { PixelSprite } from '@/components/dungeon';

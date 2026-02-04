@@ -1,14 +1,10 @@
 // Mock needs to be at top level for Jest hoisting
 const mockExecuteCompanionResearch = jest.fn();
 
-jest.mock('@/lib/shared', () => {
-  const actual = jest.requireActual('@/lib/shared');
-  return {
-    __esModule: true,
-    ...actual,
-    executeCompanionResearch: mockExecuteCompanionResearch,
-  };
-});
+// Mock the direct import path used by orchestrator.ts
+jest.mock('@/lib/shared/llm', () => ({
+  executeCompanionResearch: mockExecuteCompanionResearch,
+}));
 
 jest.mock('@/lib/storage', () => ({
   settings: {

@@ -5,12 +5,12 @@ import {
   type Companion,
   type CompanionLoadout,
   type SlotUnlockProgress,
-  isSlotUnlocked,
   calculateSlot2Progress,
   calculateSlot3Progress,
   SLOT_2_POINTS,
   SLOT_3_POINTS,
 } from '@/lib/shared';
+import { isSlotUnlocked } from '@/lib/shared/loadout';
 
 export interface LoadoutManagerProps {
   loadout: CompanionLoadout;

@@ -16,9 +16,8 @@ import {
   Genre,
   GENRE_DISPLAY_NAMES,
   detectBookGenres,
-  getBookLoadout,
-  isSlotUnlocked,
 } from '@/lib/shared';
+import { getBookLoadout, isSlotUnlocked } from '@/lib/shared/loadout';
 import { FONTS, useTheme } from '@/lib/ui';
 import { generateCompanionsInBackground, BOOK_LEVEL_REQUIREMENTS } from '@/lib/companion';
 import { getBookTier, getTierColorKey, getTierGlow, SECONDS_PER_LEVEL } from '@/lib/books';

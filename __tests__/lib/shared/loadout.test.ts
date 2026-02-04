@@ -8,9 +8,8 @@ import {
   equipCompanionToBook,
   unequipCompanionFromBook,
   getBookEquippedCompanionIds,
-  CompanionLoadout,
-  Book,
-} from '@/lib/shared';
+} from '@/lib/shared/loadout';
+import { CompanionLoadout, Book } from '@/lib/shared';
 import { storage } from '@/lib/storage/storage';
 
 // Mock the direct import path used by loadout.ts

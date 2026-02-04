@@ -14,10 +14,10 @@ import {
   generateImageForCompanion,
   debug,
   setDebugEnabled,
-  getEquippedCompanionIds,
   shouldUnlockSlot2,
   shouldUnlockSlot3,
 } from '@/lib/shared';
+import { getEquippedCompanionIds } from '@/lib/shared/loadout';
 import { backgroundService } from '@/lib/shared/backgroundService';
 import { processReadingSession, maybeGenerateImages, calculateActiveEffects, ActiveEffects } from '@/lib/companion';
 import { FONTS, useTheme } from '@/lib/ui';

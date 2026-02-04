@@ -1,6 +1,7 @@
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
-import { Book, Companion, getBookLoadout, isSlotUnlocked } from '@/lib/shared';
+import { Book, Companion } from '@/lib/shared';
+import { getBookLoadout, isSlotUnlocked } from '@/lib/shared/loadout';
 import { FONTS, useTheme } from '@/lib/ui';
 import { getBookTier, getTierColorKey, getTierGlow } from '@/lib/books';
 

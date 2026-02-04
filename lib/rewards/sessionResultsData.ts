@@ -5,7 +5,8 @@
  */
 
 import { SessionRewardResult, ProcessedBonusDrop } from './sessionRewards';
-import { Companion, LootBox, NextMilestone, calculateNextMilestones } from '../shared';
+import { Companion, LootBox } from '../shared';
+import { NextMilestone, calculateNextMilestones } from '../shared/nextMilestone';
 import { HeroEvent, detectHeroEvents } from '../ui/heroEvents';
 import { AchievedMilestone } from './lootBox';
 import { ConsumableDefinition, ConsumableEffectType, ConsumableTier } from '../consumables';
